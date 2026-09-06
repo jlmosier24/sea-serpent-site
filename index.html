@@ -69,7 +69,10 @@
     .meet-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
     .meet-date { background: var(--gold); color: var(--deep); font-weight: 700; font-size: 0.8rem; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
     .meet-title { font-size: 1.1rem; font-weight: 700; margin: 10px 0 4px; }
-    .meet-score { font-size: 0.92rem; font-weight: 700; color: var(--teal-dark); margin: 0 0 6px; }
+    .meet-score { font-size: 0.92rem; margin: 8px 0 6px; }
+    .meet-score-row { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--sub); }
+    .meet-score-row.meet-score-winner { font-weight: 700; color: var(--teal-dark); }
+    .meet-score-row.meet-score-winner svg { flex-shrink: 0; }
     .meet-meta { color: var(--sub); font-size: 0.88rem; display: flex; flex-wrap: wrap; gap: 4px 16px; }
     .past-badge { color: var(--sub); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
     .results-toggle { background: none; border: none; color: var(--teal-dark); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 10px 0 0; }
@@ -320,6 +323,32 @@ async function loadSchedulePreview() {
         const past = pastWithResults.length ? pastWithResults : pastCandidates.slice(0, 1);
         const preview = [...past, ...upcoming];
 
+        // Same trophy glyph as stats.html's highlight tiles (HIGHLIGHT_ICONS.trophy),
+        // kept as a hand-rolled inline SVG rather than an emoji for a consistent
+        // look across browsers/platforms.
+        const TROPHY_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 01-8 0V4z"/><path d="M8 5H6a2 2 0 000 4h1"/><path d="M16 5h2a2 2 0 010 4h-1"/><path d="M12 12v3M9 19h6M10 15h4v4h-4z"/></svg>';
+
+        // Shortened just for these scoreboard rows, to read as cleanly as
+        // "Spotswood" does alone -- its own mascot ("Sea Serpents") is
+        // dropped the same way everywhere on this site. The full name (as
+        // it appears in the results PDF) still drives parsing/scoring, and
+        // still shows in full in the meet title and everywhere else.
+        const SCORE_DISPLAY_NAMES = { 'Fawn Lake Fliers': 'Fawn Lake' };
+
+        function renderMeetScore(m) {
+            if (m.teamScore == null || m.opponentScore == null) return '';
+            const us = { name: 'Spotswood', pts: m.teamScore };
+            const them = { name: SCORE_DISPLAY_NAMES[m.opponent] || m.opponent, pts: m.opponentScore };
+            // A tie has no winner -- keep the default (us-first) order and skip the trophy on both.
+            const winner = m.teamScore > m.opponentScore ? us : (m.opponentScore > m.teamScore ? them : null);
+            const [first, second] = winner === them ? [them, us] : [us, them];
+            const row = t => `
+                <div class="meet-score-row${t === winner ? ' meet-score-winner' : ''}">
+                    <span class="meet-score-team">${escapeHtml(t.name)}</span><span class="meet-score-pts">${t.pts}</span>${t === winner ? TROPHY_SVG : ''}
+                </div>`;
+            return `<div class="meet-score">${row(first)}${row(second)}</div>`;
+        }
+
         function renderMeetCard(m) {
             const d = resultsByMeetId[m.id];
             const hasResults = d && (d.individual.length > 0 || d.relays.length > 0);
@@ -327,10 +356,10 @@ async function loadSchedulePreview() {
             <li class="meet-card">
                 <div class="meet-top">
                     <span class="meet-date">${fmtDate(m.date)}</span>
-                    ${m.date < today ? '<span class="past-badge">Past</span>' : ''}
+                    ${m.date < today && m.teamScore == null ? '<span class="past-badge">Past</span>' : ''}
                 </div>
                 <div class="meet-title">${escapeHtml(m.title)}</div>
-                ${m.teamScore != null && m.opponentScore != null ? `<div class="meet-score">Spotswood ${m.teamScore} &ndash; ${escapeHtml(m.opponent)} ${m.opponentScore}</div>` : ''}
+                ${renderMeetScore(m)}
                 <div class="meet-meta">
                     ${m.time ? `<span>${escapeHtml(timeToClock(m.time))}</span>` : ''}
                     ${m.placeName ? `<span>${escapeHtml(m.placeName)}</span>` : ''}
