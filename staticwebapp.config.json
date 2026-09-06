@@ -1,0 +1,28 @@
+{
+  "routes": [
+    { "route": "/admin", "allowedRoles": ["administrator"] },
+    { "route": "/admin.html", "allowedRoles": ["administrator"] },
+    { "route": "/api/manageMeetsList", "allowedRoles": ["administrator"] },
+    { "route": "/api/manageMeetsSave", "allowedRoles": ["administrator"] },
+    { "route": "/api/manageMeetsDelete", "allowedRoles": ["administrator"] },
+    { "route": "/api/geocodeAddress", "allowedRoles": ["administrator"] },
+    { "route": "/api/manageGalleryList", "allowedRoles": ["administrator"] },
+    { "route": "/api/manageGalleryApprove", "allowedRoles": ["administrator"] },
+    { "route": "/api/manageGalleryReject", "allowedRoles": ["administrator"] },
+    { "route": "/api/importMeetResultsPreview", "allowedRoles": ["administrator"] },
+    { "route": "/api/importMeetResultsCommit", "allowedRoles": ["administrator"] }
+  ],
+  "responseOverrides": {
+    "401": {
+      "redirect": "/.auth/login/aad?post_login_redirect_uri=.referrer",
+      "statusCode": 302
+    }
+  },
+  "globalHeaders": {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.blob.core.windows.net; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(), camera=(), microphone=()"
+  }
+}

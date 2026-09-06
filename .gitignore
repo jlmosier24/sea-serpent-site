@@ -1,0 +1,7 @@
+.claude/
+.devserver.ps1
+node_modules/
+
+# Local-only fixture data for previewing pages without Azure -- real kids'
+# names/times, never meant for source control. See api/scripts/buildSampleData.js.
+sample-data/

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery | Spotswood Sea Serpents</title>
+<meta name="description" content="Team photos for the Spotswood Sea Serpents summer swim team. Share your own -- it goes live after a quick coach review.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --deep: #17261A; --navy: #2D6B34; --teal: #2F8F3E; --teal-dark: #1F6B2B;
+        --coral: #C1442E; --gold: #F0B429; --gold-dark: #D19B1F; --foam: #F6F8E7; --paper: #FFFFFF; --sub: #5B6B57; --line: rgba(22,38,27,0.12);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #FFFFFF 0%, var(--foam) 60%, #EAF0D6 100%) no-repeat; font-family: 'Inter', sans-serif; color: var(--deep); }
+    h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
+    .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
+    .brand-mark { width: 26px; height: 26px; }
+    .brand-name { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
+    .nav-links { display: flex; gap: 28px; font-size: 0.88rem; font-weight: 600; }
+    .nav-links a { color: var(--deep); text-decoration: none; }
+    .nav-links a:hover, .nav-links a.active { color: var(--teal-dark); }
+    .nav-toggle { display: none; background: none; border: none; padding: 4px; color: var(--deep); cursor: pointer; }
+    @media (max-width: 720px) {
+        .nav-links { position: absolute; top: 68px; left: 0; right: 0; background: var(--paper); flex-direction: column; gap: 0; padding: 8px 24px 16px; box-shadow: 0 12px 24px rgba(7,44,63,0.1); display: none; }
+        .nav-links.open { display: flex; }
+        .nav-links a { padding: 10px 0; border-bottom: 1px solid var(--line); }
+        .nav-toggle { display: block; }
+    }
+
+    main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
+    h1 { font-size: 2rem; margin: 8px 0 4px; }
+    .lede { color: var(--sub); margin: 0; max-width: 520px; }
+
+    .gallery-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+    .upload-inline { display: flex; align-items: center; gap: 6px; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 6px 6px 6px 18px; flex-shrink: 0; margin-top: 4px; }
+    .upload-inline input[type="file"] { display: none; }
+    .upload-label { font-size: 0.85rem; color: var(--sub); cursor: pointer; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+    .upload-inline .btn { padding: 9px 18px; font-size: 0.82rem; white-space: nowrap; }
+    .form-msg { font-size: 0.82rem; margin: 8px 0 20px; text-align: right; }
+    .form-msg.success { color: var(--teal-dark); }
+    .form-msg.error { color: var(--coral); }
+    @media (max-width: 600px) {
+        .gallery-header { flex-direction: column; align-items: stretch; }
+        .upload-inline { justify-content: space-between; }
+        .upload-label { max-width: none; flex: 1; }
+        .form-msg { text-align: left; }
+    }
+
+    .btn { display: inline-block; padding: 12px 24px; border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 0.95rem; border: none; cursor: pointer; }
+    .btn-primary { background: var(--teal); color: var(--paper); }
+    .btn-primary:hover { background: var(--teal-dark); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .photo { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+    .photo img { width: 100%; height: 200px; object-fit: cover; display: block; }
+    .photo .caption { padding: 10px 14px; font-size: 0.85rem; color: var(--sub); }
+    .photo .caption strong { color: var(--deep); }
+
+    .empty, .loading { color: var(--sub); text-align: center; padding: 40px 0; }
+    footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<nav>
+    <a class="brand" href="/">
+        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--teal)" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M4 20c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--deep)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.35"/></svg>
+        <span class="brand-name">Spotswood Sea Serpents</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="document.querySelector('.nav-links').classList.toggle('open'); this.setAttribute('aria-expanded', document.querySelector('.nav-links').classList.contains('open'))">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/schedule.html">Schedule</a>
+        <a href="/gallery.html" class="active">Gallery</a>
+        <a href="/stats.html">Stats</a>
+    </div>
+</nav>
+<main>
+    <div class="gallery-header">
+        <div>
+            <h1>Team Gallery</h1>
+            <p class="lede">Photos from meets and practices. Anyone can add one -- it's reviewed before going live.</p>
+        </div>
+        <form class="upload-inline" id="uploadForm">
+            <label class="upload-label" for="photoFile" id="fileLabel">Share a photo</label>
+            <input type="file" id="photoFile" accept="image/*">
+            <button type="submit" class="btn btn-primary" id="submitBtn">Upload</button>
+        </form>
+    </div>
+    <p class="form-msg" id="formMsg"></p>
+
+    <div id="content"><p class="loading">Loading photos…</p></div>
+</main>
+<footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
+<script>
+const MAX_BYTES = 8 * 1024 * 1024;
+
+// Captions/names are free text from anonymous public submissions -- must be
+// escaped before landing in innerHTML anywhere on this page.
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+const fileInput = document.getElementById('photoFile');
+const fileLabel = document.getElementById('fileLabel');
+fileInput.addEventListener('change', () => {
+    fileLabel.textContent = fileInput.files[0] ? fileInput.files[0].name : 'Share a photo';
+});
+
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('formMsg');
+    const btn = document.getElementById('submitBtn');
+    const file = fileInput.files[0];
+
+    msg.textContent = '';
+    msg.className = 'form-msg';
+
+    if (!file) { msg.textContent = 'Choose a photo first.'; msg.className = 'form-msg error'; return; }
+    if (!file.type.startsWith('image/')) { msg.textContent = 'That file isn\'t an image.'; msg.className = 'form-msg error'; return; }
+    if (file.size > MAX_BYTES) { msg.textContent = 'Photo must be under 8MB.'; msg.className = 'form-msg error'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Uploading…';
+    try {
+        const dataBase64 = await fileToBase64(file);
+        const res = await fetch('/api/uploadGalleryPhoto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: file.name, contentType: file.type, dataBase64 })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        msg.textContent = 'Thanks! Submitted for review.';
+        msg.className = 'form-msg success';
+        document.getElementById('uploadForm').reset();
+        fileLabel.textContent = 'Share a photo';
+    } catch (err) {
+        msg.textContent = 'Something went wrong -- please try again.';
+        msg.className = 'form-msg error';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Upload';
+    }
+});
+
+(async function () {
+    const content = document.getElementById('content');
+    try {
+        const res = await fetch('/api/galleryPublic');
+        const photos = await res.json();
+        if (!photos.length) {
+            content.innerHTML = '<p class="empty">No photos yet -- be the first to share one!</p>';
+            return;
+        }
+        content.innerHTML = `<div class="photo-grid">${photos.map(p => `
+            <div class="photo">
+                <img src="${escapeHtml(p.url)}" alt="${escapeHtml(p.caption || 'Team photo')}" loading="lazy">
+                ${p.caption || p.submittedBy ? `<div class="caption">${p.caption ? escapeHtml(p.caption) : ''}${p.submittedBy ? ` <strong>— ${escapeHtml(p.submittedBy)}</strong>` : ''}</div>` : ''}
+            </div>
+        `).join('')}</div>`;
+    } catch (e) {
+        content.innerHTML = '<p class="empty">Couldn\'t load the gallery right now.</p>';
+    }
+})();
+</script>
+</body>
+</html>

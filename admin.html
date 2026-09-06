@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin | Spotswood Sea Serpents</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --deep: #17261A; --navy: #2D6B34; --teal: #2F8F3E; --teal-dark: #1F6B2B;
+        --coral: #C1442E; --gold: #F0B429; --gold-dark: #D19B1F; --foam: #F6F8E7; --paper: #FFFFFF; --sub: #5B6B57; --line: rgba(22,38,27,0.12);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    body { margin: 0; min-height: 100vh; background: var(--foam); font-family: 'Inter', sans-serif; color: var(--deep); }
+    h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
+    .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
+    .brand-mark { width: 26px; height: 26px; }
+    .brand-name { font-weight: 800; font-size: 1.1rem; }
+
+    main { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+    h1 { font-size: 1.6rem; margin: 8px 0 20px; }
+
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+    .tab-btn { background: none; border: none; padding: 12px 18px; font-family: inherit; font-size: 0.92rem; font-weight: 600; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; }
+    .tab-btn.active { color: var(--teal-dark); border-color: var(--teal); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; margin-bottom: 20px; }
+    .panel h2 { margin: 0 0 16px; font-size: 1.1rem; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+    label { font-size: 0.8rem; font-weight: 600; color: var(--navy); display: block; margin-bottom: 4px; }
+    input[type="text"], input[type="date"], input[type="time"], input[type="file"], select, textarea {
+        width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; font-family: inherit; font-size: 0.9rem; background: var(--paper); color: var(--deep);
+    }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; }
+    .checkbox-row input { width: auto; }
+
+    .btn { display: inline-block; padding: 10px 20px; border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 0.88rem; border: none; cursor: pointer; }
+    .btn-primary { background: var(--teal); color: var(--paper); }
+    .btn-primary:hover { background: var(--teal-dark); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-ghost { background: var(--paper); color: var(--deep); border: 1px solid var(--line); }
+    .btn-danger { background: #fff; color: var(--coral); border: 1px solid #f0c9c0; }
+    .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+
+    .addr-suggestions { border: 1px solid var(--line); border-radius: 10px; margin-top: 6px; overflow: hidden; }
+    .addr-suggestions button { display: block; width: 100%; text-align: left; padding: 8px 12px; background: var(--paper); border: none; border-bottom: 1px solid var(--line); font-size: 0.85rem; cursor: pointer; }
+    .addr-suggestions button:last-child { border-bottom: none; }
+    .addr-suggestions button:hover { background: var(--foam); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--sub); font-weight: 600; }
+    .row-actions { display: flex; gap: 6px; }
+
+    .msg { font-size: 0.85rem; margin-top: 10px; }
+    .msg.success { color: var(--teal-dark); }
+    .msg.error { color: var(--coral); }
+    .muted { color: var(--sub); font-size: 0.85rem; }
+    .thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
+    .warn-box { background: #FFF6EC; border: 1px solid #F3D9B1; border-radius: 10px; padding: 10px 14px; font-size: 0.82rem; color: #8A5A1F; margin-top: 12px; max-height: 160px; overflow: auto; }
+</style>
+</head>
+<body>
+<nav>
+    <a class="brand" href="/">
+        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--teal)" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+        <span class="brand-name">Sea Serpents Admin</span>
+    </a>
+</nav>
+<main>
+    <h1>Team Admin</h1>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="meets">Meets</button>
+        <button class="tab-btn" data-tab="gallery">Gallery</button>
+        <button class="tab-btn" data-tab="import">Import Results</button>
+    </div>
+
+    <!-- MEETS -->
+    <section class="tab-panel active" id="tab-meets">
+        <div class="panel">
+            <h2 id="meetFormTitle">Add a meet</h2>
+            <form id="meetForm">
+                <input type="hidden" id="meetId">
+                <div class="form-grid">
+                    <div><label for="meetOpponent">Opponent</label><input type="text" id="meetOpponent" placeholder="Fawn Lake Fliers"></div>
+                    <div><label for="meetTitleField">Title</label><input type="text" id="meetTitleField" placeholder="vs. Fawn Lake Fliers" required></div>
+                    <div><label for="meetDate">Date</label><input type="date" id="meetDate" required></div>
+                    <div><label for="meetTime">Time</label><input type="time" id="meetTime"></div>
+                    <div class="full">
+                        <label for="meetAddress">Address</label>
+                        <input type="text" id="meetAddress" placeholder="Start typing an address…">
+                        <div class="addr-suggestions" id="addrSuggestions" hidden></div>
+                    </div>
+                    <div><label for="meetPlaceName">Venue name</label><input type="text" id="meetPlaceName"></div>
+                    <div class="checkbox-row full"><input type="checkbox" id="meetHidden"><label for="meetHidden" style="margin:0;">Hidden from public schedule</label></div>
+                    <div class="full">
+                        <button type="submit" class="btn btn-primary" id="meetSaveBtn">Save meet</button>
+                        <button type="button" class="btn btn-ghost" id="meetCancelBtn" hidden>Cancel edit</button>
+                        <span class="msg" id="meetFormMsg"></span>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="panel">
+            <h2>All meets</h2>
+            <table id="meetsTable"><thead><tr><th>Date</th><th>Title</th><th>Location</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
+        </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section class="tab-panel" id="tab-gallery">
+        <div class="panel">
+            <h2>Pending review</h2>
+            <table id="pendingTable"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
+        </div>
+        <div class="panel">
+            <h2>Approved</h2>
+            <table id="approvedTable"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
+        </div>
+    </section>
+
+    <!-- IMPORT RESULTS -->
+    <section class="tab-panel" id="tab-import">
+        <div class="panel">
+            <h2>Import a meet's results PDF</h2>
+            <p class="muted">Only rows for "Spotswood" swimmers are kept. Review the preview below, then commit to save it.</p>
+            <div class="form-grid">
+                <div><label for="importMeetSelect">Meet</label><select id="importMeetSelect"><option value="">Loading meets…</option></select></div>
+                <div><label for="importFile">Results PDF</label><input type="file" id="importFile" accept="application/pdf"></div>
+                <div class="full">
+                    <button type="button" class="btn btn-primary" id="previewBtn">Preview</button>
+                    <button type="button" class="btn btn-primary" id="commitBtn" hidden>Commit to Results</button>
+                    <span class="msg" id="importMsg"></span>
+                </div>
+            </div>
+            <div id="importPreview"></div>
+        </div>
+    </section>
+</main>
+<script>
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+
+async function api(path, opts) {
+    const res = await fetch(path, opts);
+    if (!res.ok) throw new Error(await res.text().catch(() => res.statusText));
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+}
+
+/* ---------- Meets ---------- */
+let currentGeo = null;
+
+async function loadMeets() {
+    const tbody = document.querySelector('#meetsTable tbody');
+    try {
+        const meets = await api('/api/manageMeetsList');
+        window._meets = meets;
+        if (!meets.length) { tbody.innerHTML = '<tr><td colspan="4" class="muted">No meets yet.</td></tr>'; return; }
+        tbody.innerHTML = meets.map(m => `
+            <tr>
+                <td>${escapeHtml(m.date)}${m.time ? ' ' + escapeHtml(m.time) : ''}</td>
+                <td>${escapeHtml(m.title)}${m.hidden ? ' <span class="muted">(hidden)</span>' : ''}</td>
+                <td>${escapeHtml(m.placeName || m.address || '')}</td>
+                <td class="row-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="editMeet('${escapeHtml(m.id)}')">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteMeet('${escapeHtml(m.id)}')">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+        populateImportMeetSelect(meets);
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" class="muted">Couldn\'t load meets.</td></tr>';
+    }
+}
+
+function editMeet(id) {
+    const m = (window._meets || []).find(x => x.id === id);
+    if (!m) return;
+    document.getElementById('meetFormTitle').textContent = 'Edit meet';
+    document.getElementById('meetId').value = m.id;
+    document.getElementById('meetOpponent').value = m.opponent || '';
+    document.getElementById('meetTitleField').value = m.title || '';
+    document.getElementById('meetDate').value = m.date || '';
+    document.getElementById('meetTime').value = m.time || '';
+    document.getElementById('meetAddress').value = m.address || '';
+    document.getElementById('meetPlaceName').value = m.placeName || '';
+    document.getElementById('meetHidden').checked = !!m.hidden;
+    currentGeo = (m.lat != null && m.lon != null) ? { lat: m.lat, lon: m.lon } : null;
+    document.getElementById('meetCancelBtn').hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetMeetForm() {
+    document.getElementById('meetForm').reset();
+    document.getElementById('meetId').value = '';
+    document.getElementById('meetFormTitle').textContent = 'Add a meet';
+    document.getElementById('meetCancelBtn').hidden = true;
+    currentGeo = null;
+}
+document.getElementById('meetCancelBtn').addEventListener('click', resetMeetForm);
+
+async function deleteMeet(id) {
+    if (!confirm('Delete this meet? This does not delete any imported results.')) return;
+    try {
+        await api(`/api/manageMeetsDelete?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+        loadMeets();
+    } catch (e) {
+        alert('Could not delete meet.');
+    }
+}
+
+let addrTimer = null;
+document.getElementById('meetAddress').addEventListener('input', (e) => {
+    clearTimeout(addrTimer);
+    const q = e.target.value.trim();
+    const box = document.getElementById('addrSuggestions');
+    if (q.length < 4) { box.hidden = true; return; }
+    addrTimer = setTimeout(async () => {
+        try {
+            const results = await api(`/api/geocodeAddress?q=${encodeURIComponent(q)}`);
+            if (!results.length) { box.hidden = true; return; }
+            box.innerHTML = results.map((r, i) => `<button type="button" data-i="${i}">${escapeHtml(r.placeName ? r.placeName + ' — ' : '')}${escapeHtml(r.address)}</button>`).join('');
+            box.hidden = false;
+            box.querySelectorAll('button').forEach((btn, i) => btn.addEventListener('click', () => {
+                const r = results[i];
+                document.getElementById('meetAddress').value = r.address;
+                if (r.placeName) document.getElementById('meetPlaceName').value = r.placeName;
+                currentGeo = { lat: r.lat, lon: r.lon };
+                box.hidden = true;
+            }));
+        } catch (e) { box.hidden = true; }
+    }, 350);
+});
+
+document.getElementById('meetForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('meetFormMsg');
+    msg.textContent = ''; msg.className = 'msg';
+    const body = {
+        id: document.getElementById('meetId').value || undefined,
+        opponent: document.getElementById('meetOpponent').value,
+        title: document.getElementById('meetTitleField').value,
+        date: document.getElementById('meetDate').value,
+        time: document.getElementById('meetTime').value,
+        address: document.getElementById('meetAddress').value,
+        placeName: document.getElementById('meetPlaceName').value,
+        hidden: document.getElementById('meetHidden').checked,
+        lat: currentGeo ? currentGeo.lat : undefined,
+        lon: currentGeo ? currentGeo.lon : undefined
+    };
+    try {
+        await api('/api/manageMeetsSave', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        msg.textContent = 'Saved.'; msg.className = 'msg success';
+        resetMeetForm();
+        loadMeets();
+    } catch (e) {
+        msg.textContent = 'Could not save meet.'; msg.className = 'msg error';
+    }
+});
+
+/* ---------- Gallery ---------- */
+async function loadGallery() {
+    const pendingBody = document.querySelector('#pendingTable tbody');
+    const approvedBody = document.querySelector('#approvedTable tbody');
+    try {
+        const photos = await api('/api/manageGalleryList');
+        const pending = photos.filter(p => p.status === 'pending');
+        const approved = photos.filter(p => p.status === 'approved');
+
+        pendingBody.innerHTML = pending.length ? pending.map(p => `
+            <tr>
+                <td><img class="thumb" src="${escapeHtml(p.url)}" alt=""></td>
+                <td>${escapeHtml(p.submittedBy || 'Anonymous')}<br><span class="muted">${escapeHtml(new Date(p.submittedAt).toLocaleDateString())}</span></td>
+                <td>${escapeHtml(p.caption || '')}</td>
+                <td class="row-actions">
+                    <button class="btn btn-primary btn-sm" onclick="approvePhoto('${escapeHtml(p.id)}')">Approve</button>
+                    <button class="btn btn-danger btn-sm" onclick="rejectPhoto('${escapeHtml(p.id)}')">Reject</button>
+                </td>
+            </tr>
+        `).join('') : '<tr><td colspan="4" class="muted">Nothing pending.</td></tr>';
+
+        approvedBody.innerHTML = approved.length ? approved.map(p => `
+            <tr>
+                <td><img class="thumb" src="${escapeHtml(p.url)}" alt=""></td>
+                <td>${escapeHtml(p.submittedBy || 'Anonymous')}</td>
+                <td>${escapeHtml(p.caption || '')}</td>
+                <td class="row-actions"><button class="btn btn-danger btn-sm" onclick="rejectPhoto('${escapeHtml(p.id)}')">Remove</button></td>
+            </tr>
+        `).join('') : '<tr><td colspan="4" class="muted">Nothing approved yet.</td></tr>';
+    } catch (e) {
+        pendingBody.innerHTML = approvedBody.innerHTML = '<tr><td colspan="4" class="muted">Couldn\'t load gallery.</td></tr>';
+    }
+}
+
+async function approvePhoto(id) {
+    try { await api('/api/manageGalleryApprove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); loadGallery(); }
+    catch (e) { alert('Could not approve photo.'); }
+}
+async function rejectPhoto(id) {
+    if (!confirm('Remove this photo permanently?')) return;
+    try { await api('/api/manageGalleryReject', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); loadGallery(); }
+    catch (e) { alert('Could not remove photo.'); }
+}
+
+/* ---------- Import Results ---------- */
+function populateImportMeetSelect(meets) {
+    const select = document.getElementById('importMeetSelect');
+    select.innerHTML = '<option value="">Choose a meet…</option>' + meets.slice().sort((a, b) => b.date.localeCompare(a.date)).map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.date)} — ${escapeHtml(m.title)}</option>`).join('');
+}
+
+let lastParsed = null;
+let lastPdfBase64 = null;
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+document.getElementById('previewBtn').addEventListener('click', async () => {
+    const msg = document.getElementById('importMsg');
+    const preview = document.getElementById('importPreview');
+    const file = document.getElementById('importFile').files[0];
+    msg.textContent = ''; msg.className = 'msg';
+    document.getElementById('commitBtn').hidden = true;
+
+    if (!file) { msg.textContent = 'Choose a PDF first.'; msg.className = 'msg error'; return; }
+    if (!document.getElementById('importMeetSelect').value) { msg.textContent = 'Pick which meet this is for.'; msg.className = 'msg error'; return; }
+
+    msg.textContent = 'Parsing…';
+    try {
+        lastPdfBase64 = await fileToBase64(file);
+        lastParsed = await api('/api/importMeetResultsPreview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataBase64: lastPdfBase64 }) });
+
+        const indRows = lastParsed.individual.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.eventName)}</td><td>${escapeHtml(r.officialTime)}</td><td>${escapeHtml(r.place || '')}</td><td>${escapeHtml(r.status)}</td></tr>`).join('');
+        // "; " rather than ", " -- each swimmer's own name already has a
+        // comma ("Last, First"), so a comma-joined list of several reads as
+        // one long ambiguous name.
+        const relayRows = lastParsed.relays.map(r => `<tr><td>${escapeHtml(r.eventName)} (${escapeHtml(r.relayLetter)})</td><td>${escapeHtml((r.swimmers || []).map(s => s.name).join('; '))}</td><td>${escapeHtml(r.officialTime)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
+
+        preview.innerHTML = `
+            <h3 style="margin-top:20px;">Individual results (${lastParsed.individual.length})</h3>
+            <table><thead><tr><th>Swimmer</th><th>Event</th><th>Time</th><th>Place</th><th>Status</th></tr></thead><tbody>${indRows || '<tr><td colspan="5" class="muted">None found.</td></tr>'}</tbody></table>
+            <h3 style="margin-top:20px;">Relay results (${lastParsed.relays.length})</h3>
+            <table><thead><tr><th>Event</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${relayRows || '<tr><td colspan="4" class="muted">None found.</td></tr>'}</tbody></table>
+            ${lastParsed.unparsedLines.length ? `<div class="warn-box"><strong>${lastParsed.unparsedLines.length} line(s) couldn't be read</strong> -- these are skipped, not guessed at:<br>${lastParsed.unparsedLines.map(l => escapeHtml(l)).join('<br>')}</div>` : ''}
+        `;
+        msg.textContent = 'Review the rows above, then commit.'; msg.className = 'msg success';
+        document.getElementById('commitBtn').hidden = false;
+    } catch (e) {
+        msg.textContent = 'Could not parse that PDF.'; msg.className = 'msg error';
+    }
+});
+
+document.getElementById('commitBtn').addEventListener('click', async () => {
+    const msg = document.getElementById('importMsg');
+    const meetId = document.getElementById('importMeetSelect').value;
+    if (!lastParsed || !meetId) return;
+    msg.textContent = 'Saving…'; msg.className = 'msg';
+    try {
+        const result = await api('/api/importMeetResultsCommit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ meetId, dataBase64: lastPdfBase64, individual: lastParsed.individual, relays: lastParsed.relays })
+        });
+        msg.textContent = `Saved ${result.savedIndividual} individual and ${result.savedRelays} relay results.`;
+        msg.className = 'msg success';
+        document.getElementById('commitBtn').hidden = true;
+    } catch (e) {
+        msg.textContent = 'Could not save results.'; msg.className = 'msg error';
+    }
+});
+
+loadMeets();
+loadGallery();
+</script>
+</body>
+</html>

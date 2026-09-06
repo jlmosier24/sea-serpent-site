@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule | Spotswood Sea Serpents</title>
+<meta name="description" content="Meet schedule for the Spotswood Sea Serpents summer swim team.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --deep: #17261A; --navy: #2D6B34; --teal: #2F8F3E; --teal-dark: #1F6B2B;
+        --coral: #C1442E; --gold: #F0B429; --gold-dark: #D19B1F; --foam: #F6F8E7; --paper: #FFFFFF; --sub: #5B6B57; --line: rgba(22,38,27,0.12);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #FFFFFF 0%, var(--foam) 60%, #EAF0D6 100%) no-repeat; font-family: 'Inter', sans-serif; color: var(--deep); }
+    h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
+    .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
+    .brand-mark { width: 26px; height: 26px; }
+    .brand-name { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
+    .nav-links { display: flex; gap: 28px; font-size: 0.88rem; font-weight: 600; }
+    .nav-links a { color: var(--deep); text-decoration: none; }
+    .nav-links a:hover, .nav-links a.active { color: var(--teal-dark); }
+    .nav-toggle { display: none; background: none; border: none; padding: 4px; color: var(--deep); cursor: pointer; }
+    @media (max-width: 720px) {
+        .nav-links { position: absolute; top: 68px; left: 0; right: 0; background: var(--paper); flex-direction: column; gap: 0; padding: 8px 24px 16px; box-shadow: 0 12px 24px rgba(7,44,63,0.1); display: none; }
+        .nav-links.open { display: flex; }
+        .nav-links a { padding: 10px 0; border-bottom: 1px solid var(--line); }
+        .nav-toggle { display: block; }
+    }
+
+    main { max-width: 880px; margin: 0 auto; padding: 24px 24px 80px; }
+    h1 { font-size: 2rem; margin: 8px 0 4px; }
+    .lede { color: var(--sub); margin: 0 0 32px; }
+
+    .meet-list { display: flex; flex-direction: column; gap: 16px; list-style: none; margin: 0; padding: 0; }
+    .meet-card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 20px 24px; }
+    .meet-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .meet-date { background: var(--gold); color: var(--deep); font-weight: 700; font-size: 0.8rem; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+    .meet-title { font-size: 1.15rem; font-weight: 700; margin: 10px 0 4px; }
+    .meet-meta { color: var(--sub); font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+    .weather { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--navy); background: var(--foam); border-radius: 12px; padding: 8px 14px; margin-top: 12px; }
+    .weather img { width: 32px; height: 32px; }
+    .past-badge { color: var(--sub); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .results-toggle { background: none; border: none; color: var(--teal-dark); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 10px 0 0; }
+    .results-box { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; display: none; }
+    .results-box.open { display: block; }
+    .results-box table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .results-box th, .results-box td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    .results-box th { color: var(--sub); font-weight: 600; }
+
+    .empty, .loading { color: var(--sub); text-align: center; padding: 40px 0; }
+    footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<nav>
+    <a class="brand" href="/">
+        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--teal)" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M4 20c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--deep)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.35"/></svg>
+        <span class="brand-name">Spotswood Sea Serpents</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="document.querySelector('.nav-links').classList.toggle('open'); this.setAttribute('aria-expanded', document.querySelector('.nav-links').classList.contains('open'))">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/schedule.html" class="active">Schedule</a>
+        <a href="/gallery.html">Gallery</a>
+        <a href="/stats.html">Stats</a>
+    </div>
+</nav>
+<main>
+    <h1>Meet Schedule</h1>
+    <p class="lede">All meets for the season. Forecasts appear automatically once a meet is about a week out.</p>
+    <div id="content"><p class="loading">Loading meets…</p></div>
+</main>
+<footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
+<script>
+// Meet/result fields are admin-entered (or come from an imported PDF), but
+// everything landing in innerHTML on this page is escaped on general
+// principle -- see gallery.html, which has the same helper for genuinely
+// public, unauthenticated input.
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+}
+
+function fmtDate(dateStr) {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+// Stored as "HH:MM" 24-hour (what <input type="time"> produces) -- displayed
+// as "6:00pm" instead.
+function timeToClock(t) {
+    if (!t) return '';
+    const [hStr, mStr] = t.split(':');
+    let h = parseInt(hStr, 10);
+    const suffix = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    return `${h}:${mStr}${suffix}`;
+}
+
+async function loadWeather(card, meet) {
+    if (meet.lat == null || meet.lon == null) return;
+    try {
+        const res = await fetch(`/api/meetWeather?lat=${meet.lat}&lon=${meet.lon}&date=${meet.date}`);
+        if (!res.ok) return;
+        const w = await res.json();
+        if (!w.available) return;
+        const box = card.querySelector('.weather');
+        box.hidden = false;
+        box.querySelector('.weather-icon').src = w.icon || '';
+        box.querySelector('.weather-text').textContent = `${w.shortForecast}, ${w.temperature}°${w.temperatureUnit}`;
+    } catch (e) { /* forecast is a nice-to-have, fine to skip on error */ }
+}
+
+async function fetchResults(meetId) {
+    try {
+        const res = await fetch(`/api/resultsByMeet?meetId=${encodeURIComponent(meetId)}`);
+        return await res.json();
+    } catch (e) {
+        return { individual: [], relays: [] };
+    }
+}
+
+let resultsByMeetId = {};
+
+function toggleResults(btn, meetId) {
+    const box = btn.nextElementSibling;
+    const isOpen = box.classList.toggle('open');
+    btn.textContent = isOpen ? 'Hide results' : 'View results';
+    if (!isOpen || box.dataset.rendered) return;
+    const data = resultsByMeetId[meetId];
+    const rows = data.individual.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.eventName)}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
+    box.innerHTML = `<table><thead><tr><th>Swimmer</th><th>Event</th><th>Time</th><th>Place</th></tr></thead><tbody>${rows}</tbody></table>`;
+    box.dataset.rendered = '1';
+}
+
+(async function () {
+    const content = document.getElementById('content');
+    try {
+        const res = await fetch('/api/meets');
+        const meets = await res.json();
+        if (!meets.length) {
+            content.innerHTML = '<p class="empty">No meets scheduled yet.</p>';
+            return;
+        }
+
+        // Fetched upfront (not lazily on click) so a meet with nothing
+        // imported yet can just skip rendering "View results" altogether,
+        // rather than showing a button that opens to an empty state.
+        const resultsList = await Promise.all(meets.map(m => fetchResults(m.id)));
+        resultsByMeetId = Object.fromEntries(meets.map((m, i) => [m.id, resultsList[i]]));
+
+        const today = new Date().toISOString().slice(0, 10);
+        const list = document.createElement('ul');
+        list.className = 'meet-list';
+        list.innerHTML = meets.map((m, i) => {
+            const hasResults = resultsList[i].individual.length > 0 || resultsList[i].relays.length > 0;
+            return `
+            <li class="meet-card" data-index="${i}">
+                <div class="meet-top">
+                    <span class="meet-date">${fmtDate(m.date)}</span>
+                    ${m.date < today ? '<span class="past-badge">Past</span>' : ''}
+                </div>
+                <div class="meet-title">${escapeHtml(m.title)}</div>
+                <div class="meet-meta">
+                    ${m.time ? `<span>${escapeHtml(timeToClock(m.time))}</span>` : ''}
+                    ${m.placeName ? `<span>${escapeHtml(m.placeName)}</span>` : ''}
+                    ${m.address ? `<span>${escapeHtml(m.address)}</span>` : ''}
+                </div>
+                <div class="weather" hidden><img class="weather-icon" alt=""><span class="weather-text"></span></div>
+                ${hasResults ? `
+                    <button class="results-toggle" onclick="toggleResults(this, '${escapeHtml(m.id)}')">View results</button>
+                    <div class="results-box"></div>
+                ` : ''}
+            </li>
+        `;
+        }).join('');
+        content.innerHTML = '';
+        content.appendChild(list);
+        meets.forEach((m, i) => loadWeather(list.children[i], m));
+    } catch (e) {
+        content.innerHTML = '<p class="empty">Couldn\'t load the schedule right now.</p>';
+    }
+})();
+</script>
+</body>
+</html>

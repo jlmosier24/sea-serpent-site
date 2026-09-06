@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stats | Spotswood Sea Serpents</title>
+<meta name="description" content="Swimmer results and season progression for the Spotswood Sea Serpents summer swim team.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --deep: #17261A; --navy: #2D6B34; --teal: #2F8F3E; --teal-dark: #1F6B2B;
+        --coral: #C1442E; --gold: #F0B429; --gold-dark: #D19B1F; --foam: #F6F8E7; --paper: #FFFFFF; --sub: #5B6B57; --line: rgba(22,38,27,0.12);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #FFFFFF 0%, var(--foam) 60%, #EAF0D6 100%) no-repeat; font-family: 'Inter', sans-serif; color: var(--deep); }
+    h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
+    .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
+    .brand-mark { width: 26px; height: 26px; }
+    .brand-name { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
+    .nav-links { display: flex; gap: 28px; font-size: 0.88rem; font-weight: 600; }
+    .nav-links a { color: var(--deep); text-decoration: none; }
+    .nav-links a:hover, .nav-links a.active { color: var(--teal-dark); }
+    .nav-toggle { display: none; background: none; border: none; padding: 4px; color: var(--deep); cursor: pointer; }
+    @media (max-width: 720px) {
+        .nav-links { position: absolute; top: 68px; left: 0; right: 0; background: var(--paper); flex-direction: column; gap: 0; padding: 8px 24px 16px; box-shadow: 0 12px 24px rgba(7,44,63,0.1); display: none; }
+        .nav-links.open { display: flex; }
+        .nav-links a { padding: 10px 0; border-bottom: 1px solid var(--line); }
+        .nav-toggle { display: block; }
+    }
+
+    main { max-width: 880px; margin: 0 auto; padding: 24px 24px 80px; }
+    h1 { font-size: 2rem; margin: 8px 0 4px; }
+    .lede { color: var(--sub); margin: 0 0 28px; }
+
+    .picker { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+    select { flex: 1; min-width: 220px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-family: inherit; font-size: 0.95rem; background: var(--paper); color: var(--deep); }
+
+    .highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .highlight-tile { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; font-family: inherit; text-align: left; width: 100%; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .highlight-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(22,38,27,0.08); }
+    .highlight-tile .htop { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; color: var(--teal); }
+    .highlight-tile .hlabel { font-size: 0.76rem; font-weight: 600; color: var(--sub); }
+    .highlight-tile .hvalue { font-size: 1.6rem; font-weight: 700; color: var(--deep); line-height: 1.1; }
+    .highlight-tile .hcaption { font-size: 0.76rem; color: var(--sub); margin-top: 3px; }
+
+    dialog#highlightModal { border: none; border-radius: 18px; padding: 0; width: min(480px, 90vw); max-height: 80vh; box-shadow: 0 24px 48px rgba(22,38,27,0.18); color: var(--deep); font-family: 'Inter', sans-serif; }
+    dialog#highlightModal::backdrop { background: rgba(22,38,27,0.45); backdrop-filter: blur(2px); }
+    dialog#highlightModal .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+    dialog#highlightModal .modal-head h3 { margin: 0; font-size: 1.05rem; }
+    dialog#highlightModal .modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: var(--sub); cursor: pointer; padding: 2px 6px; border-radius: 8px; }
+    dialog#highlightModal .modal-close:hover { color: var(--deep); background: var(--foam); }
+    #modalBody { padding: 14px 20px 20px; overflow-y: auto; max-height: calc(80vh - 58px); }
+    #modalBody table { font-size: 0.85rem; }
+
+    .event-card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; margin-bottom: 18px; }
+    .event-card h3 { margin: 0 0 4px; font-size: 1.05rem; }
+    .event-card .best { color: var(--teal-dark); font-weight: 700; font-size: 0.85rem; margin-bottom: 12px; }
+    .chart-wrap { margin: 8px 0 14px; }
+    .chart-wrap svg { width: 100%; height: 110px; display: block; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    th { color: var(--sub); font-weight: 600; }
+    .status-dq, .status-ns { color: var(--coral); font-weight: 600; }
+
+    .empty, .loading { color: var(--sub); text-align: center; padding: 40px 0; }
+    footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<nav>
+    <a class="brand" href="/">
+        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--teal)" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M4 20c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--deep)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.35"/></svg>
+        <span class="brand-name">Spotswood Sea Serpents</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="document.querySelector('.nav-links').classList.toggle('open'); this.setAttribute('aria-expanded', document.querySelector('.nav-links').classList.contains('open'))">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/schedule.html">Schedule</a>
+        <a href="/gallery.html">Gallery</a>
+        <a href="/stats.html" class="active">Stats</a>
+    </div>
+</nav>
+<main>
+    <h1>Swimmer Stats</h1>
+    <p class="lede">Pick a swimmer to see their times and results across the season.</p>
+
+    <div class="picker">
+        <select id="swimmerSelect"><option value="">Loading swimmers…</option></select>
+    </div>
+
+    <div id="highlights" class="highlights"></div>
+    <div id="content"></div>
+</main>
+<dialog id="highlightModal" closedby="any" aria-labelledby="modalTitle">
+    <div class="modal-head">
+        <h3 id="modalTitle"></h3>
+        <button type="button" class="modal-close" aria-label="Close" onclick="document.getElementById('highlightModal').close()">&times;</button>
+    </div>
+    <div id="modalBody"></div>
+</dialog>
+<footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
+<script>
+// All dynamic values below land in innerHTML somewhere, so everything is
+// escaped on general principle (see gallery.html for the case where that
+// actually matters -- public, unauthenticated submissions).
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+}
+
+function fmtTime(seconds) {
+    if (seconds == null) return '--';
+    if (seconds >= 60) {
+        const m = Math.floor(seconds / 60);
+        const s = (seconds % 60).toFixed(2).padStart(5, '0');
+        return `${m}:${s}`;
+    }
+    return seconds.toFixed(2);
+}
+
+function fmtShortDate(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+// Small hand-rolled line chart (no charting library -- the site's CSP only
+// allows 'self' scripts). Faster times plot higher, since for swimming
+// "up" reading as "improving" is the intuitive direction.
+function buildChart(points) {
+    const w = 560, h = 110, padX = 12, padY = 16;
+    const times = points.map(p => p.seconds);
+    const min = Math.min(...times), max = Math.max(...times);
+    const range = max - min || 1;
+    const coords = points.map((p, i) => {
+        const x = points.length > 1 ? padX + (i / (points.length - 1)) * (w - padX * 2) : w / 2;
+        const y = padY + ((p.seconds - min) / range) * (h - padY * 2); // slower (larger) -> lower on screen is handled below
+        return { x, y: h - y };
+    });
+    const path = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
+    const dots = coords.map((c, i) => `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="4" fill="var(--teal)"><title>${escapeHtml(fmtShortDate(points[i].date))}: ${escapeHtml(fmtTime(points[i].seconds))}</title></circle>`).join('');
+    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="var(--teal)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>${dots}</svg>`;
+}
+
+// One inner-SVG-markup string per highlight type, all drawn in the same
+// stroke weight/viewBox as the rest of the site's hand-rolled icons.
+const HIGHLIGHT_ICONS = {
+    trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    trophy: '<path d="M8 4h8v4a4 4 0 01-8 0V4z"/><path d="M8 5H6a2 2 0 000 4h1"/><path d="M16 5h2a2 2 0 010 4h-1"/><path d="M12 12v3M9 19h6M10 15h4v4h-4z"/>',
+    medal: '<circle cx="12" cy="15" r="5"/><path d="M9.5 11L7 3M14.5 11L17 3M9.5 3h5"/>',
+    stopwatch: '<circle cx="12" cy="13" r="8"/><path d="M12 13V9M10 2h4M12 2v2"/>',
+    list: '<circle cx="4.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/>',
+    calendar: '<path d="M8 2v3M16 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>'
+};
+
+function highlightIcon(type) {
+    return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${HIGHLIGHT_ICONS[type]}</svg>`;
+}
+
+// Picks the season's best 3-4 storylines for this swimmer out of several
+// candidate stats, rather than always showing the same fixed set -- a
+// swimmer with no 1st-place finishes shouldn't lead with a "0". Each
+// candidate also carries the underlying rows (modalRows/modalColumns) so
+// clicking its tile can open a modal listing exactly what's behind the number.
+function computeHighlights(results) {
+    const ok = results.filter(r => r.status === 'OK');
+    const firstPlaceRows = ok.filter(r => r.place === 1);
+    const top3Rows = ok.filter(r => r.place != null && r.place <= 3);
+    const eventsSwumRows = results.filter(r => r.status === 'OK' || r.status === 'DQ');
+
+    const meetsSeen = new Map();
+    for (const r of results) {
+        if (!meetsSeen.has(r.meetId)) meetsSeen.set(r.meetId, { meetDate: r.meetDate, meetTitle: r.meetTitle });
+    }
+    const meetsRows = [...meetsSeen.values()];
+
+    // A personal best is a swim that beat every earlier swim in that same
+    // event this season -- the first swim in a new event doesn't count,
+    // since there's nothing yet for it to have beaten.
+    const byEvent = new Map();
+    for (const r of ok) {
+        if (r.officialSeconds == null) continue;
+        if (!byEvent.has(r.eventName)) byEvent.set(r.eventName, []);
+        byEvent.get(r.eventName).push(r);
+    }
+    const personalBestRows = [];
+    let mostImproved = null;
+    for (const [eventName, swims] of byEvent) {
+        const sorted = swims.slice().sort((a, b) => a.meetDate.localeCompare(b.meetDate));
+        let best = sorted[0].officialSeconds;
+        for (let i = 1; i < sorted.length; i++) {
+            if (sorted[i].officialSeconds < best) {
+                personalBestRows.push(sorted[i]);
+                best = sorted[i].officialSeconds;
+            }
+        }
+        if (sorted.length > 1) {
+            const drop = sorted[0].officialSeconds - sorted[sorted.length - 1].officialSeconds;
+            if (drop > 0.005 && (!mostImproved || drop > mostImproved.dropSeconds)) {
+                mostImproved = { eventName, dropSeconds: drop, rows: sorted };
+            }
+        }
+    }
+
+    const candidates = [];
+    if (mostImproved) {
+        candidates.push({
+            icon: 'trend', label: 'Most improved', value: `-${mostImproved.dropSeconds.toFixed(2)}s`, valueColor: 'var(--teal-dark)', caption: mostImproved.eventName,
+            modalTitle: mostImproved.eventName, modalColumns: ['date', 'meet', 'time'], modalRows: mostImproved.rows
+        });
+    }
+    if (firstPlaceRows.length > 0) candidates.push({ icon: 'trophy', label: 'First-place finishes', value: String(firstPlaceRows.length), modalTitle: 'First-place finishes', modalColumns: ['date', 'meet', 'event', 'time'], modalRows: firstPlaceRows });
+    if (top3Rows.length > 0) candidates.push({ icon: 'medal', label: 'Top-3 finishes', value: String(top3Rows.length), modalTitle: 'Top-3 finishes', modalColumns: ['date', 'meet', 'event', 'time', 'place'], modalRows: top3Rows });
+    if (personalBestRows.length > 0) candidates.push({ icon: 'stopwatch', label: 'Personal bests', value: String(personalBestRows.length), modalTitle: 'Personal bests', modalColumns: ['date', 'meet', 'event', 'time'], modalRows: personalBestRows });
+    candidates.push({ icon: 'list', label: 'Events swum', value: String(eventsSwumRows.length), modalTitle: 'Events swum', modalColumns: ['date', 'meet', 'event', 'time', 'place'], modalRows: eventsSwumRows });
+    candidates.push({ icon: 'calendar', label: 'Meets attended', value: String(meetsRows.length), modalTitle: 'Meets attended', modalColumns: ['date', 'meet'], modalRows: meetsRows });
+
+    return candidates.slice(0, 4);
+}
+
+let currentHighlights = [];
+
+function renderHighlights(results) {
+    const box = document.getElementById('highlights');
+    currentHighlights = computeHighlights(results);
+    box.innerHTML = currentHighlights.map((h, i) => `
+        <button type="button" class="highlight-tile" onclick="openHighlightModal(${i})">
+            <div class="htop">${highlightIcon(h.icon)}<span class="hlabel">${escapeHtml(h.label)}</span></div>
+            <div class="hvalue" style="${h.valueColor ? `color:${h.valueColor}` : ''}">${escapeHtml(h.value)}</div>
+            ${h.caption ? `<div class="hcaption">${escapeHtml(h.caption)}</div>` : ''}
+        </button>
+    `).join('');
+}
+
+const MODAL_COLUMN_LABELS = { date: 'Meet', meet: 'Opponent', event: 'Event', time: 'Time', place: 'Place' };
+
+function modalCellValue(col, r) {
+    switch (col) {
+        case 'date': return escapeHtml(fmtShortDate(r.meetDate));
+        case 'meet': return escapeHtml(r.meetTitle);
+        case 'event': return escapeHtml(r.eventName);
+        case 'time': return escapeHtml(r.status && r.status !== 'OK' ? r.status : fmtTime(r.officialSeconds));
+        case 'place': return escapeHtml(r.place || '');
+        default: return '';
+    }
+}
+
+function openHighlightModal(index) {
+    const h = currentHighlights[index];
+    if (!h) return;
+    const rows = h.modalRows.slice().sort((a, b) => (a.meetDate || '').localeCompare(b.meetDate || ''));
+    document.getElementById('modalTitle').textContent = h.modalTitle;
+    document.getElementById('modalBody').innerHTML = `
+        <table>
+            <thead><tr>${h.modalColumns.map(c => `<th>${MODAL_COLUMN_LABELS[c]}</th>`).join('')}</tr></thead>
+            <tbody>${rows.map(r => `<tr>${h.modalColumns.map(c => `<td>${modalCellValue(c, r)}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>
+    `;
+    document.getElementById('highlightModal').showModal();
+}
+
+// closedby="any" (click-outside-to-close) isn't supported everywhere yet
+// (missing in Safari as of this writing) -- fall back to manually closing
+// on a genuine backdrop click. Esc-to-close needs no fallback; showModal()
+// has handled that natively for as long as <dialog> has existed.
+(function () {
+    const dialog = document.getElementById('highlightModal');
+    if ('closedBy' in HTMLDialogElement.prototype) return;
+    dialog.addEventListener('click', (event) => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const inside = rect.top <= event.clientY && event.clientY <= rect.top + rect.height && rect.left <= event.clientX && event.clientX <= rect.left + rect.width;
+        if (!inside) dialog.close();
+    });
+})();
+
+async function loadSwimmer(name) {
+    const content = document.getElementById('content');
+    const highlights = document.getElementById('highlights');
+    if (!name) { content.innerHTML = ''; highlights.innerHTML = ''; return; }
+    content.innerHTML = '<p class="loading">Loading results…</p>';
+    highlights.innerHTML = '';
+
+    let results;
+    try {
+        const res = await fetch(`/api/swimmerStats?name=${encodeURIComponent(name)}`);
+        results = await res.json();
+    } catch (e) {
+        content.innerHTML = '<p class="empty">Couldn\'t load results right now.</p>';
+        return;
+    }
+
+    if (!results.length) {
+        content.innerHTML = '<p class="empty">No results on record for this swimmer yet.</p>';
+        return;
+    }
+
+    renderHighlights(results);
+
+    const byEvent = new Map();
+    for (const r of results) {
+        if (!byEvent.has(r.eventName)) byEvent.set(r.eventName, []);
+        byEvent.get(r.eventName).push(r);
+    }
+
+    content.innerHTML = [...byEvent.entries()].map(([eventName, rows]) => {
+        const timed = rows.filter(r => r.status === 'OK' && r.officialSeconds != null);
+        const best = timed.length ? Math.min(...timed.map(r => r.officialSeconds)) : null;
+        const chartPoints = timed.map(r => ({ date: r.meetDate, seconds: r.officialSeconds })).sort((a, b) => a.date.localeCompare(b.date));
+
+        const rowsHtml = rows.slice().sort((a, b) => (a.meetDate || '').localeCompare(b.meetDate || '')).map(r => `
+            <tr>
+                <td>${escapeHtml(fmtShortDate(r.meetDate))}</td>
+                <td>${escapeHtml(r.meetTitle)}</td>
+                <td class="${r.status !== 'OK' ? 'status-' + r.status.toLowerCase() : ''}">${r.status === 'OK' ? escapeHtml(fmtTime(r.officialSeconds)) : escapeHtml(r.status)}</td>
+                <td>${escapeHtml(r.place || '')}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="event-card">
+                <h3>${escapeHtml(eventName)}</h3>
+                ${best != null ? `<div class="best">Season best: ${escapeHtml(fmtTime(best))}</div>` : ''}
+                ${chartPoints.length > 1 ? `<div class="chart-wrap">${buildChart(chartPoints)}</div>` : ''}
+                <table>
+                    <thead><tr><th>Meet</th><th>Opponent</th><th>Time</th><th>Place</th></tr></thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            </div>
+        `;
+    }).join('');
+}
+
+(async function () {
+    const select = document.getElementById('swimmerSelect');
+    try {
+        const res = await fetch('/api/swimmerStats');
+        const { swimmers } = await res.json();
+        if (!swimmers.length) {
+            select.innerHTML = '<option value="">No swimmers on record yet</option>';
+            return;
+        }
+        select.innerHTML = '<option value="">Choose a swimmer…</option>' + swimmers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        select.addEventListener('change', () => loadSwimmer(select.value));
+
+        const params = new URLSearchParams(location.search);
+        const preset = params.get('swimmer');
+        if (preset && swimmers.includes(preset)) {
+            select.value = preset;
+            loadSwimmer(preset);
+        }
+    } catch (e) {
+        select.innerHTML = '<option value="">Couldn\'t load swimmers</option>';
+    }
+})();
+</script>
+</body>
+</html>

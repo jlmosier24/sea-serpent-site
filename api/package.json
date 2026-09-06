@@ -1,0 +1,10 @@
+{
+  "name": "sea-serpent-api",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {
+    "@azure/data-tables": "^13.2.2",
+    "@azure/storage-blob": "^12.17.0",
+    "pdf-parse": "^1.1.1"
+  }
+}
