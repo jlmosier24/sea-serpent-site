@@ -18,6 +18,7 @@
     [hidden] { display: none !important; }
     :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
     body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #D7E8BB 0%, #EDF4DE 45%, #FFFFFF 100%) no-repeat; font-family: 'Inter', sans-serif; color: var(--deep); }
+    body:has(dialog[open]) { overflow: hidden; }
     h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
 
     nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
@@ -59,9 +60,10 @@
     dialog#resultsModal .modal-close:hover { color: var(--deep); background: var(--foam); }
     #resultsModalBody { padding: 14px 20px 20px; overflow: auto; max-height: calc(80vh - 58px); }
     #resultsModalBody table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    #resultsModalBody table + table { margin-top: 14px; }
     #resultsModalBody th, #resultsModalBody td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
     #resultsModalBody th { color: var(--sub); font-weight: 600; }
+    #resultsModalBody h4 { margin: 18px 0 6px; font-size: 0.85rem; font-weight: 700; color: var(--teal-dark); }
+    #resultsModalBody h4:first-child { margin-top: 0; }
 
     .empty, .loading { color: var(--sub); text-align: center; padding: 40px 0; }
     footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
@@ -148,22 +150,46 @@ async function fetchResults(meetId) {
 let resultsByMeetId = {};
 let meetsById = {};
 
+// Individual and relay events share one numbering scheme in the source PDF
+// (e.g. a relay can be event #3 with individual events on either side), so
+// grouping by eventNumber across both -- not individual-then-relay -- is
+// what actually reproduces "event 1 through the last event" in order.
+function groupResultsByEvent(individual, relays) {
+    const byEvent = new Map();
+    for (const r of individual) {
+        if (!byEvent.has(r.eventNumber)) byEvent.set(r.eventNumber, { eventNumber: r.eventNumber, eventName: r.eventName, kind: 'individual', rows: [] });
+        byEvent.get(r.eventNumber).rows.push(r);
+    }
+    for (const r of relays) {
+        if (!byEvent.has(r.eventNumber)) byEvent.set(r.eventNumber, { eventNumber: r.eventNumber, eventName: r.eventName, kind: 'relay', rows: [] });
+        byEvent.get(r.eventNumber).rows.push(r);
+    }
+    const groups = [...byEvent.values()].sort((a, b) => a.eventNumber - b.eventNumber);
+    // No place (DQ'd, or an EXH swim that isn't scored) sorts after everyone
+    // who actually placed, rather than to the front as 0 would.
+    groups.forEach(g => g.rows.sort((a, b) => (a.place ?? Infinity) - (b.place ?? Infinity)));
+    return groups;
+}
+
+function renderEventGroup(g) {
+    // "; " rather than ", " -- each swimmer's own name already has a comma
+    // ("Last, First"), so a comma-joined list of several reads as one long
+    // ambiguous name.
+    const table = g.kind === 'relay'
+        ? `<table><thead><tr><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${g.rows.map(r => `<tr><td>${escapeHtml(r.team)} (${escapeHtml(r.relayLetter)})</td><td>${escapeHtml((r.swimmers || []).map(s => s.name).join('; '))}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('')}</tbody></table>`
+        : `<table><thead><tr><th>Swimmer</th><th>Team</th><th>Time</th><th>Place</th></tr></thead><tbody>${g.rows.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('')}</tbody></table>`;
+    return `<h4>#${g.eventNumber} &mdash; ${escapeHtml(g.eventName)}</h4>${table}`;
+}
+
 function openResultsModal(meetId) {
     const m = meetsById[meetId];
     const data = resultsByMeetId[meetId];
     if (!m || !data) return;
-    // Both teams now (see api/shared/meetResultsParser.js) -- a Team column
-    // tells them apart instead of the two teams' rows looking interleaved.
-    const rows = data.individual.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml(r.eventName)}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
-    // "; " rather than ", " -- each swimmer's own name already has a comma
-    // ("Last, First"), so a comma-joined list of several reads as one long
-    // ambiguous name.
-    const relayRows = data.relays.map(r => `<tr><td>${escapeHtml(r.eventName)} (${escapeHtml(r.relayLetter)})</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml((r.swimmers || []).map(s => s.name).join('; '))}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
+    const groups = groupResultsByEvent(data.individual, data.relays);
     document.getElementById('resultsModalTitle').textContent = `${fmtDate(m.date)} — ${m.title}`;
-    document.getElementById('resultsModalBody').innerHTML = `
-        <table><thead><tr><th>Swimmer</th><th>Team</th><th>Event</th><th>Time</th><th>Place</th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="muted">No individual results.</td></tr>'}</tbody></table>
-        ${data.relays.length ? `<table><thead><tr><th>Event</th><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${relayRows}</tbody></table>` : ''}
-    `;
+    document.getElementById('resultsModalBody').innerHTML = groups.length
+        ? groups.map(renderEventGroup).join('')
+        : '<p class="muted">No results yet.</p>';
     document.getElementById('resultsModal').showModal();
 }
 
