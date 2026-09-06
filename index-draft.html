@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spotswood Sea Serpents (Draft Home)</title>
+<meta name="description" content="Spotswood Sea Serpents summer swim team -- meet schedule, results, and photos.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --deep: #17261A; --navy: #2D6B34; --teal: #2F8F3E; --teal-dark: #1F6B2B;
+        --coral: #C1442E; --gold: #F0B429; --gold-dark: #D19B1F; --foam: #F6F8E7; --paper: #FFFFFF; --sub: #5B6B57; --line: rgba(22,38,27,0.12);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #D7E8BB 0%, #EDF4DE 45%, #FFFFFF 100%) no-repeat; font-family: 'Inter', sans-serif; color: var(--deep); }
+    h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
+
+    .draft-banner { background: var(--deep); color: var(--paper); text-align: center; font-size: 0.85rem; padding: 8px 16px; }
+    .draft-banner strong { color: var(--gold); }
+
+    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
+    .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
+    .brand-mark { width: 26px; height: 26px; }
+    .brand-name { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
+    .nav-links { display: flex; gap: 28px; font-size: 0.88rem; font-weight: 600; }
+    .nav-links a { color: var(--deep); text-decoration: none; }
+    .nav-links a:hover { color: var(--teal-dark); }
+    .nav-toggle { display: none; background: none; border: none; padding: 4px; color: var(--deep); cursor: pointer; }
+    @media (max-width: 720px) {
+        .nav-links { position: absolute; top: 68px; left: 0; right: 0; background: var(--paper); flex-direction: column; gap: 0; padding: 8px 24px 16px; box-shadow: 0 12px 24px rgba(7,44,63,0.1); display: none; }
+        .nav-links.open { display: flex; }
+        .nav-links a { padding: 10px 0; border-bottom: 1px solid var(--line); }
+        .nav-toggle { display: block; }
+    }
+
+    main { max-width: 1080px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .hero { text-align: center; padding: 48px 0 8px; }
+    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.2rem); margin: 0 0 14px; }
+    .hero p { color: var(--sub); font-size: 1.1rem; max-width: 560px; margin: 0 auto 28px; }
+    .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    .btn { display: inline-block; padding: 12px 24px; border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 0.95rem; border: none; cursor: pointer; }
+    .btn-primary { background: var(--teal); color: var(--paper); }
+    .btn-primary:hover { background: var(--teal-dark); }
+    .btn-ghost { background: var(--paper); color: var(--deep); border: 1px solid var(--line); }
+    .btn-ghost:hover { border-color: var(--teal); }
+
+    /* ---- dashboard grid ---- */
+    .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; margin-top: 32px; }
+    @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr 1fr; } .panel-schedule { grid-column: 1 / -1; } }
+    @media (max-width: 600px) { .dashboard-grid { grid-template-columns: 1fr; } .panel-schedule { grid-column: auto; } }
+    .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 22px; }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; }
+    .see-all { color: var(--teal-dark); font-weight: 600; font-size: 0.82rem; text-decoration: none; white-space: nowrap; }
+    .see-all:hover { text-decoration: underline; }
+
+    /* schedule preview (borrowed from schedule.html) */
+    .meet-list { display: flex; flex-direction: column; gap: 14px; list-style: none; margin: 0; padding: 0; }
+    .meet-card { background: var(--foam); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+    .meet-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .meet-date { background: var(--gold); color: var(--deep); font-weight: 700; font-size: 0.8rem; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+    .meet-title { font-size: 1.1rem; font-weight: 700; margin: 10px 0 4px; }
+    .meet-meta { color: var(--sub); font-size: 0.88rem; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+    .past-badge { color: var(--sub); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .results-toggle { background: none; border: none; color: var(--teal-dark); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 10px 0 0; }
+    .results-box { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; display: none; max-height: 260px; overflow-y: auto; }
+    .results-box.open { display: block; }
+    .results-box table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .results-box th, .results-box td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+    .results-box th { color: var(--sub); font-weight: 600; }
+
+    /* gallery preview (borrowed from gallery.html) */
+    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .photo { background: var(--foam); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .photo img { width: 100%; height: 100px; object-fit: cover; display: block; }
+
+    /* stats preview (borrowed from stats.html) */
+    .picker { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    select { flex: 1; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-family: inherit; font-size: 0.95rem; background: var(--paper); color: var(--deep); }
+    .highlights { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .highlight-tile { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; font-family: inherit; text-align: left; width: 100%; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .highlight-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(22,38,27,0.08); }
+    .highlight-tile .htop { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; color: var(--teal); }
+    .highlight-tile .hlabel { font-size: 0.76rem; font-weight: 600; color: var(--sub); }
+    .highlight-tile .hvalue { font-size: 1.6rem; font-weight: 700; color: var(--deep); line-height: 1.1; }
+    .highlight-tile .hcaption { font-size: 0.76rem; color: var(--sub); margin-top: 3px; }
+
+    dialog#highlightModal { border: none; border-radius: 18px; padding: 0; width: min(480px, 90vw); max-height: 80vh; box-shadow: 0 24px 48px rgba(22,38,27,0.18); color: var(--deep); font-family: 'Inter', sans-serif; }
+    dialog#highlightModal::backdrop { background: rgba(22,38,27,0.45); backdrop-filter: blur(2px); }
+    dialog#highlightModal .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+    dialog#highlightModal .modal-head h3 { margin: 0; font-size: 1.05rem; }
+    dialog#highlightModal .modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: var(--sub); cursor: pointer; padding: 2px 6px; border-radius: 8px; }
+    dialog#highlightModal .modal-close:hover { color: var(--deep); background: var(--foam); }
+    #modalBody { padding: 14px 20px 20px; overflow-y: auto; max-height: calc(80vh - 58px); }
+    #modalBody table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    #modalBody th, #modalBody td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    #modalBody th { color: var(--sub); font-weight: 600; }
+
+    .empty, .loading { color: var(--sub); text-align: center; padding: 30px 0; font-size: 0.9rem; }
+    footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="draft-banner">🚧 <strong>Draft</strong> — combined home page concept, not linked from the live site yet</div>
+<nav>
+    <a class="brand" href="/index-draft.html">
+        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--teal)" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M4 20c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--deep)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.35"/></svg>
+        <span class="brand-name">Spotswood Sea Serpents</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="document.querySelector('.nav-links').classList.toggle('open'); this.setAttribute('aria-expanded', document.querySelector('.nav-links').classList.contains('open'))">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="nav-links">
+        <a href="#schedule">Schedule</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#stats">Stats</a>
+    </div>
+</nav>
+<main>
+    <section class="hero">
+        <h1>Go Sea Serpents!</h1>
+        <p>Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="#schedule">See the schedule</a>
+            <a class="btn btn-ghost" href="#gallery">Browse photos</a>
+        </div>
+    </section>
+
+    <div class="dashboard-grid">
+        <section class="panel panel-schedule" id="schedule">
+            <div class="section-head">
+                <h2>Meets</h2>
+                <a class="see-all" href="/schedule.html">Full schedule →</a>
+            </div>
+            <div id="scheduleContent"><p class="loading">Loading meets…</p></div>
+        </section>
+
+        <section class="panel panel-gallery" id="gallery">
+            <div class="section-head">
+                <h2>Photo Gallery</h2>
+                <a class="see-all" href="/gallery.html">Full gallery →</a>
+            </div>
+            <div id="galleryContent"><p class="loading">Loading photos…</p></div>
+        </section>
+
+        <section class="panel panel-stats" id="stats">
+            <div class="section-head">
+                <h2>Swimmer Stats</h2>
+                <a class="see-all" href="/stats.html" id="fullStatsLink">Full stats →</a>
+            </div>
+            <div class="picker">
+                <select id="swimmerSelect"><option value="">Loading swimmers…</option></select>
+            </div>
+            <div id="highlightsContent"></div>
+        </section>
+    </div>
+</main>
+<dialog id="highlightModal" closedby="any" aria-labelledby="modalTitle">
+    <div class="modal-head">
+        <h3 id="modalTitle"></h3>
+        <button type="button" class="modal-close" aria-label="Close" onclick="document.getElementById('highlightModal').close()">&times;</button>
+    </div>
+    <div id="modalBody"></div>
+</dialog>
+<footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
+<script>
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+}
+
+function fmtDate(dateStr) {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function fmtShortDate(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function timeToClock(t) {
+    if (!t) return '';
+    const [hStr, mStr] = t.split(':');
+    let h = parseInt(hStr, 10);
+    const suffix = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    return `${h}:${mStr}${suffix}`;
+}
+
+function fmtTime(seconds) {
+    if (seconds == null) return '--';
+    if (seconds >= 60) {
+        const m = Math.floor(seconds / 60);
+        const s = (seconds % 60).toFixed(2).padStart(5, '0');
+        return `${m}:${s}`;
+    }
+    return seconds.toFixed(2);
+}
+
+/* ---------------- Schedule & Results preview ---------------- */
+async function fetchResults(meetId) {
+    try {
+        const res = await fetch(`/api/resultsByMeet?meetId=${encodeURIComponent(meetId)}`);
+        return await res.json();
+    } catch (e) {
+        return { individual: [], relays: [] };
+    }
+}
+
+let resultsByMeetId = {};
+
+function toggleResults(btn, meetId) {
+    const box = btn.nextElementSibling;
+    const isOpen = box.classList.toggle('open');
+    btn.textContent = isOpen ? 'Hide results' : 'View results';
+    if (!isOpen || box.dataset.rendered) return;
+    const data = resultsByMeetId[meetId];
+    const rows = data.individual.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.eventName)}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
+    box.innerHTML = `<table><thead><tr><th>Swimmer</th><th>Event</th><th>Time</th><th>Place</th></tr></thead><tbody>${rows}</tbody></table>`;
+    box.dataset.rendered = '1';
+}
+
+async function loadSchedulePreview() {
+    const content = document.getElementById('scheduleContent');
+    try {
+        const res = await fetch('/api/meets');
+        const meets = await res.json();
+        if (!meets.length) { content.innerHTML = '<p class="empty">No meets scheduled yet.</p>'; return; }
+
+        // A compact dashboard panel, not the full list: every upcoming meet,
+        // plus the single most recent past one that has results.
+        const today = '2026-07-02'; // PRETEND-TODAY for reviewing this draft -- remove before this becomes the real homepage, revert to new Date().toISOString().slice(0, 10)
+        const upcoming = meets.filter(m => m.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+        const pastCandidates = meets.filter(m => m.date < today).sort((a, b) => b.date.localeCompare(a.date));
+        const fetchTargets = [...upcoming, ...pastCandidates.slice(0, 4)];
+        const resultsList = await Promise.all(fetchTargets.map(m => fetchResults(m.id)));
+        fetchTargets.forEach((m, i) => { resultsByMeetId[m.id] = resultsList[i]; });
+
+        const pastWithResults = pastCandidates.filter(m => {
+            const d = resultsByMeetId[m.id];
+            return d && (d.individual.length > 0 || d.relays.length > 0);
+        }).slice(0, 1);
+        const past = pastWithResults.length ? pastWithResults : pastCandidates.slice(0, 1);
+        const preview = [...past, ...upcoming];
+
+        const list = document.createElement('ul');
+        list.className = 'meet-list';
+        list.innerHTML = preview.map((m, i) => {
+            const d = resultsByMeetId[m.id];
+            const hasResults = d && (d.individual.length > 0 || d.relays.length > 0);
+            return `
+            <li class="meet-card">
+                <div class="meet-top">
+                    <span class="meet-date">${fmtDate(m.date)}</span>
+                    ${m.date < today ? '<span class="past-badge">Past</span>' : ''}
+                </div>
+                <div class="meet-title">${escapeHtml(m.title)}</div>
+                <div class="meet-meta">
+                    ${m.time ? `<span>${escapeHtml(timeToClock(m.time))}</span>` : ''}
+                    ${m.placeName ? `<span>${escapeHtml(m.placeName)}</span>` : ''}
+                    ${m.address ? `<span>${escapeHtml(m.address)}</span>` : ''}
+                </div>
+                ${hasResults ? `
+                    <button class="results-toggle" onclick="toggleResults(this, '${escapeHtml(m.id)}')">View results</button>
+                    <div class="results-box"></div>
+                ` : ''}
+            </li>`;
+        }).join('');
+        content.innerHTML = '';
+        content.appendChild(list);
+    } catch (e) {
+        content.innerHTML = '<p class="empty">Couldn\'t load the schedule right now.</p>';
+    }
+}
+
+/* ---------------- Gallery preview ---------------- */
+async function loadGalleryPreview() {
+    const content = document.getElementById('galleryContent');
+    try {
+        const res = await fetch('/api/galleryPublic');
+        const photos = await res.json();
+        if (!photos.length) { content.innerHTML = '<p class="empty">No photos yet -- be the first to share one!</p>'; return; }
+        content.innerHTML = `<div class="photo-grid">${photos.slice(0, 4).map(p => `
+            <div class="photo"><img src="${escapeHtml(p.url)}" alt="${escapeHtml(p.caption || 'Team photo')}" loading="lazy"></div>
+        `).join('')}</div>`;
+    } catch (e) {
+        content.innerHTML = '<p class="empty">Couldn\'t load the gallery right now.</p>';
+    }
+}
+
+/* ---------------- Stats preview ---------------- */
+const HIGHLIGHT_ICONS = {
+    trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    trophy: '<path d="M8 4h8v4a4 4 0 01-8 0V4z"/><path d="M8 5H6a2 2 0 000 4h1"/><path d="M16 5h2a2 2 0 010 4h-1"/><path d="M12 12v3M9 19h6M10 15h4v4h-4z"/>',
+    medal: '<circle cx="12" cy="15" r="5"/><path d="M9.5 11L7 3M14.5 11L17 3M9.5 3h5"/>',
+    stopwatch: '<circle cx="12" cy="13" r="8"/><path d="M12 13V9M10 2h4M12 2v2"/>',
+    list: '<circle cx="4.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/>',
+    calendar: '<path d="M8 2v3M16 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>'
+};
+function highlightIcon(type) {
+    return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${HIGHLIGHT_ICONS[type]}</svg>`;
+}
+
+function computeHighlights(results) {
+    const ok = results.filter(r => r.status === 'OK');
+    const firstPlaceRows = ok.filter(r => r.place === 1);
+    const top3Rows = ok.filter(r => r.place != null && r.place <= 3);
+    const eventsSwumRows = results.filter(r => r.status === 'OK' || r.status === 'DQ');
+    const meetsSeen = new Map();
+    for (const r of results) if (!meetsSeen.has(r.meetId)) meetsSeen.set(r.meetId, { meetDate: r.meetDate, meetTitle: r.meetTitle });
+    const meetsRows = [...meetsSeen.values()];
+
+    const byEvent = new Map();
+    for (const r of ok) {
+        if (r.officialSeconds == null) continue;
+        if (!byEvent.has(r.eventName)) byEvent.set(r.eventName, []);
+        byEvent.get(r.eventName).push(r);
+    }
+    const personalBestRows = [];
+    let mostImproved = null;
+    for (const [eventName, swims] of byEvent) {
+        const sorted = swims.slice().sort((a, b) => a.meetDate.localeCompare(b.meetDate));
+        let best = sorted[0].officialSeconds;
+        for (let i = 1; i < sorted.length; i++) {
+            if (sorted[i].officialSeconds < best) { personalBestRows.push(sorted[i]); best = sorted[i].officialSeconds; }
+        }
+        if (sorted.length > 1) {
+            const drop = sorted[0].officialSeconds - sorted[sorted.length - 1].officialSeconds;
+            if (drop > 0.005 && (!mostImproved || drop > mostImproved.dropSeconds)) mostImproved = { eventName, dropSeconds: drop, rows: sorted };
+        }
+    }
+
+    const candidates = [];
+    if (mostImproved) candidates.push({ icon: 'trend', label: 'Most improved', value: `-${mostImproved.dropSeconds.toFixed(2)}s`, valueColor: 'var(--teal-dark)', caption: mostImproved.eventName, modalTitle: mostImproved.eventName, modalColumns: ['date', 'meet', 'time'], modalRows: mostImproved.rows });
+    if (firstPlaceRows.length > 0) candidates.push({ icon: 'trophy', label: 'First-place finishes', value: String(firstPlaceRows.length), modalTitle: 'First-place finishes', modalColumns: ['date', 'meet', 'event', 'time'], modalRows: firstPlaceRows });
+    if (top3Rows.length > 0) candidates.push({ icon: 'medal', label: 'Top-3 finishes', value: String(top3Rows.length), modalTitle: 'Top-3 finishes', modalColumns: ['date', 'meet', 'event', 'time', 'place'], modalRows: top3Rows });
+    if (personalBestRows.length > 0) candidates.push({ icon: 'stopwatch', label: 'Personal bests', value: String(personalBestRows.length), modalTitle: 'Personal bests', modalColumns: ['date', 'meet', 'event', 'time'], modalRows: personalBestRows });
+    candidates.push({ icon: 'list', label: 'Events swum', value: String(eventsSwumRows.length), modalTitle: 'Events swum', modalColumns: ['date', 'meet', 'event', 'time', 'place'], modalRows: eventsSwumRows });
+    candidates.push({ icon: 'calendar', label: 'Meets attended', value: String(meetsRows.length), modalTitle: 'Meets attended', modalColumns: ['date', 'meet'], modalRows: meetsRows });
+    return candidates.slice(0, 4);
+}
+
+let currentHighlights = [];
+
+function renderHighlights(results) {
+    const box = document.getElementById('highlightsContent');
+    currentHighlights = computeHighlights(results);
+    box.innerHTML = `<div class="highlights">${currentHighlights.map((h, i) => `
+        <button type="button" class="highlight-tile" onclick="openHighlightModal(${i})">
+            <div class="htop">${highlightIcon(h.icon)}<span class="hlabel">${escapeHtml(h.label)}</span></div>
+            <div class="hvalue" style="${h.valueColor ? `color:${h.valueColor}` : ''}">${escapeHtml(h.value)}</div>
+            ${h.caption ? `<div class="hcaption">${escapeHtml(h.caption)}</div>` : ''}
+        </button>
+    `).join('')}</div>`;
+}
+
+const MODAL_COLUMN_LABELS = { date: 'Meet', meet: 'Opponent', event: 'Event', time: 'Time', place: 'Place' };
+function modalCellValue(col, r) {
+    switch (col) {
+        case 'date': return escapeHtml(fmtShortDate(r.meetDate));
+        case 'meet': return escapeHtml(r.meetTitle);
+        case 'event': return escapeHtml(r.eventName);
+        case 'time': return escapeHtml(r.status && r.status !== 'OK' ? r.status : fmtTime(r.officialSeconds));
+        case 'place': return escapeHtml(r.place || '');
+        default: return '';
+    }
+}
+function openHighlightModal(index) {
+    const h = currentHighlights[index];
+    if (!h) return;
+    const rows = h.modalRows.slice().sort((a, b) => (a.meetDate || '').localeCompare(b.meetDate || ''));
+    document.getElementById('modalTitle').textContent = h.modalTitle;
+    document.getElementById('modalBody').innerHTML = `
+        <table><thead><tr>${h.modalColumns.map(c => `<th>${MODAL_COLUMN_LABELS[c]}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r => `<tr>${h.modalColumns.map(c => `<td>${modalCellValue(c, r)}</td>`).join('')}</tr>`).join('')}</tbody></table>
+    `;
+    document.getElementById('highlightModal').showModal();
+}
+(function () {
+    const dialog = document.getElementById('highlightModal');
+    if ('closedBy' in HTMLDialogElement.prototype) return;
+    dialog.addEventListener('click', (event) => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const inside = rect.top <= event.clientY && event.clientY <= rect.top + rect.height && rect.left <= event.clientX && event.clientX <= rect.left + rect.width;
+        if (!inside) dialog.close();
+    });
+})();
+
+async function loadSwimmer(name) {
+    const box = document.getElementById('highlightsContent');
+    document.getElementById('fullStatsLink').href = name ? `/stats.html?swimmer=${encodeURIComponent(name)}` : '/stats.html';
+    if (!name) { box.innerHTML = ''; return; }
+    box.innerHTML = '<p class="loading">Loading…</p>';
+    try {
+        const res = await fetch(`/api/swimmerStats?name=${encodeURIComponent(name)}`);
+        const results = await res.json();
+        if (!results.length) { box.innerHTML = '<p class="empty">No results on record for this swimmer yet.</p>'; return; }
+        renderHighlights(results);
+    } catch (e) {
+        box.innerHTML = '<p class="empty">Couldn\'t load results right now.</p>';
+    }
+}
+
+async function loadStatsPreview() {
+    const select = document.getElementById('swimmerSelect');
+    try {
+        const res = await fetch('/api/swimmerStats');
+        const { swimmers } = await res.json();
+        if (!swimmers.length) { select.innerHTML = '<option value="">No swimmers on record yet</option>'; return; }
+        select.innerHTML = '<option value="">Choose a swimmer…</option>' + swimmers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        select.addEventListener('change', () => loadSwimmer(select.value));
+    } catch (e) {
+        select.innerHTML = '<option value="">Couldn\'t load swimmers</option>';
+    }
+}
+
+loadSchedulePreview();
+loadGalleryPreview();
+loadStatsPreview();
+</script>
+</body>
+</html>

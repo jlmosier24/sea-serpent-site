@@ -78,7 +78,10 @@ async function main() {
     }
 
     writeJson(path.join(OUT_DIR, "meets.json"), meetDtos.sort((a, b) => a.date.localeCompare(b.date)));
-    writeJson(path.join(OUT_DIR, "gallery-public.json"), []);
+    // Don't clobber gallery-public.json on a rerun -- api/scripts/addTestPhotos.js
+    // (or eventually a real admin approval) may have already populated it.
+    const galleryPath = path.join(OUT_DIR, "gallery-public.json");
+    if (!fs.existsSync(galleryPath)) writeJson(galleryPath, []);
 
     const swimmerNames = [...new Set(allResultDtos.map(r => r.name))].sort((a, b) => a.localeCompare(b));
     writeJson(path.join(OUT_DIR, "swimmer-names.json"), { swimmers: swimmerNames });
