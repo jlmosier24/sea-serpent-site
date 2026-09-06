@@ -18,7 +18,6 @@
     [hidden] { display: none !important; }
     :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
     body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #D7E8BB 0%, #EDF4DE 45%, #FFFFFF 100%) no-repeat; font-family: 'Inter', sans-serif; color: var(--deep); }
-    body:has(dialog[open]) { overflow: hidden; }
     h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
 
     nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
@@ -51,7 +50,7 @@
     .highlight-tile .hvalue { font-size: 1.6rem; font-weight: 700; color: var(--deep); line-height: 1.1; }
     .highlight-tile .hcaption { font-size: 0.76rem; color: var(--sub); margin-top: 3px; }
 
-    dialog#highlightModal { border: none; border-radius: 18px; padding: 0; width: min(480px, 90vw); max-height: 80vh; box-shadow: 0 24px 48px rgba(22,38,27,0.18); color: var(--deep); font-family: 'Inter', sans-serif; }
+    dialog#highlightModal { border: none; border-radius: 18px; padding: 0; width: min(480px, 90vw); max-height: 80vh; overflow: hidden; box-shadow: 0 24px 48px rgba(22,38,27,0.18); color: var(--deep); font-family: 'Inter', sans-serif; }
     dialog#highlightModal::backdrop { background: rgba(22,38,27,0.45); backdrop-filter: blur(2px); }
     dialog#highlightModal .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); }
     dialog#highlightModal .modal-head h3 { margin: 0; font-size: 1.05rem; }
@@ -267,6 +266,7 @@ function openHighlightModal(index) {
             <tbody>${rows.map(r => `<tr>${h.modalColumns.map(c => `<td>${modalCellValue(c, r)}</td>`).join('')}</tr>`).join('')}</tbody>
         </table>
     `;
+    document.documentElement.style.overflow = 'hidden';
     document.getElementById('highlightModal').showModal();
 }
 
@@ -284,6 +284,14 @@ function openHighlightModal(index) {
         if (!inside) dialog.close();
     });
 })();
+
+// The page behind a modal <dialog> isn't guaranteed to stop scrolling on
+// its own (varies by browser), so this locks it explicitly on open --
+// 'close' fires no matter how the dialog closed (button, backdrop, Esc),
+// so unlocking here covers every path from one place.
+document.getElementById('highlightModal').addEventListener('close', () => {
+    document.documentElement.style.overflow = '';
+});
 
 async function loadSwimmer(name) {
     const content = document.getElementById('content');
