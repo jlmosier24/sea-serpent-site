@@ -1,9 +1,10 @@
 const { getResultsTable, toResultDto, listSwimmerNames } = require("../shared/resultsTable");
 const { getMeetsTable, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
+const { isSpotswoodTeam } = require("../shared/meetResultsParser");
 
 // Reachable at /api/swimmerStats. Public.
-// - No ?name= : returns { swimmers: [...] }, every distinct swimmer name in
-//   Results, for the picker on stats.html.
+// - No ?name= : returns { swimmers: [...] }, every distinct Spotswood
+//   swimmer name in Results, for the picker on stats.html.
 // - ?name=... : returns that swimmer's results across every meet, enriched
 //   with each meet's date/title so the front end can chart times over the
 //   season without a second round-trip per row.
@@ -17,11 +18,15 @@ module.exports = async function (context, req) {
             return;
         }
 
+        // Results also holds the opposing team's rows now (for
+        // resultsByMeet's complete per-meet view) -- swimmer stats stay
+        // Spotswood-only, so this filters even if the name in the URL
+        // happens to match an opposing swimmer.
         const resultsTable = getResultsTable();
         const results = [];
         const escapedName = name.replace(/'/g, "''");
         for await (const entity of resultsTable.listEntities({ queryOptions: { filter: `PartitionKey eq '${escapedName}'` } })) {
-            results.push(toResultDto(entity));
+            if (isSpotswoodTeam(entity.team)) results.push(toResultDto(entity));
         }
 
         const meetsTable = getMeetsTable();

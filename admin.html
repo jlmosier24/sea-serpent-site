@@ -21,7 +21,7 @@
 
     nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
     .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
-    .brand-mark { width: 26px; height: 26px; }
+    .brand-mark { height: 26px; width: auto; display: block; }
     .brand-name { font-weight: 800; font-size: 1.1rem; }
 
     main { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
@@ -75,7 +75,7 @@
 <body>
 <nav>
     <a class="brand" href="/">
-        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--teal)" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+        <img class="brand-mark" src="/assets/logo.png" alt="Spotswood Sea Serpents logo">
         <span class="brand-name">Sea Serpents Admin</span>
     </a>
 </nav>
@@ -360,17 +360,20 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
         lastPdfBase64 = await fileToBase64(file);
         lastParsed = await api('/api/importMeetResultsPreview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataBase64: lastPdfBase64 }) });
 
-        const indRows = lastParsed.individual.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.eventName)}</td><td>${escapeHtml(r.officialTime)}</td><td>${escapeHtml(r.place || '')}</td><td>${escapeHtml(r.status)}</td></tr>`).join('');
+        // Both teams come back now (see meetResultsParser.js) -- a Team
+        // column makes that legible instead of two teams' rows looking
+        // interleaved at random.
+        const indRows = lastParsed.individual.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml(r.eventName)}</td><td>${escapeHtml(r.officialTime)}</td><td>${escapeHtml(r.place || '')}</td><td>${escapeHtml(r.status)}</td></tr>`).join('');
         // "; " rather than ", " -- each swimmer's own name already has a
         // comma ("Last, First"), so a comma-joined list of several reads as
         // one long ambiguous name.
-        const relayRows = lastParsed.relays.map(r => `<tr><td>${escapeHtml(r.eventName)} (${escapeHtml(r.relayLetter)})</td><td>${escapeHtml((r.swimmers || []).map(s => s.name).join('; '))}</td><td>${escapeHtml(r.officialTime)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
+        const relayRows = lastParsed.relays.map(r => `<tr><td>${escapeHtml(r.eventName)} (${escapeHtml(r.relayLetter)})</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml((r.swimmers || []).map(s => s.name).join('; '))}</td><td>${escapeHtml(r.officialTime)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
 
         preview.innerHTML = `
             <h3 style="margin-top:20px;">Individual results (${lastParsed.individual.length})</h3>
-            <table><thead><tr><th>Swimmer</th><th>Event</th><th>Time</th><th>Place</th><th>Status</th></tr></thead><tbody>${indRows || '<tr><td colspan="5" class="muted">None found.</td></tr>'}</tbody></table>
+            <table><thead><tr><th>Swimmer</th><th>Team</th><th>Event</th><th>Time</th><th>Place</th><th>Status</th></tr></thead><tbody>${indRows || '<tr><td colspan="6" class="muted">None found.</td></tr>'}</tbody></table>
             <h3 style="margin-top:20px;">Relay results (${lastParsed.relays.length})</h3>
-            <table><thead><tr><th>Event</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${relayRows || '<tr><td colspan="4" class="muted">None found.</td></tr>'}</tbody></table>
+            <table><thead><tr><th>Event</th><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${relayRows || '<tr><td colspan="5" class="muted">None found.</td></tr>'}</tbody></table>
             ${lastParsed.unparsedLines.length ? `<div class="warn-box"><strong>${lastParsed.unparsedLines.length} line(s) couldn't be read</strong> -- these are skipped, not guessed at:<br>${lastParsed.unparsedLines.map(l => escapeHtml(l)).join('<br>')}</div>` : ''}
         `;
         msg.textContent = 'Review the rows above, then commit.'; msg.className = 'msg success';
@@ -389,7 +392,7 @@ document.getElementById('commitBtn').addEventListener('click', async () => {
         const result = await api('/api/importMeetResultsCommit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ meetId, dataBase64: lastPdfBase64, individual: lastParsed.individual, relays: lastParsed.relays })
+            body: JSON.stringify({ meetId, dataBase64: lastPdfBase64, individual: lastParsed.individual, relays: lastParsed.relays, teamPoints: lastParsed.teamPoints })
         });
         msg.textContent = `Saved ${result.savedIndividual} individual and ${result.savedRelays} relay results.`;
         msg.className = 'msg success';

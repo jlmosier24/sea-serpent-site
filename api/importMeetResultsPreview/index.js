@@ -5,7 +5,7 @@ const MAX_BYTES = 15 * 1024 * 1024; // 15MB -- meet PDFs run a few MB at most
 
 // Reachable at /api/importMeetResultsPreview. Protected by an explicit
 // route rule in staticwebapp.config.json (requires the "administrator"
-// role). Parses the uploaded PDF and returns the Spotswood-only rows (plus
+// role). Parses the uploaded PDF and returns every row for both teams (plus
 // any lines it couldn't match) for the admin to review -- nothing is
 // written to storage here. See importMeetResultsCommit for the write step.
 module.exports = async function (context, req) {

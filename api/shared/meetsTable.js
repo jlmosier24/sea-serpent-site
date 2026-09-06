@@ -18,7 +18,11 @@ function toMeetDto(entity) {
         lon: entity.lon,
         date: entity.date,
         time: entity.time || "",
-        hidden: !!entity.hidden
+        hidden: !!entity.hidden,
+        // Final score, filled in by importMeetResultsCommit once results are
+        // imported (see meetResultsParser.js's teamPoints) -- absent until then.
+        teamScore: entity.teamScore == null ? null : entity.teamScore,
+        opponentScore: entity.opponentScore == null ? null : entity.opponentScore
     };
 }
 

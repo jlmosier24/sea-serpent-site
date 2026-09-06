@@ -1,4 +1,5 @@
 const { TableClient } = require("@azure/data-tables");
+const { isSpotswoodTeam } = require("./meetResultsParser");
 
 function getResultsTable() {
     const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -104,13 +105,16 @@ function toRelayResultDto(entity) {
     };
 }
 
-// Every distinct swimmer name seen in Results, for stats.html's picker --
-// there's no separately-maintained roster table (see build plan).
+// Every distinct Spotswood swimmer name seen in Results, for stats.html's
+// picker -- there's no separately-maintained roster table (see build plan).
+// Results now holds both teams' rows (see meetResultsParser.js), so this
+// filters by team; swimmer-stats tracking is Spotswood-only by design, even
+// though the opposing team's rows are in the same table for resultsByMeet.
 async function listSwimmerNames() {
     const table = getResultsTable();
     const names = new Set();
     for await (const entity of table.listEntities()) {
-        names.add(entity.partitionKey);
+        if (isSpotswoodTeam(entity.team)) names.add(entity.partitionKey);
     }
     return [...names].sort((a, b) => a.localeCompare(b));
 }

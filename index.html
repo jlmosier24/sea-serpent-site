@@ -26,7 +26,7 @@
 
     nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
     .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
-    .brand-mark { width: 26px; height: 26px; }
+    .brand-mark { height: 26px; width: auto; display: block; }
     .brand-name { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
     .nav-links { display: flex; gap: 28px; font-size: 0.88rem; font-weight: 600; }
     .nav-links a { color: var(--deep); text-decoration: none; }
@@ -64,18 +64,15 @@
 
     /* schedule preview (borrowed from schedule.html) */
     .meet-list { display: flex; flex-direction: column; gap: 14px; list-style: none; margin: 0; padding: 0; }
+    .upcoming-label { font-family: 'Poppins', sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--deep); margin-top: 4px; }
     .meet-card { background: var(--foam); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
     .meet-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
     .meet-date { background: var(--gold); color: var(--deep); font-weight: 700; font-size: 0.8rem; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
     .meet-title { font-size: 1.1rem; font-weight: 700; margin: 10px 0 4px; }
+    .meet-score { font-size: 0.92rem; font-weight: 700; color: var(--teal-dark); margin: 0 0 6px; }
     .meet-meta { color: var(--sub); font-size: 0.88rem; display: flex; flex-wrap: wrap; gap: 4px 16px; }
     .past-badge { color: var(--sub); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
     .results-toggle { background: none; border: none; color: var(--teal-dark); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 10px 0 0; }
-    .results-box { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; display: none; max-height: 260px; overflow-y: auto; }
-    .results-box.open { display: block; }
-    .results-box table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    .results-box th, .results-box td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
-    .results-box th { color: var(--sub); font-weight: 600; }
 
     /* gallery preview (borrowed from gallery.html) */
     .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -93,16 +90,19 @@
     .highlight-tile .hvalue { font-size: 1.6rem; font-weight: 700; color: var(--deep); line-height: 1.1; }
     .highlight-tile .hcaption { font-size: 0.76rem; color: var(--sub); margin-top: 3px; }
 
-    dialog#highlightModal { border: none; border-radius: 18px; padding: 0; width: min(480px, 90vw); max-height: 80vh; box-shadow: 0 24px 48px rgba(22,38,27,0.18); color: var(--deep); font-family: 'Inter', sans-serif; }
-    dialog#highlightModal::backdrop { background: rgba(22,38,27,0.45); backdrop-filter: blur(2px); }
-    dialog#highlightModal .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); }
-    dialog#highlightModal .modal-head h3 { margin: 0; font-size: 1.05rem; }
-    dialog#highlightModal .modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: var(--sub); cursor: pointer; padding: 2px 6px; border-radius: 8px; }
-    dialog#highlightModal .modal-close:hover { color: var(--deep); background: var(--foam); }
-    #modalBody { padding: 14px 20px 20px; overflow-y: auto; max-height: calc(80vh - 58px); }
-    #modalBody table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    #modalBody th, #modalBody td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-    #modalBody th { color: var(--sub); font-weight: 600; }
+    dialog#highlightModal, dialog#resultsModal { border: none; border-radius: 18px; padding: 0; max-height: 80vh; box-shadow: 0 24px 48px rgba(22,38,27,0.18); color: var(--deep); font-family: 'Inter', sans-serif; }
+    dialog#highlightModal { width: min(480px, 90vw); }
+    dialog#resultsModal { width: min(640px, 92vw); }
+    dialog#highlightModal::backdrop, dialog#resultsModal::backdrop { background: rgba(22,38,27,0.45); backdrop-filter: blur(2px); }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+    .modal-head h3 { margin: 0; font-size: 1.05rem; }
+    .modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: var(--sub); cursor: pointer; padding: 2px 6px; border-radius: 8px; flex-shrink: 0; }
+    .modal-close:hover { color: var(--deep); background: var(--foam); }
+    #modalBody, #resultsModalBody { padding: 14px 20px 20px; overflow: auto; max-height: calc(80vh - 58px); }
+    #modalBody table, #resultsModalBody table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    #resultsModalBody table + table { margin-top: 12px; }
+    #modalBody th, #modalBody td, #resultsModalBody th, #resultsModalBody td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    #modalBody th, #resultsModalBody th { color: var(--sub); font-weight: 600; }
 
     .empty, .loading { color: var(--sub); text-align: center; padding: 30px 0; font-size: 0.9rem; }
     footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
@@ -111,7 +111,7 @@
 <body>
 <nav>
     <a class="brand" href="/">
-        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--teal)" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M4 20c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--deep)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.35"/></svg>
+        <img class="brand-mark" src="/assets/logo.png" alt="Spotswood Sea Serpents logo">
         <span class="brand-name">Spotswood Sea Serpents</span>
     </a>
     <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="document.querySelector('.nav-links').classList.toggle('open'); this.setAttribute('aria-expanded', document.querySelector('.nav-links').classList.contains('open'))">
@@ -137,7 +137,7 @@
     <div class="dashboard-grid">
         <section class="panel panel-schedule" id="schedule">
             <div class="section-head">
-                <h2>Meets</h2>
+                <h2>Previous Meet</h2>
                 <a class="see-all" href="/schedule.html">Full schedule →</a>
             </div>
             <div id="scheduleContent"><p class="loading">Loading meets…</p></div>
@@ -169,6 +169,13 @@
         <button type="button" class="modal-close" aria-label="Close" onclick="document.getElementById('highlightModal').close()">&times;</button>
     </div>
     <div id="modalBody"></div>
+</dialog>
+<dialog id="resultsModal" closedby="any" aria-labelledby="resultsModalTitle">
+    <div class="modal-head">
+        <h3 id="resultsModalTitle"></h3>
+        <button type="button" class="modal-close" aria-label="Close" onclick="document.getElementById('resultsModal').close()">&times;</button>
+    </div>
+    <div id="resultsModalBody"></div>
 </dialog>
 <footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
 <script>
@@ -217,17 +224,41 @@ async function fetchResults(meetId) {
 }
 
 let resultsByMeetId = {};
+let meetsById = {};
 
-function toggleResults(btn, meetId) {
-    const box = btn.nextElementSibling;
-    const isOpen = box.classList.toggle('open');
-    btn.textContent = isOpen ? 'Hide results' : 'View results';
-    if (!isOpen || box.dataset.rendered) return;
+function openResultsModal(meetId) {
+    const m = meetsById[meetId];
     const data = resultsByMeetId[meetId];
-    const rows = data.individual.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.eventName)}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
-    box.innerHTML = `<table><thead><tr><th>Swimmer</th><th>Event</th><th>Time</th><th>Place</th></tr></thead><tbody>${rows}</tbody></table>`;
-    box.dataset.rendered = '1';
+    if (!m || !data) return;
+    // Both teams now (see api/shared/meetResultsParser.js) -- a Team column
+    // tells them apart instead of the two teams' rows looking interleaved.
+    const rows = data.individual.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml(r.eventName)}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
+    // "; " rather than ", " -- each swimmer's own name already has a comma
+    // ("Last, First"), so a comma-joined list of several reads as one long
+    // ambiguous name.
+    const relayRows = data.relays.map(r => `<tr><td>${escapeHtml(r.eventName)} (${escapeHtml(r.relayLetter)})</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml((r.swimmers || []).map(s => s.name).join('; '))}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
+    document.getElementById('resultsModalTitle').textContent = `${fmtDate(m.date)} — ${m.title}`;
+    document.getElementById('resultsModalBody').innerHTML = `
+        <table><thead><tr><th>Swimmer</th><th>Team</th><th>Event</th><th>Time</th><th>Place</th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="muted">No individual results.</td></tr>'}</tbody></table>
+        ${data.relays.length ? `<table><thead><tr><th>Event</th><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${relayRows}</tbody></table>` : ''}
+    `;
+    document.getElementById('resultsModal').showModal();
 }
+
+// closedby="any" (click-outside-to-close) isn't supported everywhere yet
+// (missing in Safari as of this writing) -- fall back to manually closing
+// on a genuine backdrop click. Esc-to-close needs no fallback; showModal()
+// has handled that natively for as long as <dialog> has existed.
+(function () {
+    const dialog = document.getElementById('resultsModal');
+    if ('closedBy' in HTMLDialogElement.prototype) return;
+    dialog.addEventListener('click', (event) => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const inside = rect.top <= event.clientY && event.clientY <= rect.top + rect.height && rect.left <= event.clientX && event.clientX <= rect.left + rect.width;
+        if (!inside) dialog.close();
+    });
+})();
 
 async function loadSchedulePreview() {
     const content = document.getElementById('scheduleContent');
@@ -244,6 +275,7 @@ async function loadSchedulePreview() {
         const fetchTargets = [...upcoming, ...pastCandidates.slice(0, 4)];
         const resultsList = await Promise.all(fetchTargets.map(m => fetchResults(m.id)));
         fetchTargets.forEach((m, i) => { resultsByMeetId[m.id] = resultsList[i]; });
+        meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
 
         const pastWithResults = pastCandidates.filter(m => {
             const d = resultsByMeetId[m.id];
@@ -252,9 +284,7 @@ async function loadSchedulePreview() {
         const past = pastWithResults.length ? pastWithResults : pastCandidates.slice(0, 1);
         const preview = [...past, ...upcoming];
 
-        const list = document.createElement('ul');
-        list.className = 'meet-list';
-        list.innerHTML = preview.map((m, i) => {
+        function renderMeetCard(m) {
             const d = resultsByMeetId[m.id];
             const hasResults = d && (d.individual.length > 0 || d.relays.length > 0);
             return `
@@ -264,17 +294,21 @@ async function loadSchedulePreview() {
                     ${m.date < today ? '<span class="past-badge">Past</span>' : ''}
                 </div>
                 <div class="meet-title">${escapeHtml(m.title)}</div>
+                ${m.teamScore != null && m.opponentScore != null ? `<div class="meet-score">Spotswood ${m.teamScore} &ndash; ${escapeHtml(m.opponent)} ${m.opponentScore}</div>` : ''}
                 <div class="meet-meta">
                     ${m.time ? `<span>${escapeHtml(timeToClock(m.time))}</span>` : ''}
                     ${m.placeName ? `<span>${escapeHtml(m.placeName)}</span>` : ''}
                     ${m.address ? `<span>${escapeHtml(m.address)}</span>` : ''}
                 </div>
-                ${hasResults ? `
-                    <button class="results-toggle" onclick="toggleResults(this, '${escapeHtml(m.id)}')">View results</button>
-                    <div class="results-box"></div>
-                ` : ''}
+                ${hasResults ? `<button class="results-toggle" onclick="openResultsModal('${escapeHtml(m.id)}')">View results</button>` : ''}
             </li>`;
-        }).join('');
+        }
+
+        const list = document.createElement('ul');
+        list.className = 'meet-list';
+        list.innerHTML =
+            past.map(renderMeetCard).join('') +
+            (upcoming.length ? `<li class="upcoming-label">Upcoming Meets</li>` + upcoming.map(renderMeetCard).join('') : '');
         content.innerHTML = '';
         content.appendChild(list);
     } catch (e) {

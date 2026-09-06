@@ -1,6 +1,9 @@
 // Parses the plain-text export of a SwimTopia Meet Maestro results PDF --
 // after running it through shared/pdfText.js's extractPdfText(), NOT raw
-// pdf-parse -- into individual and relay rows, keeping only one team's.
+// pdf-parse -- into individual and relay rows for every team in the PDF.
+// Each row carries a `team` field; callers that only want Spotswood's rows
+// (e.g. swimmer-stats storage) filter for it themselves -- see
+// resultsTable.js's listSwimmerNames() and swimmerStats/index.js.
 //
 // Verified line-by-line against a real "<Team> at <Opponent>" dual-meet PDF.
 // Getting clean text out of it took two fixes over the obvious approach:
@@ -77,8 +80,14 @@ function timeToSeconds(time) {
     return parseFloat(parts[0]);
 }
 
-function parseMeetResultsText(rawText, { teamFilter = "Spotswood" } = {}) {
-    const teamNeedle = teamFilter.toLowerCase();
+// Shared "is this row ours" check -- used wherever a full (both-team) set of
+// parsed rows needs to be narrowed to just Spotswood's (swimmer-stats
+// storage, the meet score split), so every caller agrees on the same needle.
+function isSpotswoodTeam(team) {
+    return (team || "").toLowerCase().includes("spotswood");
+}
+
+function parseMeetResultsText(rawText) {
     const lines = rawText.split("\n").map(l => l.replace(/\r$/, "").trim());
 
     let currentEvent = null;
@@ -87,6 +96,12 @@ function parseMeetResultsText(rawText, { teamFilter = "Spotswood" } = {}) {
     const individual = [];
     const relays = [];
     const unparsedLines = [];
+    // Every team's point total -- this is how a meet's final score
+    // ("Spotswood 540, Fawn Lake Fliers 356") gets computed.
+    const teamPoints = {};
+    function addPoints(team, points) {
+        teamPoints[team] = (teamPoints[team] || 0) + points;
+    }
 
     for (const line of lines) {
         if (!line) continue;
@@ -133,7 +148,8 @@ function parseMeetResultsText(rawText, { teamFilter = "Spotswood" } = {}) {
                     swimmers: []
                 };
                 pendingRelay = row;
-                if (team.toLowerCase().includes(teamNeedle)) relays.push(row);
+                addPoints(row.team, row.points);
+                relays.push(row);
                 continue;
             }
 
@@ -167,14 +183,15 @@ function parseMeetResultsText(rawText, { teamFilter = "Spotswood" } = {}) {
                 dqReason: null
             };
             lastDqRow = row.status === "DQ" ? row : null;
-            if (team.toLowerCase().includes(teamNeedle)) individual.push(row);
+            addPoints(row.team, row.points);
+            individual.push(row);
             continue;
         }
 
         unparsedLines.push(line);
     }
 
-    return { individual, relays, unparsedLines };
+    return { individual, relays, unparsedLines, teamPoints };
 }
 
-module.exports = { parseMeetResultsText, timeToSeconds };
+module.exports = { parseMeetResultsText, timeToSeconds, isSpotswoodTeam };

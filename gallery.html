@@ -22,7 +22,7 @@
 
     nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
     .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
-    .brand-mark { width: 26px; height: 26px; }
+    .brand-mark { height: 26px; width: auto; display: block; }
     .brand-name { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
     .nav-links { display: flex; gap: 28px; font-size: 0.88rem; font-weight: 600; }
     .nav-links a { color: var(--deep); text-decoration: none; }
@@ -72,7 +72,7 @@
 <body>
 <nav>
     <a class="brand" href="/">
-        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--teal)" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M4 20c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0" stroke="var(--deep)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.35"/></svg>
+        <img class="brand-mark" src="/assets/logo.png" alt="Spotswood Sea Serpents logo">
         <span class="brand-name">Spotswood Sea Serpents</span>
     </a>
     <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="document.querySelector('.nav-links').classList.toggle('open'); this.setAttribute('aria-expanded', document.querySelector('.nav-links').classList.contains('open'))">
