@@ -200,7 +200,7 @@ function escapeHtml(str) {
 }
 
 function fmtDate(dateStr) {
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
 }
 
 function fmtShortDate(dateStr) {
@@ -383,13 +383,12 @@ async function loadSchedulePreview() {
             return `
             <li class="meet-card">
                 <div class="meet-top">
-                    <span class="meet-date">${fmtDate(m.date)}</span>
+                    <span class="meet-date">${fmtDate(m.date)}${m.time ? ` &middot; ${escapeHtml(timeToClock(m.time))}` : ''}</span>
                     ${m.date < today && m.teamScore == null ? '<span class="past-badge">Past</span>' : ''}
                 </div>
                 <div class="meet-title">${escapeHtml(m.title)}</div>
                 ${renderMeetScore(m)}
                 <div class="meet-meta">
-                    ${m.time ? `<span>${escapeHtml(timeToClock(m.time))}</span>` : ''}
                     ${m.placeName ? `<span>${escapeHtml(m.placeName)}</span>` : ''}
                     ${dirUrl ? `<a class="directions-link" href="${dirUrl}" target="_blank" rel="noopener">${DIRECTIONS_SVG}Directions</a>` : ''}
                     ${isUpcoming ? `<span class="weather-inline">${SUN_SVG}82&deg;F Sunny <em>(sample)</em></span>` : ''}
