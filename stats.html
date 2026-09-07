@@ -43,9 +43,9 @@
     select { flex: 1; min-width: 220px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-family: inherit; font-size: 0.95rem; background: var(--paper); color: var(--deep); }
 
     .highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 28px; }
-    .highlight-tile { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; font-family: inherit; text-align: left; width: 100%; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .highlight-tile { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; font-family: inherit; text-align: center; width: 100%; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
     .highlight-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(22,38,27,0.08); }
-    .highlight-tile .htop { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; color: var(--teal); }
+    .highlight-tile .htop { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 10px; color: var(--teal); }
     .highlight-tile .hlabel { font-size: 0.76rem; font-weight: 600; color: var(--sub); }
     .highlight-tile .hvalue { font-size: 1.6rem; font-weight: 700; color: var(--deep); line-height: 1.1; }
     .highlight-tile .hcaption { font-size: 0.76rem; color: var(--sub); margin-top: 3px; }
@@ -230,6 +230,17 @@ function computeHighlights(results) {
 
 let currentHighlights = [];
 
+// Event names are always "<gender> <age group> <distance><unit> <stroke>"
+// (e.g. "Girls 9-10 25m Backstroke") -- the gender/age-group prefix is
+// redundant once a specific swimmer is already selected, so this tile only
+// shows the distance+stroke. The distance+unit token (digits glued
+// directly to "m"/"yd", unlike the age group's own numbers) is a reliable
+// place to find where that prefix ends.
+function trimEventCaption(text) {
+    const m = text.match(/^.+?\s+(\d+(?:yd|m)\s+.+)$/);
+    return escapeHtml(m ? m[1] : text);
+}
+
 function renderHighlights(results) {
     const box = document.getElementById('highlights');
     currentHighlights = computeHighlights(results);
@@ -237,10 +248,30 @@ function renderHighlights(results) {
         <button type="button" class="highlight-tile" onclick="openHighlightModal(${i})">
             <div class="htop">${highlightIcon(h.icon)}<span class="hlabel">${escapeHtml(h.label)}</span></div>
             <div class="hvalue" style="${h.valueColor ? `color:${h.valueColor}` : ''}">${escapeHtml(h.value)}</div>
-            ${h.caption ? `<div class="hcaption">${escapeHtml(h.caption)}</div>` : ''}
+            ${h.caption ? `<div class="hcaption">${trimEventCaption(h.caption)}</div>` : ''}
         </button>
     `).join('');
+    equalizeHighlightHeights();
 }
+
+// Grid's own row-stretch only matches tiles within the same row, not
+// across every row -- this makes all tiles match each other regardless of
+// row, recomputed whenever a resize could change which tile is tallest
+// (e.g. the grid reflowing to fewer columns, or a caption wrapping
+// differently at a new width).
+function equalizeHighlightHeights() {
+    const tiles = document.querySelectorAll('.highlight-tile');
+    if (!tiles.length) return;
+    tiles.forEach(t => { t.style.minHeight = ''; });
+    const tallest = Math.max(...[...tiles].map(t => t.getBoundingClientRect().height));
+    tiles.forEach(t => { t.style.minHeight = `${tallest}px`; });
+}
+
+let equalizeHighlightsResizeTimer = null;
+window.addEventListener('resize', () => {
+    clearTimeout(equalizeHighlightsResizeTimer);
+    equalizeHighlightsResizeTimer = setTimeout(equalizeHighlightHeights, 150);
+});
 
 const MODAL_COLUMN_LABELS = { date: 'Meet', meet: 'Opponent', event: 'Event', time: 'Time', place: 'Place' };
 
