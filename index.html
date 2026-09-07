@@ -74,7 +74,16 @@
     .meet-score-row.meet-score-winner { font-weight: 700; color: var(--teal-dark); }
     .meet-score-row.meet-score-winner svg { flex-shrink: 0; }
     .meet-meta { color: var(--sub); font-size: 0.88rem; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+    .directions-link { color: var(--teal-dark); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; }
+    .directions-link:hover { text-decoration: underline; }
+    .directions-link svg { flex-shrink: 0; }
     .past-badge { color: var(--sub); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    /* Weather isn't wired to a real forecast yet -- see renderMeetCard's
+       SUN_SVG/weather-inline. Just another .meet-meta item, same as time
+       and directions, rather than a separate boxed callout. */
+    .weather-inline { display: inline-flex; align-items: center; gap: 4px; }
+    .weather-inline svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .weather-inline em { font-style: italic; }
     .results-toggle { background: none; border: none; color: var(--teal-dark); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 10px 0 0; }
 
     /* gallery preview (borrowed from gallery.html) */
@@ -166,6 +175,7 @@
             <div id="highlightsContent"></div>
         </section>
     </div>
+
 </main>
 <dialog id="highlightModal" closedby="any" aria-labelledby="modalTitle">
     <div class="modal-head">
@@ -306,12 +316,14 @@ async function loadSchedulePreview() {
         const meets = await res.json();
         if (!meets.length) { content.innerHTML = '<p class="empty">No meets scheduled yet.</p>'; return; }
 
-        // A compact dashboard panel, not the full list: every upcoming meet,
-        // plus the single most recent past one that has results.
+        // A compact dashboard panel, not the full list: the single most
+        // recent past meet with results, plus just the next upcoming meet --
+        // schedule.html has the complete list either direction.
         const today = new Date().toISOString().slice(0, 10);
         const upcoming = meets.filter(m => m.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+        const nextUpcoming = upcoming.slice(0, 1);
         const pastCandidates = meets.filter(m => m.date < today).sort((a, b) => b.date.localeCompare(a.date));
-        const fetchTargets = [...upcoming, ...pastCandidates.slice(0, 4)];
+        const fetchTargets = [...nextUpcoming, ...pastCandidates.slice(0, 4)];
         const resultsList = await Promise.all(fetchTargets.map(m => fetchResults(m.id)));
         fetchTargets.forEach((m, i) => { resultsByMeetId[m.id] = resultsList[i]; });
         meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
@@ -321,7 +333,6 @@ async function loadSchedulePreview() {
             return d && (d.individual.length > 0 || d.relays.length > 0);
         }).slice(0, 1);
         const past = pastWithResults.length ? pastWithResults : pastCandidates.slice(0, 1);
-        const preview = [...past, ...upcoming];
 
         // Same trophy glyph as stats.html's highlight tiles (HIGHLIGHT_ICONS.trophy),
         // kept as a hand-rolled inline SVG rather than an emoji for a consistent
@@ -349,9 +360,26 @@ async function loadSchedulePreview() {
             return `<div class="meet-score">${row(first)}${row(second)}</div>`;
         }
 
+        const DIRECTIONS_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 10-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>';
+        // Filled/colored, unlike the site's other hand-rolled stroke icons --
+        // this box is a placeholder (see renderMeetCard), not the real
+        // per-meet forecast, so it deliberately doesn't reuse schedule.html's
+        // .weather/.weather-icon (that one renders a live NWS icon URL via
+        // loadWeather/api/meetWeather).
+        const SUN_SVG = '<svg width="26" height="26" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8" fill="var(--gold-dark)"/><g stroke="var(--gold-dark)" stroke-width="2.4" stroke-linecap="round"><line x1="16" y1="2" x2="16" y2="6"/><line x1="16" y1="26" x2="16" y2="30"/><line x1="2" y1="16" x2="6" y2="16"/><line x1="26" y1="16" x2="30" y2="16"/><line x1="5.8" y1="5.8" x2="8.6" y2="8.6"/><line x1="23.4" y1="23.4" x2="26.2" y2="26.2"/><line x1="5.8" y1="26.2" x2="8.6" y2="23.4"/><line x1="23.4" y1="8.6" x2="26.2" y2="5.8"/></g></svg>';
+
+        // No API key needed -- opens the user's own Maps app/site with the
+        // address pre-filled, rather than us rendering turn-by-turn directions.
+        function directionsUrl(m) {
+            const query = m.address || m.placeName;
+            return query ? escapeHtml(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`) : null;
+        }
+
         function renderMeetCard(m) {
             const d = resultsByMeetId[m.id];
             const hasResults = d && (d.individual.length > 0 || d.relays.length > 0);
+            const dirUrl = directionsUrl(m);
+            const isUpcoming = m.date >= today;
             return `
             <li class="meet-card">
                 <div class="meet-top">
@@ -363,7 +391,8 @@ async function loadSchedulePreview() {
                 <div class="meet-meta">
                     ${m.time ? `<span>${escapeHtml(timeToClock(m.time))}</span>` : ''}
                     ${m.placeName ? `<span>${escapeHtml(m.placeName)}</span>` : ''}
-                    ${m.address ? `<span>${escapeHtml(m.address)}</span>` : ''}
+                    ${dirUrl ? `<a class="directions-link" href="${dirUrl}" target="_blank" rel="noopener">${DIRECTIONS_SVG}Directions</a>` : ''}
+                    ${isUpcoming ? `<span class="weather-inline">${SUN_SVG}82&deg;F Sunny <em>(sample)</em></span>` : ''}
                 </div>
                 ${hasResults ? `<button class="results-toggle" onclick="openResultsModal('${escapeHtml(m.id)}')">View results</button>` : ''}
             </li>`;
@@ -373,7 +402,7 @@ async function loadSchedulePreview() {
         list.className = 'meet-list';
         list.innerHTML =
             past.map(renderMeetCard).join('') +
-            (upcoming.length ? `<li class="upcoming-label">Upcoming Meets</li>` + upcoming.map(renderMeetCard).join('') : '');
+            (nextUpcoming.length ? `<li class="upcoming-label">Next Meet</li>` + nextUpcoming.map(renderMeetCard).join('') : '');
         content.innerHTML = '';
         content.appendChild(list);
     } catch (e) {
