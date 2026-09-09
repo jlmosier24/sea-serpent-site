@@ -52,7 +52,7 @@
     .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; align-items: start; margin-top: 32px; }
     .panel-stats { grid-column: 1; grid-row: 1; }
     .panel-schedule { grid-column: 1; grid-row: 2; }
-    .panel-gallery { grid-column: 2; grid-row: 1 / 3; }
+    .panel-gallery { grid-column: 2; grid-row: 1 / 3; align-self: stretch; }
     @media (max-width: 700px) {
         .dashboard-grid { grid-template-columns: 1fr; }
         .panel-stats, .panel-schedule, .panel-gallery { grid-column: auto; grid-row: auto; }
