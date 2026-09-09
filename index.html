@@ -46,9 +46,17 @@
     .hero p { color: var(--sub); font-size: 1.1rem; max-width: 560px; margin: 0 auto 28px; }
 
     /* ---- dashboard grid ---- */
-    .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; margin-top: 32px; }
-    @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr 1fr; } .panel-schedule { grid-column: 1 / -1; } }
-    @media (max-width: 600px) { .dashboard-grid { grid-template-columns: 1fr; } .panel-schedule { grid-column: auto; } }
+    /* Swimmer Stats stacked above Previous Meet in the narrower left
+       column; Photo Gallery takes the wider right column, spanning both
+       rows -- filling the width the third column used to take up. */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; align-items: start; margin-top: 32px; }
+    .panel-stats { grid-column: 1; grid-row: 1; }
+    .panel-schedule { grid-column: 1; grid-row: 2; }
+    .panel-gallery { grid-column: 2; grid-row: 1 / 3; }
+    @media (max-width: 700px) {
+        .dashboard-grid { grid-template-columns: 1fr; }
+        .panel-stats, .panel-schedule, .panel-gallery { grid-column: auto; grid-row: auto; }
+    }
     .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 22px; }
     .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
     .section-head h2 { margin: 0; font-size: 1.15rem; }
