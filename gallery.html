@@ -103,14 +103,15 @@
 </main>
 <footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
 <script>
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_DIMENSION = 1600;
 
 // Captions/names are free text from anonymous public submissions -- must be
 // escaped before landing in innerHTML anywhere on this page.
 function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str == null ? '' : String(str);
-    return div.innerHTML;
+    // Quotes too, not just <>& -- output also lands inside attributes like alt="…".
+    return (str == null ? '' : String(str))
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function fileToBase64(file) {
@@ -120,6 +121,31 @@ function fileToBase64(file) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
+}
+
+// Re-encoding through a canvas strips all metadata (phones embed GPS) and shrinks multi-MB originals.
+async function prepareImage(file) {
+    const url = URL.createObjectURL(file);
+    try {
+        const img = new Image();
+        img.src = url;
+        // Drawing an <img> applies its EXIF rotation, so portrait shots stay upright once that metadata is gone.
+        await img.decode();
+        const scale = Math.min(1, MAX_DIMENSION / Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        const ctx = canvas.getContext('2d');
+        // JPEG has no transparency -- without this, transparent areas encode as black.
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+        if (!blob) throw new Error('Could not encode image');
+        return blob;
+    } finally {
+        URL.revokeObjectURL(url);
+    }
 }
 
 const fileInput = document.getElementById('photoFile');
@@ -139,16 +165,23 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
     if (!file) { msg.textContent = 'Choose a photo first.'; msg.className = 'form-msg error'; return; }
     if (!file.type.startsWith('image/')) { msg.textContent = 'That file isn\'t an image.'; msg.className = 'form-msg error'; return; }
-    if (file.size > MAX_BYTES) { msg.textContent = 'Photo must be under 8MB.'; msg.className = 'form-msg error'; return; }
 
     btn.disabled = true;
     btn.textContent = 'Uploading…';
     try {
-        const dataBase64 = await fileToBase64(file);
+        let photo;
+        try {
+            photo = await prepareImage(file);
+        } catch (err) {
+            msg.textContent = 'Couldn\'t read that photo -- try a JPEG or PNG.';
+            msg.className = 'form-msg error';
+            return;
+        }
+        const dataBase64 = await fileToBase64(photo);
         const res = await fetch('/api/uploadGalleryPhoto', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: file.name, contentType: file.type, dataBase64 })
+            body: JSON.stringify({ filename: file.name, contentType: photo.type, dataBase64 })
         });
         if (!res.ok) throw new Error(await res.text());
         msg.textContent = 'Thanks! Submitted for review.';

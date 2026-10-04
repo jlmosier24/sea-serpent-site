@@ -103,9 +103,10 @@
 // principle -- see gallery.html, which has the same helper for genuinely
 // public, unauthenticated input.
 function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str == null ? '' : String(str);
-    return div.innerHTML;
+    // Quotes too, not just <>& -- output also lands inside attributes like alt="…".
+    return (str == null ? '' : String(str))
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function fmtDate(dateStr) {
@@ -233,7 +234,8 @@ document.getElementById('resultsModal').addEventListener('close', () => {
         resultsByMeetId = Object.fromEntries(meets.map((m, i) => [m.id, resultsList[i]]));
         meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
 
-        const today = new Date().toISOString().slice(0, 10);
+        // Eastern, not UTC -- toISOString() rolls over to tomorrow at 8pm EDT, mid-meet.
+        const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
         const list = document.createElement('ul');
         list.className = 'meet-list';
         list.innerHTML = meets.map((m, i) => {

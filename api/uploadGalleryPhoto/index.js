@@ -5,10 +5,8 @@ const MAX_BYTES = 8 * 1024 * 1024; // 8MB
 const MAX_CAPTION_LEN = 300;
 const MAX_NAME_LEN = 100;
 
-function extFromContentType(contentType) {
-    const map = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
-    return map[contentType] || "jpg";
-}
+// Raster formats only -- SVG is image/* too, but can carry script.
+const EXTENSIONS = new Map([["image/jpeg", "jpg"], ["image/png", "png"], ["image/webp", "webp"], ["image/gif", "gif"]]);
 
 function generateId() {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -22,8 +20,8 @@ function generateId() {
 module.exports = async function (context, req) {
     const { filename, contentType, dataBase64, caption, submittedBy } = req.body || {};
 
-    if (!contentType || !contentType.startsWith("image/")) {
-        context.res = { status: 400, body: "File must be an image." };
+    if (!EXTENSIONS.has(contentType)) {
+        context.res = { status: 400, body: "Photo must be a JPEG, PNG, WebP, or GIF." };
         return;
     }
     if (!dataBase64) {
@@ -44,7 +42,7 @@ module.exports = async function (context, req) {
     }
 
     const id = generateId();
-    const blobName = `${id}.${extFromContentType(contentType)}`;
+    const blobName = `${id}.${EXTENSIONS.get(contentType)}`;
 
     try {
         const container = getGalleryContainer();

@@ -3,6 +3,15 @@ const { getResultsTable, getRelayResultsTable, toResultEntity, toRelayResultEnti
 const { getMeetsTable, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { isSpotswoodTeam } = require("../shared/meetResultsParser");
 
+const SAVE_CONCURRENCY = 20;
+
+// Saved one at a time, a ~700-row dual meet can outrun SWA's 45-second API request limit.
+async function forEachInBatches(items, fn) {
+    for (let i = 0; i < items.length; i += SAVE_CONCURRENCY) {
+        await Promise.all(items.slice(i, i + SAVE_CONCURRENCY).map(fn));
+    }
+}
+
 // Reachable at /api/importMeetResultsCommit. Protected by an explicit route
 // rule in staticwebapp.config.json (requires the "administrator" role).
 // Takes the (admin-reviewed) rows from importMeetResultsPreview -- both
@@ -35,14 +44,10 @@ module.exports = async function (context, req) {
         }
 
         const resultsTable = getResultsTable();
-        for (const row of individual || []) {
-            await resultsTable.upsertEntity(toResultEntity(row, meetId), "Replace");
-        }
+        await forEachInBatches(individual || [], row => resultsTable.upsertEntity(toResultEntity(row, meetId), "Replace"));
 
         const relayTable = getRelayResultsTable();
-        for (const row of relays || []) {
-            await relayTable.upsertEntity(toRelayResultEntity(row, meetId), "Replace");
-        }
+        await forEachInBatches(relays || [], row => relayTable.upsertEntity(toRelayResultEntity(row, meetId), "Replace"));
 
         // teamPoints covers every team seen in the PDF (see
         // meetResultsParser.js), not just the ones whose swimmer-level rows

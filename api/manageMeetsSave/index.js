@@ -47,7 +47,8 @@ module.exports = async function (context, req) {
         if (lat != null && lat !== "") entity.lat = Number(lat);
         if (lon != null && lon !== "") entity.lon = Number(lon);
 
-        await table.upsertEntity(entity, "Replace");
+        // Merge, not Replace -- the results import stores the meet's score on this same entity.
+        await table.upsertEntity(entity, "Merge");
         context.res = { status: 200, body: toMeetDto(entity) };
     } catch (e) {
         context.log.error("Failed to save meet:", e);

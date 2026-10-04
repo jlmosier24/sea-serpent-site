@@ -191,9 +191,10 @@
 <footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
 <script>
 function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str == null ? '' : String(str);
-    return div.innerHTML;
+    // Quotes too, not just <>& -- output also lands inside attributes like alt="…".
+    return (str == null ? '' : String(str))
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function fmtDate(dateStr) {
@@ -313,10 +314,11 @@ async function loadSchedulePreview() {
         const meets = await res.json();
         if (!meets.length) { content.innerHTML = '<p class="empty">No meets scheduled yet.</p>'; return; }
 
+        // Eastern, not UTC -- toISOString() rolls over to tomorrow at 8pm EDT, mid-meet.
+        const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
         // A compact dashboard panel, not the full list: the single most
         // recent past meet with results, plus just the next upcoming meet --
         // schedule.html has the complete list either direction.
-        const today = new Date().toISOString().slice(0, 10);
         const upcoming = meets.filter(m => m.date >= today).sort((a, b) => a.date.localeCompare(b.date));
         const nextUpcoming = upcoming.slice(0, 1);
         const pastCandidates = meets.filter(m => m.date < today).sort((a, b) => b.date.localeCompare(a.date));
