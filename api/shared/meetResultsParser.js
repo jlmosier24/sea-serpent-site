@@ -19,9 +19,9 @@
 //      this parser and comparing row counts.
 //
 // Line shapes this handles (one event block per "#<N> <name>" header):
-//   Individual : "<place[*]|--> <Last[, Jr/Sr/II/III/IV], First> <age> <team words> <seed|NT> <official|DQ|NS> [points]"
+//   Individual : "<place[*]|X|--> <Last[, Jr/Sr/II/III/IV], First> [EXH] <age> <team words> <seed|NT> <official|DQ|NS|DNF> [points]"
 //   DQ reason  : "DQ: <code> <reason text>"                (attaches to the row just above)
-//   Relay      : "<place[*]|X|--> <team words> [EXH] <letter A-D> <abbrev> <seed|NT> <official|DQ|NS> [points]"
+//   Relay      : "<place[*]|X|--> <team words> [EXH] <letter A-D> <abbrev> <seed|NT> <official|DQ|NS|DNF> [points]"
 //                 followed by "1) Last, First (age) 2) ... 3) ... 4) ..."
 // A trailing "*" on a place marks a tie, which is also why points can be a
 // decimal ("3.5") -- tied swimmers split the points for their places.
@@ -52,7 +52,8 @@ const DQ_REASON_RE = /^DQ:\s*(.*)$/;
 // A name is normally "Last, First", but a generational suffix can add a
 // second comma ("Colby, Jr., Stuart") -- the optional non-capturing group
 // absorbs that middle segment so it doesn't get mistaken for the team name.
-const NAME_RE = "[A-Za-z][A-Za-z .'-]*(?:,\\s*(?:Jr\\.?|Sr\\.?|II|III|IV))?,\\s*[A-Za-z][A-Za-z .'-]*?";
+// Any letters, not just A-Z -- an accented name like "Zoë" otherwise drops a scoring row.
+const NAME_RE = "\\p{L}[\\p{L}\\p{M} .'-]*(?:,\\s*(?:Jr\\.?|Sr\\.?|II|III|IV))?,\\s*\\p{L}[\\p{L}\\p{M} .'-]*?";
 const TIME_RE = "NT|\\d{1,3}:\\d{2}\\.\\d{2}|\\d{1,3}\\.\\d{2}";
 // A tied place is printed as e.g. "2*", with the points for that place
 // split between the tied swimmers (so points can be a decimal like "3.5").
@@ -60,21 +61,28 @@ const PLACE_RE = "\\d+\\*?";
 const POINTS_RE = "\\d+(?:\\.\\d+)?";
 
 const INDIVIDUAL_ROW_RE = new RegExp(
-    `^(${PLACE_RE}|--)\\s+(${NAME_RE})\\s+(\\d{1,2})\\s+(.+?)\\s+(${TIME_RE})\\s+(${TIME_RE}|DQ|NS)(?:\\s+(${POINTS_RE}))?$`
+    `^(${PLACE_RE}|X|--)\\s+(${NAME_RE})\\s+(?:EXH\\s+)?(\\d{1,2})\\s+(.+?)\\s+(${TIME_RE})\\s+(${TIME_RE}|DQ|NS|DNF)(?:\\s+(${POINTS_RE}))?$`,
+    "u"
 );
 const RELAY_ROW_RE = new RegExp(
-    `^(${PLACE_RE}|X|--)\\s+(.+?)\\s+(?:EXH\\s+)?([A-Z])\\s+([A-Z]{1,4})\\s+(${TIME_RE})\\s+(${TIME_RE}|DQ|NS)(?:\\s+(${POINTS_RE}))?$`
+    `^(${PLACE_RE}|X|--)\\s+(.+?)\\s+(?:EXH\\s+)?([A-Z])\\s+([A-Z]{1,4})\\s+(${TIME_RE})\\s+(${TIME_RE}|DQ|NS|DNF)(?:\\s+(${POINTS_RE}))?$`
 );
-const RELAY_SWIMMER_RE = new RegExp(`\\d\\)\\s*(${NAME_RE})\\s*\\((\\d{1,2})\\)`, "g");
+const RELAY_SWIMMER_RE = new RegExp(`\\d\\)\\s*(${NAME_RE})\\s*\\((\\d{1,2})\\)`, "gu");
 
 function parsePlace(place) {
     const digits = place.replace("*", "");
     return /^\d+$/.test(digits) ? parseInt(digits, 10) : null;
 }
 
-// "1:16.09" -> 76.09, "45.09" -> 45.09, "NT"/"DQ"/"NS" -> null.
+// An "X" place is an exhibition swim: timed, but not scored.
+function rowStatus(place, official) {
+    if (place === "X") return "EXH";
+    return ["DQ", "NS", "DNF"].includes(official) ? official : "OK";
+}
+
+// "1:16.09" -> 76.09, "45.09" -> 45.09, "NT"/"DQ"/"NS"/"DNF" -> null.
 function timeToSeconds(time) {
-    if (!time || time === "NT" || time === "DQ" || time === "NS") return null;
+    if (!time || ["NT", "DQ", "NS", "DNF"].includes(time)) return null;
     const parts = time.split(":");
     if (parts.length === 2) return parseInt(parts[0], 10) * 60 + parseFloat(parts[1]);
     return parseFloat(parts[0]);
@@ -135,8 +143,8 @@ function parseMeetResultsText(rawText) {
                 const row = {
                     eventNumber: currentEvent.number,
                     eventName: currentEvent.name,
-                    place: place === "X" ? null : parsePlace(place),
-                    status: place === "X" ? "EXH" : (official === "DQ" ? "DQ" : (official === "NS" ? "NS" : "OK")),
+                    place: parsePlace(place),
+                    status: rowStatus(place, official),
                     team: team.trim(),
                     relayLetter,
                     teamAbbrev,
@@ -171,7 +179,7 @@ function parseMeetResultsText(rawText) {
                 eventNumber: currentEvent.number,
                 eventName: currentEvent.name,
                 place: parsePlace(place),
-                status: official === "DQ" ? "DQ" : (official === "NS" ? "NS" : "OK"),
+                status: rowStatus(place, official),
                 name: name.trim(),
                 age: parseInt(age, 10),
                 team: team.trim(),
