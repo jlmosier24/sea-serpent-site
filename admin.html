@@ -62,13 +62,36 @@
     table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
     th { color: var(--sub); font-weight: 600; }
+    /* On a div inside the cell, never the <td> itself -- display:flex on a cell stops it acting as one, so it doesn't fill the row and its bottom line sits too high. */
     .row-actions { display: flex; gap: 6px; }
+    /* Photo rows center on the thumbnail, and both photo tables share column widths so Pending and Approved line up. */
+    .photo-table td { vertical-align: middle; }
+    @media (min-width: 601px) {
+        .photo-table { table-layout: fixed; }
+        .photo-table th:first-child { width: 84px; }
+        .photo-table th:nth-child(2) { width: 30%; }
+        .photo-table th:last-child { width: 180px; }
+    }
+    /* Phones: each meet or photo stacks into its own block -- as table rows they ran wider than the screen. */
+    @media (max-width: 600px) {
+        .stack-table, .stack-table tbody { display: block; }
+        .stack-table thead { display: none; }
+        .stack-table tr { display: grid; gap: 6px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+        .stack-table td { border: none; padding: 0; }
+        .stack-table td:empty { display: none; }
+        .photo-table tr { grid-template-columns: 64px 1fr; align-items: center; }
+        .photo-table td:first-child { grid-row: span 2; }
+        .photo-table td:not(:first-child) { grid-column: 2; }
+        .stack-table td[colspan] { grid-column: 1 / -1; grid-row: auto; }
+    }
+    /* The import preview keeps its columns and scrolls sideways on narrow screens instead. */
+    .table-scroll { overflow-x: auto; }
 
     .msg { font-size: 0.85rem; margin-top: 10px; }
     .msg.success { color: var(--teal-dark); }
     .msg.error { color: var(--coral); }
     .muted { color: var(--sub); font-size: 0.85rem; }
-    .thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
+    .thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; display: block; }
     .warn-box { background: #FFF6EC; border: 1px solid #F3D9B1; border-radius: 10px; padding: 10px 14px; font-size: 0.82rem; color: #8A5A1F; margin-top: 12px; max-height: 160px; overflow: auto; }
 </style>
 </head>
@@ -115,7 +138,7 @@
         </div>
         <div class="panel">
             <h2>All meets</h2>
-            <table id="meetsTable"><thead><tr><th>Date</th><th>Title</th><th>Location</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
+            <table id="meetsTable" class="stack-table"><thead><tr><th>Date</th><th>Title</th><th>Location</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
         </div>
     </section>
 
@@ -123,11 +146,11 @@
     <section class="tab-panel" id="tab-gallery">
         <div class="panel">
             <h2>Pending review</h2>
-            <table id="pendingTable"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
+            <table id="pendingTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
         </div>
         <div class="panel">
             <h2>Approved</h2>
-            <table id="approvedTable"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
+            <table id="approvedTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
         </div>
     </section>
 
@@ -187,10 +210,10 @@ async function loadMeets() {
                 <td>${escapeHtml(m.date)}${m.time ? ' ' + escapeHtml(m.time) : ''}</td>
                 <td>${escapeHtml(m.title)}${m.hidden ? ' <span class="muted">(hidden)</span>' : ''}</td>
                 <td>${escapeHtml(m.placeName || m.address || '')}</td>
-                <td class="row-actions">
+                <td><div class="row-actions">
                     <button class="btn btn-ghost btn-sm" onclick="editMeet('${escapeHtml(m.id)}')">Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteMeet('${escapeHtml(m.id)}')">Delete</button>
-                </td>
+                </div></td>
             </tr>
         `).join('');
         populateImportMeetSelect(meets);
@@ -298,10 +321,10 @@ async function loadGallery() {
                 <td><img class="thumb" src="${escapeHtml(p.url)}" alt=""></td>
                 <td>${escapeHtml(p.submittedBy || 'Anonymous')}<br><span class="muted">${escapeHtml(new Date(p.submittedAt).toLocaleDateString())}</span></td>
                 <td>${escapeHtml(p.caption || '')}</td>
-                <td class="row-actions">
+                <td><div class="row-actions">
                     <button class="btn btn-primary btn-sm" onclick="approvePhoto('${escapeHtml(p.id)}')">Approve</button>
                     <button class="btn btn-danger btn-sm" onclick="rejectPhoto('${escapeHtml(p.id)}')">Reject</button>
-                </td>
+                </div></td>
             </tr>
         `).join('') : '<tr><td colspan="4" class="muted">Nothing pending.</td></tr>';
 
@@ -310,7 +333,7 @@ async function loadGallery() {
                 <td><img class="thumb" src="${escapeHtml(p.url)}" alt=""></td>
                 <td>${escapeHtml(p.submittedBy || 'Anonymous')}</td>
                 <td>${escapeHtml(p.caption || '')}</td>
-                <td class="row-actions"><button class="btn btn-danger btn-sm" onclick="rejectPhoto('${escapeHtml(p.id)}')">Remove</button></td>
+                <td><div class="row-actions"><button class="btn btn-danger btn-sm" onclick="rejectPhoto('${escapeHtml(p.id)}')">Remove</button></div></td>
             </tr>
         `).join('') : '<tr><td colspan="4" class="muted">Nothing approved yet.</td></tr>';
     } catch (e) {
@@ -372,9 +395,9 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
 
         preview.innerHTML = `
             <h3 style="margin-top:20px;">Individual results (${lastParsed.individual.length})</h3>
-            <table><thead><tr><th>Swimmer</th><th>Team</th><th>Event</th><th>Time</th><th>Place</th><th>Status</th></tr></thead><tbody>${indRows || '<tr><td colspan="6" class="muted">None found.</td></tr>'}</tbody></table>
+            <div class="table-scroll"><table><thead><tr><th>Swimmer</th><th>Team</th><th>Event</th><th>Time</th><th>Place</th><th>Status</th></tr></thead><tbody>${indRows || '<tr><td colspan="6" class="muted">None found.</td></tr>'}</tbody></table></div>
             <h3 style="margin-top:20px;">Relay results (${lastParsed.relays.length})</h3>
-            <table><thead><tr><th>Event</th><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${relayRows || '<tr><td colspan="5" class="muted">None found.</td></tr>'}</tbody></table>
+            <div class="table-scroll"><table><thead><tr><th>Event</th><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${relayRows || '<tr><td colspan="5" class="muted">None found.</td></tr>'}</tbody></table></div>
             ${lastParsed.unparsedLines.length ? `<div class="warn-box"><strong>${lastParsed.unparsedLines.length} line(s) couldn't be read</strong> -- these are skipped, not guessed at:<br>${lastParsed.unparsedLines.map(l => escapeHtml(l)).join('<br>')}</div>` : ''}
         `;
         msg.textContent = 'Review the rows above, then commit.'; msg.className = 'msg success';
