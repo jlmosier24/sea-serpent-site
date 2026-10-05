@@ -11,8 +11,8 @@
 //      1st-place name in several events -- `pdftotext -raw` (content-stream
 //      order) does not.
 //   2. pdf-parse's default renderer mimics that reading order but joins
-//      same-line text runs with NO separator, collapsing e.g. "1 Taormina,
-//      Soleil 12 Spotswood" into "1Taormina, Soleil12Spotswood". pdfText.js
+//      same-line text runs with NO separator, collapsing e.g. "1 Doe, Jane
+//      12 Spotswood" into "1Doe, Jane12Spotswood". pdfText.js
 //      reinserts a space wherever there's a real horizontal gap between
 //      runs, matching what -raw does. That's the extraction this module
 //      expects; it was cross-checked against both by running each through
@@ -50,7 +50,7 @@ const FOOTER_RE = /^SwimTopia Meet Maestro/i;
 const DQ_REASON_RE = /^DQ:\s*(.*)$/;
 
 // A name is normally "Last, First", but a generational suffix can add a
-// second comma ("Colby, Jr., Stuart") -- the optional non-capturing group
+// second comma ("Doe, Jr., John") -- the optional non-capturing group
 // absorbs that middle segment so it doesn't get mistaken for the team name.
 // Any letters, not just A-Z -- an accented name like "Zoë" otherwise drops a scoring row.
 const NAME_RE = "\\p{L}[\\p{L}\\p{M} .'-]*(?:,\\s*(?:Jr\\.?|Sr\\.?|II|III|IV))?,\\s*\\p{L}[\\p{L}\\p{M} .'-]*?";

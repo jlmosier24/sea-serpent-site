@@ -5,8 +5,8 @@ const pdfParse = require("pdf-parse");
 // one run per table column), and there's no literal space character
 // between them, just an X-coordinate gap. Poppler's `pdftotext` fills that
 // gap in with a heuristic; pdf.js (which pdf-parse wraps) does not. Without
-// this, "1 Taormina, Soleil 12 Fawn Lake Fliers" collapses into
-// "1Taormina, Soleil12Fawn Lake Fliers", which meetResultsParser.js can't
+// this, "1 Doe, Jane 12 Fawn Lake Fliers" collapses into
+// "1Doe, Jane12Fawn Lake Fliers", which meetResultsParser.js can't
 // read. This re-implements that gap-to-space heuristic against the same
 // sample PDF used to design the line-shape regexes in meetResultsParser.js.
 function renderPage(pageData) {
