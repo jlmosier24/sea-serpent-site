@@ -94,7 +94,7 @@
         </div>
         <form class="upload-inline" id="uploadForm">
             <label class="upload-label" for="photoFile" id="fileLabel">Share a photo</label>
-            <input type="file" id="photoFile" accept="image/*">
+            <input type="file" id="photoFile" accept="image/*" multiple>
             <button type="submit" class="btn btn-primary" id="submitBtn">Upload</button>
         </form>
     </div>
@@ -105,6 +105,7 @@
 <footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
 <script>
 const MAX_DIMENSION = 1600;
+const MAX_PHOTOS_PER_UPLOAD = 20;
 
 // Captions/names are free text from anonymous public submissions -- must be
 // escaped before landing in innerHTML anywhere on this page.
@@ -176,51 +177,81 @@ async function unreadablePhotoMessage(file) {
 const fileInput = document.getElementById('photoFile');
 const fileLabel = document.getElementById('fileLabel');
 fileInput.addEventListener('change', () => {
-    fileLabel.textContent = fileInput.files[0] ? fileInput.files[0].name : 'Share a photo';
+    const count = fileInput.files.length;
+    fileLabel.textContent = count > 1 ? `${count} photos selected` : count ? fileInput.files[0].name : 'Share a photo';
 });
+
+// Sends one photo; a failure throws with a message meant for the person uploading.
+async function uploadPhoto(file) {
+    if (!file.type.startsWith('image/')) throw new Error('That file isn\'t an image.');
+    let photo;
+    try {
+        photo = await prepareImage(file);
+    } catch (err) {
+        console.error('Could not prepare photo:', err);
+        throw new Error(await unreadablePhotoMessage(file));
+    }
+    const dataBase64 = await fileToBase64(photo);
+    const res = await fetch('/api/uploadGalleryPhoto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, contentType: photo.type, dataBase64 })
+    });
+    if (!res.ok) {
+        console.error('Upload failed:', res.status, await res.text().catch(() => ''));
+        throw new Error('Something went wrong -- please try again.');
+    }
+}
 
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = document.getElementById('formMsg');
     const btn = document.getElementById('submitBtn');
-    const file = fileInput.files[0];
+    const files = [...fileInput.files];
 
     msg.textContent = '';
     msg.className = 'form-msg';
 
-    if (!file) { msg.textContent = 'Choose a photo first.'; msg.className = 'form-msg error'; return; }
-    if (!file.type.startsWith('image/')) { msg.textContent = 'That file isn\'t an image.'; msg.className = 'form-msg error'; return; }
+    if (!files.length) { msg.textContent = 'Choose a photo first.'; msg.className = 'form-msg error'; return; }
+    if (files.length > MAX_PHOTOS_PER_UPLOAD) { msg.textContent = `Please choose up to ${MAX_PHOTOS_PER_UPLOAD} photos at a time.`; msg.className = 'form-msg error'; return; }
 
     btn.disabled = true;
-    btn.textContent = 'Uploading…';
-    try {
-        let photo;
+    // One at a time, so a phone never holds several full-size photos in memory at once.
+    const failed = [];
+    for (let i = 0; i < files.length; i++) {
+        btn.textContent = files.length > 1 ? `Uploading ${i + 1} of ${files.length}…` : 'Uploading…';
         try {
-            photo = await prepareImage(file);
+            await uploadPhoto(files[i]);
         } catch (err) {
-            console.error('Could not prepare photo:', err);
-            msg.textContent = await unreadablePhotoMessage(file);
-            msg.className = 'form-msg error';
-            return;
+            failed.push({ file: files[i], message: err.message });
         }
-        const dataBase64 = await fileToBase64(photo);
-        const res = await fetch('/api/uploadGalleryPhoto', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: file.name, contentType: photo.type, dataBase64 })
-        });
-        if (!res.ok) throw new Error(await res.text());
-        msg.textContent = 'Thanks! Submitted for review.';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Upload';
+
+    const sent = files.length - failed.length;
+    if (!failed.length) {
+        msg.textContent = sent > 1 ? `Thanks! ${sent} photos submitted for review.` : 'Thanks! Submitted for review.';
         msg.className = 'form-msg success';
         document.getElementById('uploadForm').reset();
         fileLabel.textContent = 'Share a photo';
-    } catch (err) {
-        msg.textContent = 'Something went wrong -- please try again.';
-        msg.className = 'form-msg error';
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Upload';
+        return;
     }
+    if (sent) {
+        // Only the photos that didn't go through stay selected, so pressing Upload again doesn't resend the rest.
+        try {
+            const remaining = new DataTransfer();
+            failed.forEach(f => remaining.items.add(f.file));
+            fileInput.files = remaining.files;
+        } catch (e) {
+            document.getElementById('uploadForm').reset();
+        }
+        fileInput.dispatchEvent(new Event('change'));
+    }
+    msg.className = 'form-msg error';
+    if (files.length === 1) msg.textContent = failed[0].message;
+    else if (!sent) msg.textContent = `None of the photos went through: ${failed[0].message}`;
+    else msg.textContent = `${sent} of ${files.length} photos submitted for review. ${failed.length} didn't go through: ${failed[0].message}`;
 });
 
 (async function () {
