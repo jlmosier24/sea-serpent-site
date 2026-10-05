@@ -58,15 +58,17 @@ function toResultDto(entity) {
 }
 
 // PartitionKey is the meet id (relays aren't queried per-swimmer the way
-// individual results are), RowKey is stable per meet+event+relay leg.
-function relayRowKey(meetId, eventNumber, relayLetter) {
-    return `${meetId}__${eventNumber}__${relayLetter}`;
+// individual results are), RowKey is stable per meet+event+team+relay letter.
+// The team abbreviation matters: both teams enter an "A" relay in the same
+// event, and without it one team's relay silently overwrites the other's.
+function relayRowKey(meetId, eventNumber, teamAbbrev, relayLetter) {
+    return `${meetId}__${eventNumber}__${teamAbbrev}__${relayLetter}`;
 }
 
 function toRelayResultEntity(row, meetId) {
     return {
         partitionKey: meetId,
-        rowKey: relayRowKey(meetId, row.eventNumber, row.relayLetter),
+        rowKey: relayRowKey(meetId, row.eventNumber, row.teamAbbrev, row.relayLetter),
         meetId,
         eventNumber: row.eventNumber,
         eventName: row.eventName,
