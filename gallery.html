@@ -65,6 +65,19 @@
     .photo img { width: 100%; height: 200px; object-fit: cover; display: block; }
     .photo .caption { padding: 10px 14px; font-size: 0.85rem; color: var(--sub); }
     .photo .caption strong { color: var(--deep); }
+    .photo-open { display: block; width: 100%; padding: 0; border: none; background: none; cursor: zoom-in; }
+
+    /* Full-screen and dark, like a phone's photo app, so the photo gets all the room it can. */
+    dialog.photo-viewer { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; background: rgba(12,20,14,0.94); color: #fff; overflow: hidden; }
+    dialog.photo-viewer[open] { display: flex; flex-direction: column; }
+    dialog.photo-viewer::backdrop { background: transparent; }
+    .photo-viewer-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 64px 16px 8px; }
+    .photo-viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+    .photo-viewer-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); }
+    .photo-viewer-bar p { margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.85); }
+    .photo-viewer-close { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255,255,255,0.15); color: #fff; font-size: 1.7rem; line-height: 1; cursor: pointer; }
+    .photo-viewer-close:hover { background: rgba(255,255,255,0.25); }
+    .photo-viewer-download { flex-shrink: 0; }
 
     .empty, .loading { color: var(--sub); text-align: center; padding: 40px 0; }
     footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
@@ -103,6 +116,14 @@
     <div id="content"><p class="loading">Loading photos…</p></div>
 </main>
 <footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
+<dialog id="photoViewer" class="photo-viewer" closedby="any" aria-label="Photo">
+    <button type="button" class="photo-viewer-close" aria-label="Close" onclick="document.getElementById('photoViewer').close()">&times;</button>
+    <div class="photo-viewer-stage"><img id="photoViewerImg" alt=""></div>
+    <div class="photo-viewer-bar">
+        <p id="photoViewerCaption"></p>
+        <a id="photoViewerDownload" class="btn btn-primary photo-viewer-download" href="#">Download</a>
+    </div>
+</dialog>
 <script>
 const MAX_DIMENSION = 1600;
 const MAX_PHOTOS_PER_UPLOAD = 20;
@@ -254,6 +275,25 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     else msg.textContent = `${sent} of ${files.length} photos submitted for review. ${failed.length} didn't go through: ${failed[0].message}`;
 });
 
+// The grid crops every photo to a uniform tile; the viewer shows the whole thing.
+const photoViewer = document.getElementById('photoViewer');
+function openPhotoViewer(photo) {
+    const img = document.getElementById('photoViewerImg');
+    img.src = photo.url;
+    img.alt = photo.caption || 'Team photo';
+    document.getElementById('photoViewerCaption').textContent = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(' ');
+    const download = document.getElementById('photoViewerDownload');
+    download.hidden = !photo.downloadUrl;
+    download.href = photo.downloadUrl || '#';
+    document.documentElement.style.overflow = 'hidden';
+    photoViewer.showModal();
+}
+photoViewer.addEventListener('close', () => { document.documentElement.style.overflow = ''; });
+// The viewer fills the screen, so there's no backdrop to tap -- tapping the dark area around the photo closes it instead.
+photoViewer.addEventListener('click', (event) => {
+    if (event.target === photoViewer || event.target.classList.contains('photo-viewer-stage')) photoViewer.close();
+});
+
 (async function () {
     const content = document.getElementById('content');
     try {
@@ -265,10 +305,11 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         }
         content.innerHTML = `<div class="photo-grid">${photos.map(p => `
             <div class="photo">
-                <img src="${escapeHtml(p.url)}" alt="${escapeHtml(p.caption || 'Team photo')}" loading="lazy">
+                <button type="button" class="photo-open" aria-label="View photo full size"><img src="${escapeHtml(p.url)}" alt="${escapeHtml(p.caption || 'Team photo')}" loading="lazy"></button>
                 ${p.caption || p.submittedBy ? `<div class="caption">${p.caption ? escapeHtml(p.caption) : ''}${p.submittedBy ? ` <strong>— ${escapeHtml(p.submittedBy)}</strong>` : ''}</div>` : ''}
             </div>
         `).join('')}</div>`;
+        content.querySelectorAll('.photo-open').forEach((button, i) => button.addEventListener('click', () => openPhotoViewer(photos[i])));
     } catch (e) {
         content.innerHTML = '<p class="empty">Couldn\'t load the gallery right now.</p>';
     }

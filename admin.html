@@ -92,6 +92,18 @@
     .msg.error { color: var(--coral); }
     .muted { color: var(--sub); font-size: 0.85rem; }
     .thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; display: block; }
+    .thumb-open { display: block; padding: 0; border: none; background: none; border-radius: 8px; cursor: zoom-in; }
+
+    /* Full-screen and dark, like a phone's photo app, so a photo can be checked properly before approving it. */
+    dialog.photo-viewer { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; background: rgba(12,20,14,0.94); color: #fff; overflow: hidden; }
+    dialog.photo-viewer[open] { display: flex; flex-direction: column; }
+    dialog.photo-viewer::backdrop { background: transparent; }
+    .photo-viewer-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 64px 16px 8px; }
+    .photo-viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+    .photo-viewer-bar { padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); min-height: 20px; }
+    .photo-viewer-bar p { margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.85); }
+    .photo-viewer-close { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255,255,255,0.15); color: #fff; font-size: 1.7rem; line-height: 1; cursor: pointer; }
+    .photo-viewer-close:hover { background: rgba(255,255,255,0.25); }
     .warn-box { background: #FFF6EC; border: 1px solid #F3D9B1; border-radius: 10px; padding: 10px 14px; font-size: 0.82rem; color: #8A5A1F; margin-top: 12px; max-height: 160px; overflow: auto; }
 </style>
 </head>
@@ -172,6 +184,11 @@
         </div>
     </section>
 </main>
+<dialog id="photoViewer" class="photo-viewer" closedby="any" aria-label="Photo">
+    <button type="button" class="photo-viewer-close" aria-label="Close" onclick="document.getElementById('photoViewer').close()">&times;</button>
+    <div class="photo-viewer-stage"><img id="photoViewerImg" alt=""></div>
+    <div class="photo-viewer-bar"><p id="photoViewerCaption"></p></div>
+</dialog>
 <script>
 function escapeHtml(str) {
     // Quotes too, not just <>& -- output also lands inside attributes like alt="…".
@@ -308,17 +325,38 @@ document.getElementById('meetForm').addEventListener('submit', async (e) => {
 });
 
 /* ---------- Gallery ---------- */
+// The thumbnails are too small to judge a photo by -- tapping one opens it full size.
+const galleryPhotosById = new Map();
+function viewPhoto(id) {
+    const photo = galleryPhotosById.get(id);
+    if (!photo) return;
+    const img = document.getElementById('photoViewerImg');
+    img.src = photo.url;
+    img.alt = photo.caption || 'Submitted photo';
+    document.getElementById('photoViewerCaption').textContent = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(' ');
+    document.documentElement.style.overflow = 'hidden';
+    document.getElementById('photoViewer').showModal();
+}
+// The page behind a modal dialog doesn't reliably stop scrolling on its own, so opening locks it and any way of closing unlocks it.
+document.getElementById('photoViewer').addEventListener('close', () => { document.documentElement.style.overflow = ''; });
+// The viewer fills the screen, so there's no backdrop to tap -- tapping the dark area around the photo closes it instead.
+document.getElementById('photoViewer').addEventListener('click', (event) => {
+    if (event.target === event.currentTarget || event.target.classList.contains('photo-viewer-stage')) event.currentTarget.close();
+});
+
 async function loadGallery() {
     const pendingBody = document.querySelector('#pendingTable tbody');
     const approvedBody = document.querySelector('#approvedTable tbody');
     try {
         const photos = await api('/api/manageGalleryList');
+        galleryPhotosById.clear();
+        photos.forEach(p => galleryPhotosById.set(p.id, p));
         const pending = photos.filter(p => p.status === 'pending');
         const approved = photos.filter(p => p.status === 'approved');
 
         pendingBody.innerHTML = pending.length ? pending.map(p => `
             <tr>
-                <td><img class="thumb" src="${escapeHtml(p.url)}" alt=""></td>
+                <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
                 <td>${escapeHtml(p.submittedBy || 'Anonymous')}<br><span class="muted">${escapeHtml(new Date(p.submittedAt).toLocaleDateString())}</span></td>
                 <td>${escapeHtml(p.caption || '')}</td>
                 <td><div class="row-actions">
@@ -330,7 +368,7 @@ async function loadGallery() {
 
         approvedBody.innerHTML = approved.length ? approved.map(p => `
             <tr>
-                <td><img class="thumb" src="${escapeHtml(p.url)}" alt=""></td>
+                <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
                 <td>${escapeHtml(p.submittedBy || 'Anonymous')}</td>
                 <td>${escapeHtml(p.caption || '')}</td>
                 <td><div class="row-actions"><button class="btn btn-danger btn-sm" onclick="rejectPhoto('${escapeHtml(p.id)}')">Remove</button></div></td>

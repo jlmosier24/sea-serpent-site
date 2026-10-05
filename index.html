@@ -93,7 +93,7 @@
        height grid of thumbnails. */
     .panel-gallery { display: flex; flex-direction: column; }
     #galleryContent { flex: 1; min-height: 0; }
-    .photo-carousel { position: relative; height: 100%; min-height: 220px; border-radius: 12px; overflow: hidden; background: var(--foam); }
+    .photo-carousel { position: relative; display: block; width: 100%; height: 100%; min-height: 220px; padding: 0; border: none; border-radius: 12px; overflow: hidden; background: var(--foam); cursor: zoom-in; }
     .photo-carousel img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.5s ease; }
     @media (prefers-reduced-motion: reduce) { .photo-carousel img { transition: none; } }
 
@@ -116,6 +116,19 @@
     .modal-head h3 { margin: 0; font-size: 1.05rem; }
     .modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: var(--sub); cursor: pointer; padding: 2px 6px; border-radius: 8px; flex-shrink: 0; }
     .modal-close:hover { color: var(--deep); background: var(--foam); }
+
+    /* Full-screen and dark, like a phone's photo app, so the photo gets all the room it can. */
+    dialog.photo-viewer { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; background: rgba(12,20,14,0.94); color: #fff; overflow: hidden; font-family: 'Inter', sans-serif; }
+    dialog.photo-viewer[open] { display: flex; flex-direction: column; }
+    dialog.photo-viewer::backdrop { background: transparent; }
+    .photo-viewer-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 64px 16px 8px; }
+    .photo-viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+    .photo-viewer-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); }
+    .photo-viewer-bar p { margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.85); }
+    .photo-viewer-close { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255,255,255,0.15); color: #fff; font-size: 1.7rem; line-height: 1; cursor: pointer; }
+    .photo-viewer-close:hover { background: rgba(255,255,255,0.25); }
+    .photo-viewer-download { flex-shrink: 0; padding: 10px 22px; border-radius: 999px; background: var(--teal); color: #fff; font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+    .photo-viewer-download:hover { background: var(--teal-dark); }
     #modalBody, #resultsModalBody { padding: 14px 20px 20px; overflow: auto; max-height: calc(80vh - 58px); }
     #modalBody table, #resultsModalBody table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     #modalBody th, #modalBody td, #resultsModalBody th, #resultsModalBody td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
@@ -192,6 +205,14 @@
         <button type="button" class="modal-close" aria-label="Close" onclick="document.getElementById('resultsModal').close()">&times;</button>
     </div>
     <div id="resultsModalBody"></div>
+</dialog>
+<dialog id="photoViewer" class="photo-viewer" closedby="any" aria-label="Photo">
+    <button type="button" class="photo-viewer-close" aria-label="Close" onclick="document.getElementById('photoViewer').close()">&times;</button>
+    <div class="photo-viewer-stage"><img id="photoViewerImg" alt=""></div>
+    <div class="photo-viewer-bar">
+        <p id="photoViewerCaption"></p>
+        <a id="photoViewerDownload" class="photo-viewer-download" href="#">Download</a>
+    </div>
 </dialog>
 <footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
 <script>
@@ -305,9 +326,9 @@ function openResultsModal(meetId) {
 // The page behind a modal <dialog> isn't guaranteed to stop scrolling on
 // its own (varies by browser), so open handlers lock it explicitly --
 // 'close' fires no matter how a dialog closed (button, backdrop, Esc), so
-// unlocking here covers every path from one place. Shared between both
+// unlocking here covers every path from one place. Shared between all the
 // dialogs on this page since only one can ever be open at a time (a modal
-// dialog makes the rest of the page, including the other's trigger, inert).
+// dialog makes the rest of the page, including the others' triggers, inert).
 document.querySelectorAll('dialog').forEach(dialog => {
     dialog.addEventListener('close', () => { document.documentElement.style.overflow = ''; });
 });
@@ -422,6 +443,8 @@ async function loadSchedulePreview() {
 const GALLERY_CAROUSEL_MAX = 10;
 const GALLERY_CAROUSEL_INTERVAL_MS = 4500;
 let galleryCarouselTimer = null;
+// Which photo is showing, so a tap opens that one full size.
+let galleryCarouselIndex = 0;
 
 async function loadGalleryPreview() {
     const content = document.getElementById('galleryContent');
@@ -431,15 +454,34 @@ async function loadGalleryPreview() {
         if (!photos.length) { content.innerHTML = '<p class="empty">No photos yet -- be the first to share one!</p>'; return; }
         const carouselPhotos = photos.slice(0, GALLERY_CAROUSEL_MAX);
         content.innerHTML = `
-            <div class="photo-carousel">
+            <button type="button" class="photo-carousel" aria-label="View photo full size">
                 <img id="galleryCarouselImg" src="${escapeHtml(carouselPhotos[0].url)}" alt="${escapeHtml(carouselPhotos[0].caption || 'Team photo')}">
-            </div>
+            </button>
         `;
+        galleryCarouselIndex = 0;
+        content.querySelector('.photo-carousel').addEventListener('click', () => openPhotoViewer(carouselPhotos[galleryCarouselIndex]));
         startGalleryCarousel(carouselPhotos);
     } catch (e) {
         content.innerHTML = '<p class="empty">Couldn\'t load the gallery right now.</p>';
     }
 }
+
+// The carousel crops each photo to fill the card; the viewer shows the whole thing.
+function openPhotoViewer(photo) {
+    const img = document.getElementById('photoViewerImg');
+    img.src = photo.url;
+    img.alt = photo.caption || 'Team photo';
+    document.getElementById('photoViewerCaption').textContent = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(' ');
+    const download = document.getElementById('photoViewerDownload');
+    download.hidden = !photo.downloadUrl;
+    download.href = photo.downloadUrl || '#';
+    document.documentElement.style.overflow = 'hidden';
+    document.getElementById('photoViewer').showModal();
+}
+// The viewer fills the screen, so there's no backdrop to tap -- tapping the dark area around the photo closes it instead.
+document.getElementById('photoViewer').addEventListener('click', (event) => {
+    if (event.target === event.currentTarget || event.target.classList.contains('photo-viewer-stage')) event.currentTarget.close();
+});
 
 function startGalleryCarousel(photos) {
     clearInterval(galleryCarouselTimer);
@@ -447,11 +489,10 @@ function startGalleryCarousel(photos) {
     const carousel = document.querySelector('.photo-carousel');
     const img = document.getElementById('galleryCarouselImg');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let index = 0;
 
     function advance() {
-        index = (index + 1) % photos.length;
-        const next = photos[index];
+        galleryCarouselIndex = (galleryCarouselIndex + 1) % photos.length;
+        const next = photos[galleryCarouselIndex];
         if (reduceMotion) {
             img.src = next.url;
             img.alt = next.caption || 'Team photo';
