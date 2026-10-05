@@ -48,9 +48,10 @@
     .form-msg.success { color: var(--teal-dark); }
     .form-msg.error { color: var(--coral); }
     @media (max-width: 600px) {
-        .gallery-header { flex-direction: column; align-items: stretch; }
+        /* nowrap: a wrapping column sizes itself to its widest item, so a long photo file name pushed the page past the screen edge. */
+        .gallery-header { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
         .upload-inline { justify-content: space-between; }
-        .upload-label { max-width: none; flex: 1; }
+        .upload-label { max-width: none; flex: 1; min-width: 0; }
         .form-msg { text-align: left; }
     }
 
@@ -125,27 +126,51 @@ function fileToBase64(file) {
 
 // Re-encoding through a canvas strips all metadata (phones embed GPS) and shrinks multi-MB originals.
 async function prepareImage(file) {
+    const image = await decodeImage(file);
+    const width = image.naturalWidth || image.width;
+    const height = image.naturalHeight || image.height;
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(width, height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
+    const ctx = canvas.getContext('2d');
+    // JPEG has no transparency -- without this, transparent areas encode as black.
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    if (image.close) image.close();
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    if (!blob) throw new Error('Could not encode image');
+    return blob;
+}
+
+// Both decoders apply the photo's EXIF rotation, so portrait shots stay upright once that metadata is gone.
+// createImageBitmap is a second try for a phone browser whose <img> decode rejects the photo.
+async function decodeImage(file) {
     const url = URL.createObjectURL(file);
     try {
         const img = new Image();
         img.src = url;
-        // Drawing an <img> applies its EXIF rotation, so portrait shots stay upright once that metadata is gone.
         await img.decode();
-        const scale = Math.min(1, MAX_DIMENSION / Math.max(img.naturalWidth, img.naturalHeight));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.naturalWidth * scale);
-        canvas.height = Math.round(img.naturalHeight * scale);
-        const ctx = canvas.getContext('2d');
-        // JPEG has no transparency -- without this, transparent areas encode as black.
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
-        if (!blob) throw new Error('Could not encode image');
-        return blob;
+        return img;
+    } catch (err) {
+        if (!window.createImageBitmap) throw err;
+        console.warn('<img> decode failed, trying createImageBitmap:', err);
+        return await createImageBitmap(file, { imageOrientation: 'from-image' });
     } finally {
         URL.revokeObjectURL(url);
     }
+}
+
+// Says why a photo couldn't be read, so whoever's uploading knows what to try next.
+async function unreadablePhotoMessage(file) {
+    let readable = file.size > 0;
+    if (readable) {
+        try { await file.slice(0, 1).arrayBuffer(); } catch (e) { readable = false; }
+    }
+    if (!readable) return 'Couldn\'t open that photo -- if it\'s only stored in the cloud, save it to your phone first.';
+    if (/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) return 'This browser can\'t read HEIC photos -- try a JPEG or PNG.';
+    return 'Couldn\'t read that photo -- try a different one, or a JPEG or PNG.';
 }
 
 const fileInput = document.getElementById('photoFile');
@@ -173,7 +198,8 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         try {
             photo = await prepareImage(file);
         } catch (err) {
-            msg.textContent = 'Couldn\'t read that photo -- try a JPEG or PNG.';
+            console.error('Could not prepare photo:', err);
+            msg.textContent = await unreadablePhotoMessage(file);
             msg.className = 'form-msg error';
             return;
         }
