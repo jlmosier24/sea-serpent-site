@@ -78,7 +78,30 @@
         .tabs button { padding: 10px 12px; font-size: 15px; }
     }
 
-    /* Gallery and Import Results tabs */
+    /* Import dialog */
+    .note-box.neutral { background: var(--soft); border: 1px solid var(--soft-border); color: var(--muted); }
+    /* Focus parks on the body (and the reading spinner) while a step loads; it's a container, so no ring. */
+    #importBody:focus, #importReading:focus { outline: none; box-shadow: none; }
+    .file-line { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; font-size: 14.5px; font-weight: 600; }
+    .file-line svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--brand); }
+    .file-line span { min-width: 0; overflow-wrap: anywhere; }
+    .reading { padding: 18px 0; text-align: center; }
+    .reading p { margin: 0; }
+    .spinner { width: 34px; height: 34px; margin: 0 auto 14px; border: 4px solid var(--soft-border); border-top-color: var(--brand); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+    .import-tiles { margin: 0 0 14px; }
+    .stat-tile.attention { background: var(--gold-tint); border-color: var(--gold-border); }
+    .stat-value.small { font-size: 18px; line-height: 1.3; }
+    .unread { margin: 0 0 14px; }
+    .unread summary { font-weight: 600; cursor: pointer; }
+    .unread ul { max-height: 140px; overflow: auto; margin: 8px 0 0; padding-left: 20px; font-size: 13px; }
+    .done { padding: 6px 0 0; text-align: center; }
+    .done-icon { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: var(--ok-tint); color: var(--brand); }
+    .done-icon svg { width: 28px; height: 28px; }
+    .done-title { margin: 0; font-size: 18px; font-weight: 700; }
+
+    /* Gallery tab */
     .msg { margin: 10px 0 0; font-size: 14px; }
     .msg.success { color: var(--ok-text); }
     .msg.error { color: var(--danger); }
@@ -107,9 +130,6 @@
         .photo-table td:not(:first-child) { grid-column: 2; }
         .stack-table td[colspan] { grid-column: 1 / -1; grid-row: auto; }
     }
-    /* The import preview keeps its columns and scrolls sideways on narrow screens instead. */
-    .table-scroll { overflow-x: auto; }
-    .warn-box { max-height: 160px; overflow: auto; margin-top: 12px; padding: 10px 14px; border: 1px solid var(--gold-border); border-radius: 12px; background: var(--gold-tint); color: var(--gold-text); font-size: 13px; }
     .thumb { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
     .thumb-open { display: block; padding: 0; border: none; border-radius: 8px; background: none; cursor: zoom-in; }
 
@@ -132,7 +152,6 @@
     <div class="tabs" role="tablist" aria-label="Admin sections">
         <button type="button" role="tab" id="tabBtn-meets" aria-controls="tab-meets" aria-selected="true">Meets</button>
         <button type="button" role="tab" id="tabBtn-gallery" aria-controls="tab-gallery" aria-selected="false" tabindex="-1">Gallery</button>
-        <button type="button" role="tab" id="tabBtn-import" aria-controls="tab-import" aria-selected="false" tabindex="-1">Import Results</button>
     </div>
 
     <!-- MEETS -->
@@ -225,23 +244,6 @@
         </div>
     </section>
 
-    <!-- IMPORT RESULTS (replaced by each meet's Import button in Step 3) -->
-    <section id="tab-import" role="tabpanel" aria-labelledby="tabBtn-import" hidden>
-        <div class="card">
-            <h2>Import a meet's results PDF</h2>
-            <p class="muted" style="margin-top:0">Both teams' results are saved; swimmer stats show Spotswood swimmers only. Review the preview below, then save it.</p>
-            <div class="form-grid">
-                <div class="field"><label class="field-label" for="importMeetSelect">Meet</label><select class="input" id="importMeetSelect"><option value="">Loading meets…</option></select></div>
-                <div class="field"><label class="field-label" for="importFile">Results PDF</label><input class="input" type="file" id="importFile" accept="application/pdf"></div>
-                <div class="full btn-row">
-                    <button type="button" class="btn primary" id="previewBtn">Preview</button>
-                    <button type="button" class="btn primary" id="commitBtn" hidden>Save results</button>
-                    <span class="msg" id="importMsg" role="status"></span>
-                </div>
-            </div>
-            <div id="importPreview"></div>
-        </div>
-    </section>
 </main>
 
 <dialog class="dialog" id="deleteDialog" aria-labelledby="deleteTitle">
@@ -258,6 +260,14 @@
             <button type="button" class="btn danger solid" id="deleteConfirmBtn">Delete meet</button>
         </div>
     </div>
+</dialog>
+<dialog class="dialog" id="importDialog" aria-labelledby="importTitle">
+    <div class="dialog-grab" aria-hidden="true"></div>
+    <div class="dialog-head">
+        <div><h2 id="importTitle">Import results</h2><p id="importSubtitle"></p></div>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="dialog-body" id="importBody" tabindex="-1"></div>
 </dialog>
 <dialog id="photoViewer" class="photo-viewer" closedby="any" aria-label="Photo">
     <button type="button" class="photo-viewer-close" aria-label="Close" onclick="document.getElementById('photoViewer').close()">&times;</button>
@@ -302,11 +312,12 @@ const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York'
 
 const ICON_UPLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>';
 const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
-const ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+const ICON_FILE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>';
+const ICON_NOTE ='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>';
 const ICON_ALERT = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.5v4M8 10.8v.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 
 /* ---------- Tabs ---------- */
-const TAB_NAMES = ['meets', 'gallery', 'import'];
+const TAB_NAMES = ['meets', 'gallery'];
 function showTab(name, focus) {
     TAB_NAMES.forEach(t => {
         const selected = t === name;
@@ -588,14 +599,13 @@ $('meetList').addEventListener('click', (event) => {
     if (act === 'edit') editMeet(id);
     else if (act === 'score') editMeet(id, true);
     else if (act === 'delete') openDeleteDialog(id, button);
-    else if (act === 'import') openImportFor(id);
+    else if (act === 'import') openImportDialog(id, button);
 });
 
 async function loadMeets() {
     try {
         meets = await api('/api/manageMeetsList');
         renderMeetList();
-        populateImportMeetSelect(meets);
     } catch (e) {
         $('meetList').innerHTML = '<p class="empty">Couldn\'t load meets.</p>';
     }
@@ -791,25 +801,192 @@ async function rejectPhoto(id) {
     catch (e) { alert('Could not remove photo.'); }
 }
 
-/* ---------- Import Results ---------- */
-function populateImportMeetSelect(list) {
-    const select = $('importMeetSelect');
-    const current = select.value;
-    select.innerHTML = '<option value="">Choose a meet…</option>' + list.slice().sort((a, b) => b.date.localeCompare(a.date))
-        .map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(fmtDate(m.date))}, ${escapeHtml(m.date.slice(0, 4))} — ${escapeHtml(m.title)}</option>`).join('');
-    select.value = current;
+/* ---------- Import results ---------- */
+// The dialog behind each meet's Import button: choose the results PDF, read
+// it on the server, check its date and numbers, then save. Nothing is
+// written until the last step, and the server reads the PDF again itself
+// when saving, so what's saved is exactly what the archived sheet says.
+let importState = null;
+
+function fmtWhen(iso) {
+    return new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function scoreLine(score) { return `${score.us}–${score.them}`; }
+function importTile(label, value, caption, { small = false, attention = false } = {}) {
+    return `<div class="stat-tile${attention ? ' attention' : ''}"><p class="stat-label">${escapeHtml(label)}</p>`
+        + `<p class="stat-value${small ? ' small' : ''}">${escapeHtml(value)}</p><p class="stat-caption">${escapeHtml(caption)}</p></div>`;
 }
 
-// A meet's Import button opens this tab with that meet already picked.
-function openImportFor(id) {
-    showTab('import');
-    $('importMeetSelect').value = id;
-    $('importFile').focus();
+function openImportDialog(id, opener) {
+    const meet = meets.find(x => x.id === id);
+    if (!meet) return;
+    importState = { meet, step: 'choose', error: '', token: 0 };
+    $('importTitle').textContent = meet.resultsImported ? 'Replace results' : 'Import results';
+    $('importSubtitle').textContent = `${meet.title} · ${fmtDate(meet.date)}`;
+    SiteUI.openDialog($('importDialog'), opener);
+    renderImport();
 }
 
-let lastParsed = null;
-let lastPdfBase64 = null;
-let lastFileName = '';
+$('importDialog').addEventListener('close', () => {
+    const meetId = importState && importState.meet.id;
+    importState = null; // so a reply that arrives after closing is ignored
+    // A save re-renders the meet list, replacing the button that opened the
+    // dialog -- so focus goes to that meet's new Import button instead.
+    setTimeout(() => {
+        if (document.activeElement && document.activeElement !== document.body) return;
+        const button = meetId && document.querySelector(`[data-act="import"][data-id="${CSS.escape(meetId)}"]`);
+        (button || $('allMeetsTitle')).focus();
+    }, 0);
+});
+
+function renderImport() {
+    const state = importState;
+    if (!state) return;
+    const meet = state.meet;
+    const body = $('importBody');
+
+    if (state.step === 'choose') {
+        const last = meet.lastImportAt ? `<br>Last imported ${escapeHtml(fmtWhen(meet.lastImportAt))}${meet.lastImportFile ? ` from <b style="word-break:break-all">${escapeHtml(meet.lastImportFile)}</b>` : ''}.` : '';
+        body.innerHTML = `
+            ${meet.resultsImported ? `<p class="note-box warn">This meet already has results. Importing again replaces them.${last}</p>` : ''}
+            <div class="dropzone" id="importDrop">
+                ${ICON_UPLOAD}
+                <p><strong>Drag the results PDF here</strong></p>
+                <p class="field-help">or</p>
+                <button type="button" class="btn" data-browse>Choose PDF</button>
+            </div>
+            <p class="field-help" style="margin-top:12px">Meet Maestro (SwimTopia) results sheets work best. Both teams' results are saved; swimmer stats show Spotswood swimmers only.</p>
+            ${state.error ? `<p class="field-error" role="alert">${ICON_ALERT}${escapeHtml(state.error)}</p>` : ''}
+            <div class="dialog-actions"><button type="button" class="btn" data-close-dialog>Cancel</button></div>`;
+        SiteUI.setupDropZone($('importDrop'), { accept: 'application/pdf,.pdf', multiple: false, onFiles: files => readImportFile(files[0]) });
+        body.querySelector('[data-browse]').focus();
+        return;
+    }
+
+    if (state.step === 'reading') {
+        body.innerHTML = `
+            <div class="reading" role="status" tabindex="-1" id="importReading">
+                <div class="spinner" aria-hidden="true"></div>
+                <p><strong>Reading results…</strong></p>
+                <p class="small muted" style="word-break:break-all">${escapeHtml(state.fileName)}</p>
+            </div>`;
+        $('importReading').focus();
+        return;
+    }
+
+    if (state.step === 'preview') {
+        const preview = state.preview;
+        const dateCheck = !preview.sheetDate ? 'unknown' : preview.sheetDate === meet.date ? 'match' : 'mismatch';
+        let dateNote;
+        if (dateCheck === 'match') {
+            dateNote = `<p class="note-box ok"><strong>Date matches.</strong> The sheet is dated ${escapeHtml(fmtDate(preview.sheetDate))}, the same as this meet.</p>`;
+        } else if (dateCheck === 'mismatch') {
+            dateNote = `<p class="note-box warn"><strong>Check the date.</strong> This sheet is dated ${escapeHtml(fmtDate(preview.sheetDate))}, but you're importing into ${escapeHtml(fmtDate(meet.date))}.</p>
+                <label class="check" style="margin:0 0 14px"><input type="checkbox" id="importAnyway"${state.importAnyway ? ' checked' : ''}>Import anyway</label>`;
+        } else {
+            dateNote = '<p class="note-box neutral">This sheet has no date on it, so it can\'t be checked against the meet.</p>';
+        }
+
+        // A score typed in on the meet stays; otherwise the sheet's is saved.
+        let scoreTile;
+        if (meet.scoreSource === 'manual' && meet.teamScore != null) {
+            scoreTile = importTile('Team score', scoreLine({ us: meet.teamScore, them: meet.opponentScore }),
+                preview.teamScore ? `Your typed score stays (the sheet says ${scoreLine(preview.teamScore)})` : 'Your typed score stays');
+        } else if (preview.teamScore) {
+            scoreTile = importTile('Team score', scoreLine(preview.teamScore), preview.teamScore.source === 'sheet' ? "From the sheet's Team Scores page" : "Added up from the sheet's points");
+        } else {
+            scoreTile = importTile('Team score', 'Not on this sheet', 'Use “Add score” after importing', { small: true, attention: true });
+        }
+
+        const unread = preview.unreadLines;
+        body.innerHTML = `
+            <p class="file-line">${ICON_FILE}<span>${escapeHtml(state.fileName)}</span></p>
+            ${dateNote}
+            <div class="stat-grid import-tiles">
+                ${importTile('Swims', String(preview.swims), 'Spotswood only')}
+                ${importTile('Relays', String(preview.relays), 'Spotswood only')}
+                ${importTile('Swimmers', String(preview.swimmers), 'Entered at this meet')}
+                ${scoreTile}
+            </div>
+            ${unread.length ? `<details class="note-box warn unread"><summary>${unread.length} line${unread.length === 1 ? '' : 's'} couldn't be read</summary>
+                <p style="margin:8px 0 0">These are skipped, not guessed at.</p><ul>${unread.map(line => `<li>${escapeHtml(line)}</li>`).join('')}</ul></details>` : ''}
+            ${meet.resultsImported ? '<p class="field-help" style="margin:0 0 4px">Importing replaces the results already saved for this meet.</p>' : ''}
+            ${state.error ? `<p class="field-error" role="alert">${ICON_ALERT}${escapeHtml(state.error)}</p>` : ''}
+            <div class="dialog-actions">
+                <button type="button" class="btn" id="importBackBtn">Choose another file</button>
+                <button type="button" class="btn primary" id="importSaveBtn">${meet.resultsImported ? 'Replace results' : 'Import results'}</button>
+            </div>`;
+
+        const saveButton = $('importSaveBtn');
+        const blocked = () => dateCheck === 'mismatch' && !state.importAnyway;
+        saveButton.disabled = state.saving || blocked();
+        if (state.saving) saveButton.textContent = 'Saving…';
+        const anyway = $('importAnyway');
+        if (anyway) anyway.addEventListener('change', () => { state.importAnyway = anyway.checked; saveButton.disabled = blocked(); });
+        $('importBackBtn').addEventListener('click', () => { Object.assign(state, { step: 'choose', error: '', importAnyway: false }); renderImport(); });
+        saveButton.addEventListener('click', saveImport);
+        (state.saving ? $('importBody') : anyway && !state.importAnyway ? anyway : saveButton).focus();
+        return;
+    }
+
+    if (state.step === 'done') {
+        const result = state.result;
+        const score = result.teamScore;
+        body.innerHTML = `
+            <div class="done" role="status">
+                <div class="done-icon">${ICON_CHECK}</div>
+                <p class="done-title">${result.replaced ? 'Results replaced' : 'Results imported'}</p>
+                <p class="muted" style="margin:6px 0 0">${result.swims} swims and ${result.relays} relays for ${result.swimmers} swimmers.${score && score.source !== 'manual' ? ` Team score ${escapeHtml(scoreLine(score))} saved.` : ''}</p>
+                ${score && score.source === 'manual' ? `<p class="small muted" style="margin:10px 0 0">Your typed score ${escapeHtml(scoreLine(score))} was kept.</p>` : ''}
+                ${!score ? '<p class="small muted" style="margin:10px 0 0">The sheet has no team score. Use “Add score” on the meet row.</p>' : ''}
+            </div>
+            <div class="dialog-actions" style="justify-content:center"><button type="button" class="btn primary" data-close-dialog id="importDoneBtn">Done</button></div>`;
+        $('importDoneBtn').focus();
+    }
+}
+
+async function readImportFile(file) {
+    const state = importState;
+    if (!state || !file) return;
+    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
+        state.error = "That doesn't look like a PDF. Choose the results PDF.";
+        renderImport();
+        return;
+    }
+    const token = ++state.token;
+    Object.assign(state, { step: 'reading', error: '', fileName: file.name });
+    renderImport();
+    try {
+        const dataBase64 = await fileToBase64(file);
+        const preview = await postJson('/api/importMeetResultsPreview', { dataBase64 });
+        if (importState !== state || state.token !== token) return;
+        Object.assign(state, { step: 'preview', dataBase64, preview, importAnyway: false, saving: false });
+    } catch (e) {
+        if (importState !== state || state.token !== token) return;
+        Object.assign(state, { step: 'choose', error: e.status === 400 ? e.message : "Couldn't read that PDF. Make sure it's a Meet Maestro results sheet." });
+    }
+    renderImport();
+}
+
+async function saveImport() {
+    const state = importState;
+    if (!state || state.saving) return;
+    Object.assign(state, { saving: true, error: '' });
+    renderImport();
+    const token = state.token;
+    try {
+        const result = await postJson('/api/importMeetResultsCommit', {
+            meetId: state.meet.id, fileName: state.fileName, dataBase64: state.dataBase64, importAnyway: !!state.importAnyway
+        });
+        loadMeets(); // refresh the list either way, so the meet shows ✓ Imported and its score
+        if (importState !== state || state.token !== token) return;
+        Object.assign(state, { step: 'done', result });
+    } catch (e) {
+        if (importState !== state || state.token !== token) return;
+        Object.assign(state, { saving: false, error: e.status === 400 || e.status === 409 ? e.message : "Couldn't save the results. Please try again." });
+    }
+    renderImport();
+}
 
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
@@ -819,64 +996,6 @@ function fileToBase64(file) {
         reader.readAsDataURL(file);
     });
 }
-
-$('previewBtn').addEventListener('click', async () => {
-    const msg = $('importMsg');
-    const preview = $('importPreview');
-    const file = $('importFile').files[0];
-    msg.textContent = ''; msg.className = 'msg';
-    $('commitBtn').hidden = true;
-
-    if (!file) { msg.textContent = 'Choose a PDF first.'; msg.className = 'msg error'; return; }
-    if (!$('importMeetSelect').value) { msg.textContent = 'Pick which meet this is for.'; msg.className = 'msg error'; return; }
-
-    msg.textContent = 'Reading the results…';
-    try {
-        lastPdfBase64 = await fileToBase64(file);
-        lastFileName = file.name;
-        lastParsed = await postJson('/api/importMeetResultsPreview', { dataBase64: lastPdfBase64 });
-
-        // Both teams come back now (see meetResultsParser.js) -- a Team
-        // column makes that legible instead of two teams' rows looking
-        // interleaved at random.
-        const indRows = lastParsed.individual.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml(r.eventName)}</td><td>${escapeHtml(r.officialTime)}</td><td>${escapeHtml(r.place || '')}</td><td>${escapeHtml(r.status)}</td></tr>`).join('');
-        // "; " rather than ", " -- each swimmer's own name already has a
-        // comma ("Last, First"), so a comma-joined list of several reads as
-        // one long ambiguous name.
-        const relayRows = lastParsed.relays.map(r => `<tr><td>${escapeHtml(r.eventName)} (${escapeHtml(r.relayLetter)})</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml((r.swimmers || []).map(s => s.name).join('; '))}</td><td>${escapeHtml(r.officialTime)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('');
-
-        preview.innerHTML = `
-            <h3 style="margin-top:20px;">Individual results (${lastParsed.individual.length})</h3>
-            <div class="table-scroll"><table><thead><tr><th>Swimmer</th><th>Team</th><th>Event</th><th>Time</th><th>Place</th><th>Status</th></tr></thead><tbody>${indRows || '<tr><td colspan="6" class="muted">None found.</td></tr>'}</tbody></table></div>
-            <h3 style="margin-top:20px;">Relay results (${lastParsed.relays.length})</h3>
-            <div class="table-scroll"><table><thead><tr><th>Event</th><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${relayRows || '<tr><td colspan="5" class="muted">None found.</td></tr>'}</tbody></table></div>
-            ${lastParsed.unparsedLines.length ? `<div class="warn-box"><strong>${lastParsed.unparsedLines.length} line(s) couldn't be read</strong> -- these are skipped, not guessed at:<br>${lastParsed.unparsedLines.map(l => escapeHtml(l)).join('<br>')}</div>` : ''}
-        `;
-        msg.textContent = 'Review the rows above, then save them.'; msg.className = 'msg success';
-        $('commitBtn').hidden = false;
-    } catch (e) {
-        msg.textContent = 'Could not read that PDF.'; msg.className = 'msg error';
-    }
-});
-
-$('commitBtn').addEventListener('click', async () => {
-    const msg = $('importMsg');
-    const meetId = $('importMeetSelect').value;
-    if (!lastParsed || !meetId) return;
-    msg.textContent = 'Saving…'; msg.className = 'msg';
-    try {
-        const result = await postJson('/api/importMeetResultsCommit', {
-            meetId, fileName: lastFileName, dataBase64: lastPdfBase64,
-            individual: lastParsed.individual, relays: lastParsed.relays, teamPoints: lastParsed.teamPoints
-        });
-        msg.textContent = `Saved ${result.savedIndividual} individual and ${result.savedRelays} relay results.`;
-        msg.className = 'msg success';
-        $('commitBtn').hidden = true;
-        loadMeets(); // so the meet's Import button shows it's done
-    } catch (e) {
-        msg.textContent = 'Could not save results.'; msg.className = 'msg error';
-    }
-});
 
 /* ---------- Start ---------- */
 resetForm();
