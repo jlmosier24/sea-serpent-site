@@ -72,14 +72,20 @@ Object.assign(require("../shared/meetsTable"), { getMeetsTable: () => store.meet
 Object.assign(require("../shared/resultsTable"), { getResultsTable: () => store.results, getRelayResultsTable: () => store.relays });
 Object.assign(require("../shared/settingsTable"), { getSettingsTable: () => store.settings });
 Object.assign(require("../shared/resultsPdfContainer"), { getResultsPdfContainer: () => store.sheets });
+// The "PDF" in these tests is just a sample sheet's text, so reading it is decoding it.
+Object.assign(require("../shared/pdfText"), { extractPdfText: async buffer => buffer.toString("utf8") });
 
 const saveMeet = require("../manageMeetsSave/index.js");
 const deleteMeet = require("../manageMeetsDelete/index.js");
 const fillHomePool = require("../manageMeetsFillHomePool/index.js");
 const saveSettings = require("../manageSettingsSave/index.js");
 const getSettings = require("../manageSettingsGet/index.js");
+const previewResults = require("../importMeetResultsPreview/index.js");
 const commitResults = require("../importMeetResultsCommit/index.js");
 const publicMeets = require("../meets/index.js");
+const { sheetText, INDIVIDUAL } = require("./sampleSheet");
+
+const asUpload = text => Buffer.from(text, "utf8").toString("base64");
 
 async function call(handler, { body, query = {} } = {}) {
     const log = () => {};
@@ -179,22 +185,92 @@ test("filling from the home pool only touches home meets with blanks", async () 
     assert.equal((await store.meets.getEntity("meet", "away-blank")).placeName, undefined);
 });
 
-test("an import marks the meet imported, and adds up its score unless the admin typed one", async () => {
+async function addMeet(rowKey, extra = {}) {
+    await store.meets.upsertEntity({ partitionKey: "meet", rowKey, opponent: "Test Seahawks", shortName: "Test", homeAway: "away", date: "2026-07-13", ...extra });
+}
+
+test("the import preview reports the sheet's date, Spotswood's counts, and the score it would save", async () => {
     resetStore();
-    await store.meets.upsertEntity({ partitionKey: "meet", rowKey: "typed", opponent: "A", date: "2026-07-08", teamScore: 500, opponentScore: 400, scoreSource: "manual" });
-    await store.meets.upsertEntity({ partitionKey: "meet", rowKey: "auto", opponent: "B", date: "2026-07-13", teamScore: 1, opponentScore: 1, scoreSource: "import" });
-    const sheet = { individual: [], relays: [], teamPoints: { Spotswood: 525, "CPST Seahawks": 511 }, fileName: "results.pdf" };
+    const res = await call(previewResults, { body: { dataBase64: asUpload(sheetText()) } });
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, { sheetDate: "2026-07-13", swims: 5, relays: 2, swimmers: 5, teamScore: { us: 525, them: 511, source: "sheet" }, unreadLines: [] });
+    assert.equal((await call(previewResults, { body: {} })).status, 400);
+    assert.equal(store.results.all().length, 0, "a preview saves nothing");
+});
 
-    assert.equal((await call(commitResults, { body: { ...sheet, meetId: "typed" } })).status, 200);
+test("an import refuses a sheet dated for another day unless told to import anyway", async () => {
+    resetStore();
+    await addMeet("m");
+    const wrongDay = asUpload(sheetText({ date: "Jul 8, 2026" }));
+    const refused = await call(commitResults, { body: { meetId: "m", dataBase64: wrongDay, fileName: "x.pdf" } });
+    assert.equal(refused.status, 409);
+    assert.match(refused.body, /Jul 8, 2026.*Jul 13, 2026/);
+    assert.equal(store.results.all().length, 0);
+    assert.equal(store.sheets.blobs.size, 0);
+    assert.equal((await store.meets.getEntity("meet", "m")).resultsImported, undefined);
+
+    const anyway = await call(commitResults, { body: { meetId: "m", dataBase64: wrongDay, fileName: "x.pdf", importAnyway: true } });
+    assert.equal(anyway.status, 200);
+});
+
+test("an import saves both teams' rows, archives the sheet, and marks the meet", async () => {
+    resetStore();
+    await addMeet("m");
+    const res = await call(commitResults, { body: { meetId: "m", dataBase64: asUpload(sheetText()), fileName: "results.pdf" } });
+    assert.equal(res.status, 200);
+    assert.deepEqual([res.body.replaced, res.body.swims, res.body.relays, res.body.swimmers], [false, 5, 2, 5]);
+    assert.deepEqual(res.body.teamScore, { us: 525, them: 511, source: "sheet" });
+    assert.equal(store.results.all().length, 8, "both teams' swims");
+    assert.equal(store.relays.all().length, 3);
+    assert.equal(store.results.all().find(r => r.partitionKey === "Moe, Max").dqReason, "3J Touch: One hand; 7T Other - Misc");
+    assert.equal(store.relays.all().find(r => r.relayLetter === "C").dqReason, "6F Early take-off swimmer #2");
+    assert.equal(store.sheets.blobs.size, 1);
+    const meet = await store.meets.getEntity("meet", "m");
+    assert.deepEqual([meet.resultsImported, meet.lastImportFile, meet.teamScore, meet.opponentScore, meet.scoreSource], [true, "results.pdf", 525, 511, "import"]);
+    assert.match(meet.lastImportAt, /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test("re-importing replaces the meet's results and leaves no leftovers", async () => {
+    resetStore();
+    await addMeet("m");
+    await call(commitResults, { body: { meetId: "m", dataBase64: asUpload(sheetText()), fileName: "first.pdf" } });
+    // Another meet's rows must survive.
+    await store.results.upsertEntity({ partitionKey: "Doe, Jane", rowKey: "other__1", meetId: "other" });
+
+    const fewerSwims = asUpload(sheetText({ individual: INDIVIDUAL.slice(0, 1) }));
+    const res = await call(commitResults, { body: { meetId: "m", dataBase64: fewerSwims, fileName: "second.pdf" } });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.replaced, true);
+    assert.equal(res.body.removedRows, 7);
+    assert.deepEqual(store.results.all().map(r => `${r.partitionKey} ${r.meetId}`).sort(), ["Doe, Jane m", "Doe, Jane other"]);
+    assert.equal(store.relays.all().length, 3);
+    assert.equal((await store.meets.getEntity("meet", "m")).lastImportFile, "second.pdf");
+});
+
+test("an import keeps a typed-in score and replaces an imported one", async () => {
+    resetStore();
+    await addMeet("typed", { teamScore: 500, opponentScore: 400, scoreSource: "manual" });
+    await addMeet("auto", { teamScore: 1, opponentScore: 1, scoreSource: "import" });
+    const noScoresPage = asUpload(sheetText({ teamScores: false }));
+
+    const typedRes = await call(commitResults, { body: { meetId: "typed", dataBase64: noScoresPage, fileName: "a.pdf" } });
+    assert.deepEqual(typedRes.body.teamScore, { us: 500, them: 400, source: "manual" });
     const typed = await store.meets.getEntity("meet", "typed");
-    assert.deepEqual([typed.teamScore, typed.opponentScore, typed.scoreSource], [500, 400, "manual"]);
-    assert.equal(typed.resultsImported, true);
-    assert.equal(typed.lastImportFile, "results.pdf");
-    assert.match(typed.lastImportAt, /^\d{4}-\d{2}-\d{2}T/);
+    assert.deepEqual([typed.teamScore, typed.opponentScore, typed.scoreSource, typed.resultsImported], [500, 400, "manual", true]);
 
-    await call(commitResults, { body: { ...sheet, meetId: "auto" } });
+    await call(commitResults, { body: { meetId: "auto", dataBase64: noScoresPage, fileName: "b.pdf" } });
     const auto = await store.meets.getEntity("meet", "auto");
-    assert.deepEqual([auto.teamScore, auto.opponentScore, auto.scoreSource], [525, 511, "import"]);
+    // No Team Scores page, so the points are added up.
+    assert.deepEqual([auto.teamScore, auto.opponentScore, auto.scoreSource], [17.5, 4.5, "import"]);
+});
+
+test("import errors: a missing meet, a missing upload, a sheet with no results", async () => {
+    resetStore();
+    assert.equal((await call(commitResults, { body: { meetId: "gone", dataBase64: asUpload(sheetText()) } })).status, 404);
+    await addMeet("m");
+    assert.equal((await call(commitResults, { body: { meetId: "m" } })).status, 400);
+    const empty = await call(commitResults, { body: { meetId: "m", dataBase64: asUpload("#1 Girls 25m Freestyle") } });
+    assert.deepEqual([empty.status, empty.body], [400, "No results were found in that PDF."]);
 });
 
 test("the public meet list leaves out the import details", async () => {

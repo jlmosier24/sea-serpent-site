@@ -20,9 +20,15 @@
 //
 // Line shapes this handles (one event block per "#<N> <name>" header):
 //   Individual : "<place[*]|X|--> <Last[, Jr/Sr/II/III/IV], First> [EXH] <age> <team words> <seed|NT> <official|DQ|NS|DNF> [points]"
-//   DQ reason  : "DQ: <code> <reason text>"                (attaches to the row just above)
 //   Relay      : "<place[*]|X|--> <team words> [EXH] <letter A-D> <abbrev> <seed|NT> <official|DQ|NS|DNF> [points]"
 //                 followed by "1) Last, First (age) 2) ... 3) ... 4) ..."
+//   DQ reason  : "DQ: <code> <reason text>", attached to the DQ'd row above
+//                it (for a relay, after its swimmers line); a further
+//                infraction continues on its own line ("7T Other - Misc").
+//   Page header: "Results <meet name> — Jul 13, 2026 Page 1 of 23" -- the
+//                sheet's date, which the importer checks against the meet.
+//   Team Scores: an optional last page ("1 Spotswood S 525") with the
+//                sheet's own team totals.
 // A trailing "*" on a place marks a tie, which is also why points can be a
 // decimal ("3.5") -- tied swimmers split the points for their places.
 // Page headers/footers can fall in the middle of an event across a page
@@ -46,8 +52,13 @@ function cleanEventName(name) {
 }
 const COLUMN_HEADER_RE = /^Pl\s+(Name|Team)\b/;
 const PAGE_HEADER_RE = /^Results\s+.+Page\s+\d+\s+of\s+\d+$/;
+const SHEET_DATE_RE = /\b([A-Z][a-z]{2,8})\.?\s+(\d{1,2}),\s+(\d{4})\s+Page\s+\d+\s+of\s+\d+$/;
 const FOOTER_RE = /^SwimTopia Meet Maestro/i;
 const DQ_REASON_RE = /^DQ:\s*(.*)$/;
+const DQ_CONTINUATION_RE = /^\d{1,2}[A-Z]\s+\S/;
+const TEAM_SCORES_START_RE = /^Team Scores\b/i;
+const TEAM_SCORE_ROW_RE = /^\d+\s+(.+?)\s+[A-Z]{1,4}\s+(\d+(?:\.\d+)?)$/;
+const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 
 // A name is normally "Last, First", but a generational suffix can add a
 // second comma ("Doe, Jr., John") -- the optional non-capturing group
@@ -74,10 +85,12 @@ function parsePlace(place) {
     return /^\d+$/.test(digits) ? parseInt(digits, 10) : null;
 }
 
-// An "X" place is an exhibition swim: timed, but not scored.
+// An "X" place is an exhibition swim: timed, but not scored. An exhibition
+// swim can still be disqualified ("X Spotswood EXH C S 2:39.02 DQ"), and the
+// DQ wins -- otherwise its "DQ:" reason has no row to attach to.
 function rowStatus(place, official) {
-    if (place === "X") return "EXH";
-    return ["DQ", "NS", "DNF"].includes(official) ? official : "OK";
+    if (["DQ", "NS", "DNF"].includes(official)) return official;
+    return place === "X" ? "EXH" : "OK";
 }
 
 // "1:16.09" -> 76.09, "45.09" -> 45.09, "NT"/"DQ"/"NS"/"DNF" -> null.
@@ -86,6 +99,21 @@ function timeToSeconds(time) {
     const parts = time.split(":");
     if (parts.length === 2) return parseInt(parts[0], 10) * 60 + parseFloat(parts[1]);
     return parseFloat(parts[0]);
+}
+
+// Swimmers' results are stored under their name, so a typo like
+// "Voe., Val" would split one swimmer across two. Stray periods
+// before a comma and doubled spaces are tidied away.
+function normalizeName(name) {
+    return name.replace(/\.+\s*,/g, ",").replace(/\s+/g, " ").trim();
+}
+
+// "Jul 13, 2026 Page 1 of 23" -> "2026-07-13", or null.
+function sheetDateFrom(line) {
+    const match = line.match(SHEET_DATE_RE);
+    if (!match) return null;
+    const month = MONTHS[match[1].slice(0, 3).toLowerCase()];
+    return month ? `${match[3]}-${String(month).padStart(2, "0")}-${match[2].padStart(2, "0")}` : null;
 }
 
 // Shared "is this row ours" check -- used wherever a full (both-team) set of
@@ -99,34 +127,66 @@ function parseMeetResultsText(rawText) {
     const lines = rawText.split("\n").map(l => l.replace(/\r$/, "").trim());
 
     let currentEvent = null;
-    let lastDqRow = null;
+    let lastDqRow = null;     // the latest row, while it's a DQ waiting for its reason
+    let dqReasonRow = null;   // the row whose reason a continuation line extends
     let pendingRelay = null;
+    let inTeamScores = false;
+    let sheetDate = null;
+    let sheetTeamScores = null;
     const individual = [];
     const relays = [];
     const unparsedLines = [];
     // Every team's point total -- this is how a meet's final score
-    // ("Spotswood 540, Fawn Lake Fliers 356") gets computed.
+    // ("Spotswood 540, Fawn Lake Fliers 356") gets computed when the sheet
+    // has no Team Scores page of its own.
     const teamPoints = {};
     function addPoints(team, points) {
         teamPoints[team] = (teamPoints[team] || 0) + points;
     }
+    function startRow(row) {
+        lastDqRow = row.status === "DQ" ? row : null;
+        dqReasonRow = null;
+        addPoints(row.team, row.points);
+    }
 
     for (const line of lines) {
         if (!line) continue;
-        if (PAGE_HEADER_RE.test(line) || FOOTER_RE.test(line)) continue;
+        if (PAGE_HEADER_RE.test(line)) {
+            if (!sheetDate) sheetDate = sheetDateFrom(line);
+            continue;
+        }
+        if (FOOTER_RE.test(line)) continue;
 
         const eventMatch = line.match(EVENT_HEADER_RE);
         if (eventMatch) {
             currentEvent = { number: parseInt(eventMatch[1], 10), name: cleanEventName(eventMatch[2]), isRelay: /relay/i.test(eventMatch[2]) };
             lastDqRow = null;
+            dqReasonRow = null;
             pendingRelay = null;
+            inTeamScores = false;
             continue;
         }
         if (COLUMN_HEADER_RE.test(line)) continue;
 
+        // The summary page's own lines ("Combined Team Scores...", "Rank Team
+        // Combined", "Total 1036") aren't results, so only its team rows count.
+        if (TEAM_SCORES_START_RE.test(line)) {
+            inTeamScores = true;
+            sheetTeamScores = sheetTeamScores || {};
+            continue;
+        }
+        if (inTeamScores) {
+            const scoreMatch = line.match(TEAM_SCORE_ROW_RE);
+            if (scoreMatch) sheetTeamScores[scoreMatch[1]] = parseFloat(scoreMatch[2]);
+            continue;
+        }
+
         const dqMatch = line.match(DQ_REASON_RE);
         if (dqMatch) {
-            if (lastDqRow) lastDqRow.dqReason = dqMatch[1].trim() || null;
+            if (lastDqRow) {
+                lastDqRow.dqReason = dqMatch[1].trim() || null;
+                dqReasonRow = lastDqRow;
+            }
             lastDqRow = null;
             continue;
         }
@@ -153,53 +213,55 @@ function parseMeetResultsText(rawText) {
                     seedSeconds: timeToSeconds(seed),
                     officialSeconds: timeToSeconds(official),
                     points: points ? parseFloat(points) : 0,
+                    dqReason: null,
                     swimmers: []
                 };
                 pendingRelay = row;
-                addPoints(row.team, row.points);
+                startRow(row);
                 relays.push(row);
                 continue;
             }
 
             const swimmerMatches = [...line.matchAll(RELAY_SWIMMER_RE)];
             if (swimmerMatches.length) {
-                if (pendingRelay) pendingRelay.swimmers = swimmerMatches.map(sm => ({ name: sm[1].trim(), age: parseInt(sm[2], 10) }));
+                if (pendingRelay) pendingRelay.swimmers = swimmerMatches.map(sm => ({ name: normalizeName(sm[1]), age: parseInt(sm[2], 10) }));
                 pendingRelay = null;
                 continue;
             }
-
-            unparsedLines.push(line);
-            continue;
+        } else {
+            const m = line.match(INDIVIDUAL_ROW_RE);
+            if (m) {
+                const [, place, name, age, team, seed, official, points] = m;
+                const row = {
+                    eventNumber: currentEvent.number,
+                    eventName: currentEvent.name,
+                    place: parsePlace(place),
+                    status: rowStatus(place, official),
+                    name: normalizeName(name),
+                    age: parseInt(age, 10),
+                    team: team.trim(),
+                    seedTime: seed,
+                    officialTime: official,
+                    seedSeconds: timeToSeconds(seed),
+                    officialSeconds: timeToSeconds(official),
+                    points: points ? parseFloat(points) : 0,
+                    dqReason: null
+                };
+                startRow(row);
+                individual.push(row);
+                continue;
+            }
         }
 
-        const m = line.match(INDIVIDUAL_ROW_RE);
-        if (m) {
-            const [, place, name, age, team, seed, official, points] = m;
-            const row = {
-                eventNumber: currentEvent.number,
-                eventName: currentEvent.name,
-                place: parsePlace(place),
-                status: rowStatus(place, official),
-                name: name.trim(),
-                age: parseInt(age, 10),
-                team: team.trim(),
-                seedTime: seed,
-                officialTime: official,
-                seedSeconds: timeToSeconds(seed),
-                officialSeconds: timeToSeconds(official),
-                points: points ? parseFloat(points) : 0,
-                dqReason: null
-            };
-            lastDqRow = row.status === "DQ" ? row : null;
-            addPoints(row.team, row.points);
-            individual.push(row);
+        if (dqReasonRow && DQ_CONTINUATION_RE.test(line)) {
+            dqReasonRow.dqReason = dqReasonRow.dqReason ? `${dqReasonRow.dqReason}; ${line}` : line;
             continue;
         }
 
         unparsedLines.push(line);
     }
 
-    return { individual, relays, unparsedLines, teamPoints };
+    return { individual, relays, unparsedLines, teamPoints, sheetDate, sheetTeamScores };
 }
 
-module.exports = { parseMeetResultsText, timeToSeconds, isSpotswoodTeam };
+module.exports = { parseMeetResultsText, timeToSeconds, isSpotswoodTeam, normalizeName };

@@ -1,6 +1,5 @@
-const { odata } = require("@azure/data-tables");
 const { getMeetsTable, PARTITION_KEY } = require("../shared/meetsTable");
-const { getResultsTable, getRelayResultsTable } = require("../shared/resultsTable");
+const { getResultsTable, getRelayResultsTable, listMeetResultEntities, listMeetRelayEntities } = require("../shared/resultsTable");
 const { getResultsPdfContainer, isSheetForMeet } = require("../shared/resultsPdfContainer");
 const { forEachInBatches } = require("../shared/batches");
 
@@ -16,15 +15,12 @@ module.exports = async function (context, req) {
     }
 
     try {
-        // Results are keyed by swimmer, so a meet's rows are found by scanning for its id.
         const resultsTable = getResultsTable();
-        const results = [];
-        for await (const entity of resultsTable.listEntities({ queryOptions: { filter: odata`meetId eq ${id}` } })) results.push(entity);
+        const results = await listMeetResultEntities(resultsTable, id);
         await forEachInBatches(results, entity => resultsTable.deleteEntity(entity.partitionKey, entity.rowKey));
 
         const relayTable = getRelayResultsTable();
-        const relays = [];
-        for await (const entity of relayTable.listEntities({ queryOptions: { filter: odata`PartitionKey eq ${id}` } })) relays.push(entity);
+        const relays = await listMeetRelayEntities(relayTable, id);
         await forEachInBatches(relays, entity => relayTable.deleteEntity(entity.partitionKey, entity.rowKey));
 
         const container = getResultsPdfContainer();

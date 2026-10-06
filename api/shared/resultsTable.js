@@ -1,4 +1,4 @@
-const { TableClient } = require("@azure/data-tables");
+const { TableClient, odata } = require("@azure/data-tables");
 const { isSpotswoodTeam } = require("./meetResultsParser");
 
 function getResultsTable() {
@@ -82,6 +82,7 @@ function toRelayResultEntity(row, meetId) {
         seedSeconds: row.seedSeconds,
         officialSeconds: row.officialSeconds,
         points: row.points || 0,
+        dqReason: row.dqReason || "",
         swimmersJson: JSON.stringify(row.swimmers || [])
     };
 }
@@ -103,8 +104,22 @@ function toRelayResultDto(entity) {
         seedSeconds: entity.seedSeconds,
         officialSeconds: entity.officialSeconds,
         points: entity.points,
+        dqReason: entity.dqReason || "",
         swimmers
     };
+}
+
+// Every stored row for one meet. Individual results are keyed by swimmer,
+// so finding a meet's means scanning for its id; relays are keyed by meet.
+async function listMeetResultEntities(table, meetId) {
+    const rows = [];
+    for await (const entity of table.listEntities({ queryOptions: { filter: odata`meetId eq ${meetId}` } })) rows.push(entity);
+    return rows;
+}
+async function listMeetRelayEntities(table, meetId) {
+    const rows = [];
+    for await (const entity of table.listEntities({ queryOptions: { filter: odata`PartitionKey eq ${meetId}` } })) rows.push(entity);
+    return rows;
 }
 
 // Every distinct Spotswood swimmer name seen in Results, for stats.html's
@@ -125,5 +140,6 @@ module.exports = {
     getResultsTable, getRelayResultsTable,
     toResultEntity, toResultDto,
     toRelayResultEntity, toRelayResultDto,
+    listMeetResultEntities, listMeetRelayEntities,
     listSwimmerNames
 };

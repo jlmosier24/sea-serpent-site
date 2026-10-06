@@ -1,38 +1,33 @@
-const { extractPdfText } = require("../shared/pdfText");
-const { parseMeetResultsText } = require("../shared/meetResultsParser");
+const { readResultsSheet } = require("../shared/resultsSheet");
+const { meetSummary, teamScore } = require("../shared/stats");
 
-const MAX_BYTES = 15 * 1024 * 1024; // 15MB -- meet PDFs run a few MB at most
-
-// Reachable at /api/importMeetResultsPreview. Protected by an explicit
-// route rule in staticwebapp.config.json (requires the "administrator"
-// role). Parses the uploaded PDF and returns every row for both teams (plus
-// any lines it couldn't match) for the admin to review -- nothing is
-// written to storage here. See importMeetResultsCommit for the write step.
+// Reachable at /api/importMeetResultsPreview. Admin only (route rules in
+// staticwebapp.config.json). Reads an uploaded results PDF and reports what
+// importing it would save -- nothing is written here; see
+// importMeetResultsCommit for that. Returns the sheet's own date (for the
+// dialog's date check), Spotswood's swim/relay/swimmer counts, the team
+// score it would save, and any lines it couldn't read.
 module.exports = async function (context, req) {
-    const { dataBase64 } = req.body || {};
-    if (!dataBase64) {
-        context.res = { status: 400, body: "Missing PDF data." };
-        return;
-    }
-
-    let buffer;
     try {
-        buffer = Buffer.from(dataBase64, "base64");
+        const { parsed } = await readResultsSheet((req.body || {}).dataBase64);
+        const summary = meetSummary(parsed.individual, parsed.relays);
+        context.res = {
+            status: 200,
+            body: {
+                sheetDate: parsed.sheetDate,
+                swims: summary.swims,
+                relays: summary.relays,
+                swimmers: summary.swimmers,
+                teamScore: teamScore(parsed),
+                unreadLines: parsed.unparsedLines
+            }
+        };
     } catch (e) {
-        context.res = { status: 400, body: "Could not decode PDF data." };
-        return;
-    }
-    if (buffer.length === 0 || buffer.length > MAX_BYTES) {
-        context.res = { status: 400, body: `PDF must be under ${MAX_BYTES / (1024 * 1024)}MB.` };
-        return;
-    }
-
-    try {
-        const text = await extractPdfText(buffer);
-        const result = parseMeetResultsText(text);
-        context.res = { status: 200, body: result };
-    } catch (e) {
-        context.log.error("Failed to parse meet results PDF:", e);
+        if (e.status === 400) {
+            context.res = { status: 400, body: e.message };
+            return;
+        }
+        context.log.error("Failed to read meet results PDF:", e);
         context.res = { status: 500, body: "Error: " + (e.message || e.code || JSON.stringify(e)) };
     }
 };

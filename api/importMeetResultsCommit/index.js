@@ -1,78 +1,121 @@
 const { getResultsPdfContainer, sheetBlobName } = require("../shared/resultsPdfContainer");
-const { getResultsTable, getRelayResultsTable, toResultEntity, toRelayResultEntity } = require("../shared/resultsTable");
-const { getMeetsTable, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
-const { isSpotswoodTeam } = require("../shared/meetResultsParser");
+const {
+    getResultsTable, getRelayResultsTable, toResultEntity, toRelayResultEntity,
+    listMeetResultEntities, listMeetRelayEntities
+} = require("../shared/resultsTable");
+const { getMeetsTable, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
+const { readResultsSheet } = require("../shared/resultsSheet");
+const { meetSummary, teamScore } = require("../shared/stats");
 const { forEachInBatches } = require("../shared/batches");
 
-// Reachable at /api/importMeetResultsCommit. Protected by an explicit route
-// rule in staticwebapp.config.json (requires the "administrator" role).
-// Takes the (admin-reviewed) rows from importMeetResultsPreview -- both
-// teams' -- archives the original PDF as the source of record, and upserts
-// the rows into Results/RelayResults as-is. Row keys are stable per
-// meet+event (see shared/resultsTable.js), so re-importing the same meet
-// updates rows instead of duplicating them. Results holding both teams is
-// what makes resultsByMeet's complete per-meet view possible; swimmer-stats
-// reads (listSwimmerNames, swimmerStats/index.js) filter back down to
-// Spotswood themselves, so no filtering happens on the write side here.
-module.exports = async function (context, req) {
-    const { meetId, fileName, dataBase64, individual, relays, teamPoints } = req.body || {};
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fmtDate(iso) {
+    const [y, m, d] = iso.split("-").map(Number);
+    return `${MONTHS[m - 1]} ${d}, ${y}`;
+}
+function entityKey(entity) {
+    return `${entity.partitionKey}\u0000${entity.rowKey}`;
+}
 
+// Saves `entities`, then deletes whatever else is stored for the meet. A
+// re-import therefore replaces the meet's results without duplicating any,
+// and a failure partway through leaves the old results in place.
+async function replaceMeetRows(table, entities, existing) {
+    await forEachInBatches(entities, entity => table.upsertEntity(entity, "Replace"));
+    const keep = new Set(entities.map(entityKey));
+    const leftovers = existing.filter(entity => !keep.has(entityKey(entity)));
+    await forEachInBatches(leftovers, entity => table.deleteEntity(entity.partitionKey, entity.rowKey));
+    return leftovers.length;
+}
+
+// Reachable at /api/importMeetResultsCommit. Admin only (route rules in
+// staticwebapp.config.json). Body: { meetId, fileName, dataBase64,
+// importAnyway }. Reads the PDF again rather than trusting rows from the
+// browser, archives it as the source of record, and saves both teams' rows
+// (resultsByMeet shows full results; swimmer stats filter to Spotswood when
+// they read). The sheet's date must match the meet's unless importAnyway is
+// set -- the dialog asks first, and this enforces it.
+module.exports = async function (context, req) {
+    const { meetId, fileName, dataBase64, importAnyway } = req.body || {};
     if (!meetId) {
         context.res = { status: 400, body: "Missing meetId." };
         return;
     }
-    if (!Array.isArray(individual) && !Array.isArray(relays)) {
-        context.res = { status: 400, body: "No result rows to save." };
-        return;
-    }
 
     try {
-        if (dataBase64) {
-            const buffer = Buffer.from(dataBase64, "base64");
-            await getResultsPdfContainer().getBlockBlobClient(sheetBlobName(meetId)).uploadData(buffer, {
-                blobHTTPHeaders: { blobContentType: "application/pdf" }
-            });
+        const meetsTable = getMeetsTable();
+        let meetEntity;
+        try {
+            meetEntity = await meetsTable.getEntity(MEET_PARTITION_KEY, meetId);
+        } catch (e) {
+            const status = e.statusCode || (e.response && e.response.status);
+            if (status === 404) {
+                context.res = { status: 404, body: "That meet no longer exists." };
+                return;
+            }
+            throw e;
         }
+
+        let sheet;
+        try {
+            sheet = await readResultsSheet(dataBase64);
+        } catch (e) {
+            if (e.status === 400) {
+                context.res = { status: 400, body: e.message };
+                return;
+            }
+            throw e;
+        }
+        const { buffer, parsed } = sheet;
+        if (!parsed.individual.length && !parsed.relays.length) {
+            context.res = { status: 400, body: "No results were found in that PDF." };
+            return;
+        }
+        if (parsed.sheetDate && parsed.sheetDate !== meetEntity.date && !importAnyway) {
+            context.res = { status: 409, body: `This sheet is dated ${fmtDate(parsed.sheetDate)}, but the meet is ${fmtDate(meetEntity.date)}.` };
+            return;
+        }
+
+        const replaced = toMeetDto(meetEntity).resultsImported;
+        await getResultsPdfContainer().getBlockBlobClient(sheetBlobName(meetId)).uploadData(buffer, {
+            blobHTTPHeaders: { blobContentType: "application/pdf" }
+        });
 
         const resultsTable = getResultsTable();
-        await forEachInBatches(individual || [], row => resultsTable.upsertEntity(toResultEntity(row, meetId), "Replace"));
-
         const relayTable = getRelayResultsTable();
-        await forEachInBatches(relays || [], row => relayTable.upsertEntity(toRelayResultEntity(row, meetId), "Replace"));
+        const removed =
+            await replaceMeetRows(resultsTable, parsed.individual.map(row => toResultEntity(row, meetId)), await listMeetResultEntities(resultsTable, meetId)) +
+            await replaceMeetRows(relayTable, parsed.relays.map(row => toRelayResultEntity(row, meetId)), await listMeetRelayEntities(relayTable, meetId));
 
-        // Marks the meet imported (for its Import button on the admin page)
-        // and adds up its score. Best-effort: a failure here shouldn't roll
-        // back the results above.
-        try {
-            const meetsTable = getMeetsTable();
-            const meetEntity = await meetsTable.getEntity(MEET_PARTITION_KEY, meetId);
-            const update = {
-                partitionKey: MEET_PARTITION_KEY,
-                rowKey: meetId,
-                resultsImported: true,
-                lastImportFile: String(fileName || ""),
-                lastImportAt: new Date().toISOString()
-            };
-            // teamPoints covers every team seen in the PDF (see
-            // meetResultsParser.js), not just the ones whose swimmer-level
-            // rows got kept -- that's what makes a final score possible at
-            // all. A score the admin typed in is never overwritten.
-            if (teamPoints && typeof teamPoints === "object" && meetEntity.scoreSource !== "manual") {
-                let teamScore = 0, opponentScore = 0;
-                for (const [team, points] of Object.entries(teamPoints)) {
-                    if (isSpotswoodTeam(team)) teamScore += points;
-                    else opponentScore += points;
-                }
-                Object.assign(update, { teamScore, opponentScore, scoreSource: "import" });
+        // A score the admin typed in is never replaced by an import.
+        const scoreKept = meetEntity.scoreSource === "manual";
+        const score = teamScore(parsed);
+        const update = {
+            partitionKey: MEET_PARTITION_KEY,
+            rowKey: meetId,
+            resultsImported: true,
+            lastImportFile: String(fileName || "").slice(0, 200),
+            lastImportAt: new Date().toISOString()
+        };
+        if (score && !scoreKept) Object.assign(update, { teamScore: score.us, opponentScore: score.them, scoreSource: "import" });
+        await meetsTable.updateEntity(update, "Merge");
+
+        const summary = meetSummary(parsed.individual, parsed.relays);
+        context.res = {
+            status: 200,
+            body: {
+                replaced,
+                swims: summary.swims,
+                relays: summary.relays,
+                swimmers: summary.swimmers,
+                removedRows: removed,
+                teamScore: scoreKept
+                    ? { us: meetEntity.teamScore, them: meetEntity.opponentScore, source: "manual" }
+                    : score
             }
-            await meetsTable.updateEntity(update, "Merge");
-        } catch (e) {
-            context.log.error("Failed to update the meet after import (non-fatal):", e);
-        }
-
-        context.res = { status: 200, body: { savedIndividual: (individual || []).length, savedRelays: (relays || []).length } };
+        };
     } catch (e) {
-        context.log.error("Failed to commit meet results:", e);
+        context.log.error("Failed to import meet results:", e);
         context.res = { status: 500, body: "Error: " + (e.message || e.code || JSON.stringify(e)) };
     }
 };
