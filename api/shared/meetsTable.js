@@ -23,12 +23,16 @@ function meetTitle(homeAway, shortName) {
     return `${homeAway === "away" ? "at" : "vs."} ${shortName}`;
 }
 
+// Meets saved before home/away and short names existed have only a
+// free-text title the admin wrote, like "at Chancellor". Both come from it,
+// so the title reads exactly as it did -- the opponent's name can't stand in
+// ("Chancellor Blue Dolphins" minus its last word is "Chancellor Blue").
+const OLD_TITLE_RE = /^\s*(vs\.?|at)\s+(.+)$/i;
+
 function toMeetDto(entity) {
-    // Meets saved before home/away and short names existed: home or away is
-    // read from the old free-text title ("at Fawn Lake Fliers"), and that
-    // title is kept as-is until the meet is saved again.
-    const homeAway = entity.homeAway || (/^\s*at\s/i.test(entity.title || "") ? "away" : "home");
-    const shortName = entity.shortName || autoShortName(entity.opponent);
+    const oldTitle = (entity.title || "").match(OLD_TITLE_RE);
+    const homeAway = entity.homeAway || (oldTitle && oldTitle[1].toLowerCase() === "at" ? "away" : "home");
+    const shortName = entity.shortName || (oldTitle ? oldTitle[2].trim() : "") || autoShortName(entity.opponent);
     const hasScore = entity.teamScore != null && entity.opponentScore != null;
     return {
         id: entity.rowKey,

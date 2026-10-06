@@ -18,19 +18,26 @@ test("meetTitle: vs. for home, at for away", () => {
     assert.equal(meetTitle("away", "Curtis Park"), "at Curtis Park");
 });
 
-test("toMeetDto reads home or away from an older meet's title and keeps that title", () => {
-    const away = toMeetDto({ rowKey: "a", title: "at Fawn Lake Fliers", opponent: "Fawn Lake Fliers", date: "2026-07-01", teamScore: 536, opponentScore: 506 });
+test("toMeetDto reads home or away and the short name from an older meet's own title", () => {
+    const away = toMeetDto({ rowKey: "a", title: "at Chancellor", opponent: "Chancellor Blue Dolphins", date: "2026-06-10", teamScore: 665, opponentScore: 304 });
     assert.equal(away.homeAway, "away");
-    assert.equal(away.title, "at Fawn Lake Fliers");
-    assert.equal(away.shortName, "Fawn Lake");
+    assert.equal(away.title, "at Chancellor");
+    assert.equal(away.shortName, "Chancellor", "from the title, not the opponent's name minus a word");
     assert.equal(away.scoreSource, "import");
     assert.equal(away.resultsImported, true);
 
-    const home = toMeetDto({ rowKey: "h", title: "vs. Woodland Wahoos", opponent: "Woodland Wahoos", date: "2026-06-17" });
+    const home = toMeetDto({ rowKey: "h", title: "vs. Woodland", opponent: "Woodland Wahoos", date: "2026-06-17" });
     assert.equal(home.homeAway, "home");
+    assert.equal(home.shortName, "Woodland");
     assert.equal(home.teamScore, null);
     assert.equal(home.scoreSource, null);
     assert.equal(home.resultsImported, false);
+
+    // A title without "vs."/"at" counts as home and is kept as written.
+    const plain = toMeetDto({ rowKey: "p", title: "Championship", opponent: "Several Teams", date: "2026-07-20" });
+    assert.equal(plain.homeAway, "home");
+    assert.equal(plain.title, "Championship");
+    assert.equal(plain.shortName, "Several");
 });
 
 test("toMeetDto builds the title from the short name once a meet has one", () => {
