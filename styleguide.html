@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Style guide | Spotswood Sea Serpents</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/site.js"></script>
+<!-- Temporary page for checking the shared design system (Step 1). Removed before the branch merges. -->
+<style>
+    .sg { display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px; }
+    .sg h2 { margin: 0 0 16px; font-size: 22px; }
+    .sg h3 { margin: 22px 0 10px; font-size: 16px; }
+    .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .swatch { border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; font-size: 13px; }
+    .swatch div { height: 48px; }
+    .swatch p { margin: 0; padding: 8px 10px; }
+    .swatch code { color: var(--muted); }
+    .stack { display: flex; flex-direction: column; gap: 14px; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+    .frame { border: 1px dashed var(--soft-border); border-radius: 18px; padding-bottom: 12px; }
+    .file-list { margin: 12px 0 0; padding-left: 20px; text-align: left; }
+</style>
+</head>
+<body>
+<site-header></site-header>
+<main class="wrap">
+    <div class="page-title">
+        <h1>Style guide</h1>
+        <p>Temporary page for checking the shared design pieces. It's removed before this branch merges.</p>
+    </div>
+
+    <div class="sg">
+        <section class="card" aria-labelledby="sg-colors">
+            <h2 id="sg-colors">Colors</h2>
+            <div class="swatches" id="swatches"></div>
+        </section>
+
+        <section class="card" aria-labelledby="sg-type">
+            <h2 id="sg-type">Type</h2>
+            <p class="stat-value">34</p>
+            <h3>Card title in Poppins</h3>
+            <p>Body text in Inter. <span style="color: var(--muted)">Muted secondary text.</span> <a href="/">A text link</a>.</p>
+        </section>
+
+        <section class="card" aria-labelledby="sg-cards">
+            <div class="card-head">
+                <h2 id="sg-cards">Cards</h2>
+                <button type="button" class="link-btn">Title-row link</button>
+            </div>
+            <div class="two">
+                <div class="stack">
+                    <div class="inset">Inset: soft tint with a thin border, used inside white cards.</div>
+                    <div class="gold-card">Gold tint: coming up, highlights, notes.</div>
+                </div>
+                <div class="stack">
+                    <div class="hero-card">
+                        <span class="pill">Date pill</span>
+                        <h3 style="margin: 16px 0 12px; font-size: 22px;">Green hero card</h3>
+                        <div class="btn-row">
+                            <button type="button" class="btn on-dark">White button</button>
+                            <button type="button" class="btn ghost-on-dark">Outline button</button>
+                        </div>
+                    </div>
+                    <div class="hero-card loss">
+                        <h3 style="margin: 0 0 8px; font-size: 22px;">Muted gray-green variant</h3>
+                        <p style="margin: 0;">Used instead of red for a loss.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="sg-tiles">
+            <h2 id="sg-tiles">Stat tiles</h2>
+            <div class="stat-grid">
+                <div class="stat-tile gold"><p class="stat-label">Gold tile</p><p class="stat-value">12</p><p class="stat-caption">Celebration only</p></div>
+                <div class="stat-tile"><p class="stat-label">Tile label</p><p class="stat-value">7 <span style="font-size: 18px; color: var(--muted);">of 16</span></p></div>
+                <div class="stat-tile"><p class="stat-label">Tile label</p><p class="stat-value">48</p></div>
+                <div class="stat-tile"><p class="stat-label">Tile label</p><p class="stat-value">3</p><p class="stat-caption">Optional caption</p></div>
+            </div>
+            <h3>Four across, equal height, on the green card</h3>
+            <div class="hero-card">
+                <div class="stat-grid four">
+                    <div class="stat-tile gold"><p class="stat-label">First tile</p><p class="stat-value">-2.10s</p><p class="stat-caption">A longer caption that wraps onto two lines</p></div>
+                    <div class="stat-tile on-dark"><p class="stat-label">Tile label</p><p class="stat-value">6</p></div>
+                    <div class="stat-tile on-dark"><p class="stat-label">Tile label</p><p class="stat-value">9</p></div>
+                    <div class="stat-tile on-dark"><p class="stat-label">Tile label</p><p class="stat-value">4</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="sg-chips">
+            <h2 id="sg-chips">Chips, badges, and pills</h2>
+            <h3>Filter chips (tap to toggle)</h3>
+            <div class="chip-row" id="chipDemo">
+                <button type="button" class="chip" aria-pressed="true">All <span class="chip-count">24</span></button>
+                <button type="button" class="chip" aria-pressed="false">Chip one <span class="chip-count">8</span></button>
+                <button type="button" class="chip" aria-pressed="false">Chip two <span class="chip-count">5</span></button>
+            </div>
+            <h3>Badges</h3>
+            <div class="btn-row">
+                <span class="badge">Neutral</span>
+                <span class="badge ok">✓ Done</span>
+                <span class="badge gold">Gold</span>
+            </div>
+            <h3>Pill</h3>
+            <span class="pill">Date pill</span>
+        </section>
+
+        <section class="card" aria-labelledby="sg-buttons">
+            <h2 id="sg-buttons">Buttons</h2>
+            <div class="btn-row">
+                <button type="button" class="btn primary">Primary</button>
+                <button type="button" class="btn">Secondary</button>
+                <button type="button" class="btn quiet">Quiet</button>
+                <button type="button" class="btn primary" disabled>Disabled</button>
+                <button type="button" class="link-btn">Link button</button>
+            </div>
+            <h3>Small</h3>
+            <div class="btn-row">
+                <button type="button" class="btn small primary">Small primary</button>
+                <button type="button" class="btn small">Small</button>
+                <button type="button" class="btn small quiet">Small quiet</button>
+            </div>
+            <h3>Admin Delete only</h3>
+            <div class="btn-row">
+                <button type="button" class="btn small danger">Delete</button>
+                <button type="button" class="btn danger solid">Delete for good</button>
+            </div>
+            <h3>Full width</h3>
+            <button type="button" class="btn primary block">Full-width button</button>
+        </section>
+
+        <section class="card" aria-labelledby="sg-fields">
+            <h2 id="sg-fields">Form fields</h2>
+            <div class="form-grid">
+                <div class="field">
+                    <label class="field-label" for="sg-text">Text field</label>
+                    <input class="input" id="sg-text" type="text" placeholder="Placeholder text">
+                    <p class="field-help">Help text under a field.</p>
+                </div>
+                <div class="field">
+                    <label class="field-label" for="sg-select">Dropdown</label>
+                    <select class="input" id="sg-select"><option>Option one</option><option>Option two</option></select>
+                </div>
+                <div class="field">
+                    <span class="field-label" id="sg-seg-label">Two-way switch</span>
+                    <div class="seg" role="radiogroup" aria-labelledby="sg-seg-label">
+                        <label><input type="radio" name="sg-side" value="home" checked><span>Home</span></label>
+                        <label><input type="radio" name="sg-side" value="away"><span>Away</span></label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label" for="sg-time">Time</label>
+                    <input class="input" id="sg-time" type="time" value="18:00">
+                </div>
+                <div class="field full">
+                    <label class="field-label" for="sg-note">Text box</label>
+                    <textarea class="input" id="sg-note" maxlength="120" placeholder="Up to 120 characters"></textarea>
+                </div>
+                <div class="field">
+                    <label class="field-label" for="sg-bad">Admin field with an error</label>
+                    <input class="input" id="sg-bad" type="text" value="Wrong value" aria-invalid="true" aria-describedby="sg-bad-error">
+                    <p class="field-error" id="sg-bad-error"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.5v4M8 10.8v.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>An error message, always with an icon.</p>
+                </div>
+                <div class="field">
+                    <label class="check"><input type="checkbox" checked> Checkbox</label>
+                </div>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="sg-drop">
+            <h2 id="sg-drop">Drop zone</h2>
+            <div class="dropzone" id="dropDemo">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5l5 5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <p><strong>Drag files here</strong></p>
+                <p class="field-help">or</p>
+                <button type="button" class="btn primary" data-browse>Choose files</button>
+                <ul class="file-list" id="dropFiles" hidden></ul>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="sg-dialogs">
+            <h2 id="sg-dialogs">Dialogs</h2>
+            <p>Centered on a computer, a bottom sheet on a phone. Esc, the X, or a tap outside closes it, and focus returns to the button that opened it.</p>
+            <div class="btn-row">
+                <button type="button" class="btn primary" data-open-dialog="sgDialog">Open a dialog</button>
+                <button type="button" class="btn" data-open-dialog="sgWideDialog">Open a wide, scrolling dialog</button>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="sg-headers">
+            <h2 id="sg-headers">Admin header</h2>
+            <div class="frame"><site-header admin></site-header></div>
+        </section>
+    </div>
+</main>
+<site-footer></site-footer>
+
+<dialog class="dialog" id="sgDialog" aria-labelledby="sgDialogTitle">
+    <div class="dialog-grab" aria-hidden="true"></div>
+    <div class="dialog-head">
+        <div>
+            <h2 id="sgDialogTitle">Dialog title</h2>
+            <p>A short subtitle line.</p>
+        </div>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="dialog-body">
+        <div class="field">
+            <label class="field-label" for="sg-dialog-field">A field inside the dialog</label>
+            <input class="input" id="sg-dialog-field" type="text">
+        </div>
+        <div class="stat-grid">
+            <div class="stat-tile"><p class="stat-label">Tile label</p><p class="stat-value">26</p></div>
+            <div class="stat-tile"><p class="stat-label">Tile label</p><p class="stat-value">85</p></div>
+        </div>
+        <div class="dialog-actions">
+            <button type="button" class="btn" data-close-dialog>Cancel</button>
+            <button type="button" class="btn primary" data-close-dialog>Confirm</button>
+        </div>
+    </div>
+</dialog>
+
+<dialog class="dialog wide" id="sgWideDialog" aria-labelledby="sgWideTitle">
+    <div class="dialog-grab" aria-hidden="true"></div>
+    <div class="dialog-head">
+        <div>
+            <h2 id="sgWideTitle">Wide dialog</h2>
+            <p>The header stays put while the content scrolls.</p>
+        </div>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="dialog-body" id="sgLongBody"></div>
+</dialog>
+
+<script>
+// Style-guide demos only.
+const TOKENS = ['--page-top', '--page-bottom', '--ink', '--muted', '--muted-on-page', '--brand', '--card-border', '--soft', '--soft-border', '--gold', '--gold-ink', '--gold-tint', '--gold-border', '--gold-text', '--ok-tint', '--ok-text', '--hero-from', '--hero-to', '--loss', '--track', '--danger'];
+const rootStyle = getComputedStyle(document.documentElement);
+document.getElementById('swatches').innerHTML = TOKENS.map(name => {
+    const value = rootStyle.getPropertyValue(name).trim();
+    return `<div class="swatch"><div style="background: ${value}"></div><p>${name.slice(2)}<br><code>${value}</code></p></div>`;
+}).join('');
+
+document.getElementById('chipDemo').addEventListener('click', (event) => {
+    const chip = event.target.closest('.chip');
+    if (!chip) return;
+    document.querySelectorAll('#chipDemo .chip').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+});
+
+SiteUI.setupDropZone(document.getElementById('dropDemo'), {
+    accept: 'image/*',
+    multiple: true,
+    onFiles(files) {
+        const list = document.getElementById('dropFiles');
+        list.hidden = false;
+        list.innerHTML = '';
+        files.forEach(file => {
+            const item = document.createElement('li');
+            item.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+            list.appendChild(item);
+        });
+    }
+});
+
+document.getElementById('sgLongBody').innerHTML = Array.from({ length: 14 }, (_, i) =>
+    `<div class="inset" style="margin-bottom: 10px;">Row ${i + 1}: long content scrolls inside the dialog, not behind it.</div>`).join('') +
+    '<div class="dialog-actions"><button type="button" class="btn primary" data-close-dialog>Done</button></div>';
+</script>
+</body>
+</html>

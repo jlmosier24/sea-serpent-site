@@ -1,0 +1,222 @@
+/* Spotswood Sea Serpents: shared design system.
+   Tokens and components from the redesign spec (design/HANDOFF.md, "Design system").
+   Every page loads this plus /assets/site.js; styles that only one page needs stay in that page. */
+
+/* ---------- Tokens ---------- */
+:root {
+    --page-top: #D9E8BC;
+    --page-bottom: #FAFBF4;
+    --ink: #10240F;
+    --muted: #5B6B58;
+    /* --muted is 4.4:1 against the top of the page gradient, just under WCAG AA,
+       so secondary text sitting directly on the page (not on a card) uses this. */
+    --muted-on-page: #4B5A48;
+    --placeholder: #6B7A68;
+    --brand: #1A6B2E;
+    --brand-dark: #145524;
+    --card: #FFFFFF;
+    --card-border: #E8EDDA;
+    --soft: #F4F7E4;
+    --soft-border: #DCE3C4;
+    --gold: #F2B327;
+    --gold-ink: #2A1E00;
+    --gold-tint: #FFF6D8;
+    --gold-border: #EACB6A;
+    --gold-text: #6E510F;
+    --ok-tint: #E3F0CC;
+    --ok-border: #BFD99A;
+    --ok-text: #2F5A12;
+    --hero-from: #1E7535;
+    --hero-to: #14501F;
+    --loss: #4F5D52;
+    --loss-from: #66756A;
+    --loss-to: #46524A;
+    --track: #DCE6C8;
+    --danger: #B3372B; /* admin Delete only -- no red on pages parents and kids see */
+
+    --font-head: Poppins, Inter, sans-serif;
+    --font-body: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+    --radius-card: 28px;
+    --radius-inner: 24px;
+    --radius-tile: 18px;
+    --radius-field: 14px;
+    --radius-round: 999px;
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-body);
+    color: var(--ink);
+    line-height: 1.5;
+    /* The tint fades over the first screenful; past that the page stays its light bottom color. */
+    background: linear-gradient(180deg, var(--page-top), var(--page-bottom) 900px) no-repeat, var(--page-bottom);
+}
+h1, h2, h3, h4 { font-family: var(--font-head); line-height: 1.2; }
+button, input, select, textarea { font: inherit; color: inherit; }
+img { max-width: 100%; }
+a { color: var(--brand); }
+/* Gold ring with a thin dark inner edge -- gold alone barely shows against a white card. */
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 0 2px var(--ink); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* Set by site.js while a dialog is open. */
+html.is-locked { overflow: hidden; scrollbar-gutter: stable; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+.wrap.narrow { max-width: 980px; }
+@media (max-width: 600px) { .wrap { padding: 0 16px; } }
+
+/* ---------- Site header and footer (rendered by <site-header> and <site-footer>) ---------- */
+site-header, site-footer { display: block; }
+.site-header .wrap { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 26px; padding-bottom: 8px; }
+.brand { display: flex; align-items: center; gap: 9px; color: var(--ink); text-decoration: none; }
+/* The logo stays exactly as the site has always shown it: 26px tall at its own shape, no box. */
+.brand img { display: block; height: 26px; width: auto; }
+.brand-name { font-family: var(--font-head); font-weight: 700; font-size: 20px; }
+.site-nav { display: flex; gap: 28px; }
+.site-nav a { color: var(--ink); text-decoration: none; font-weight: 500; font-size: 16px; }
+.site-nav a:hover { color: var(--brand); }
+.site-nav a[aria-current="page"] { color: var(--brand); font-weight: 600; }
+.nav-toggle { display: none; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--card-border); border-radius: 50%; background: var(--card); color: var(--ink); cursor: pointer; }
+.nav-toggle svg { width: 22px; height: 22px; }
+.site-footer { text-align: center; padding: 40px 24px 64px; color: var(--muted); font-size: 18px; }
+@media (max-width: 860px) {
+    .site-nav { gap: 16px; }
+    .site-nav a { font-size: 14px; }
+    .brand-name { font-size: 16px; }
+}
+/* Phones: the four links don't fit beside the name, so they fold into a menu. */
+@media (max-width: 600px) {
+    .nav-toggle { display: flex; }
+    .site-nav { display: none; position: absolute; top: 100%; left: 16px; right: 16px; z-index: 20; flex-direction: column; gap: 0; padding: 6px 18px; background: var(--card); border: 1px solid var(--card-border); border-radius: 20px; box-shadow: 0 16px 32px rgba(16,36,15,.12); }
+    .site-nav.open { display: flex; }
+    .site-nav a { padding: 12px 2px; font-size: 16px; border-bottom: 1px solid var(--card-border); }
+    .site-nav a:last-child { border-bottom: 0; }
+}
+
+/* ---------- Page title ---------- */
+.page-title { padding: 44px 0 22px; }
+.page-title h1 { font-size: 44px; font-weight: 700; line-height: 1.1; margin: 0 0 12px; }
+.page-title p { margin: 0; font-size: 19px; color: var(--muted-on-page); }
+@media (max-width: 760px) { .page-title h1 { font-size: 34px; } .page-title p { font-size: 17px; } }
+
+/* ---------- Cards ---------- */
+.card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius-card); padding: 28px; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.card-head h2 { font-size: 22px; font-weight: 700; margin: 0; }
+.card-head a, .card-head .link-btn { font-size: 15px; font-weight: 600; white-space: nowrap; text-decoration: none; }
+/* Insets inside a white card: soft tint with a thin border. */
+.inset { background: var(--soft); border: 1px solid var(--soft-border); border-radius: var(--radius-inner); padding: 16px; }
+/* Gold tint means "coming up" or a highlight: upcoming meet, biggest drop, notes. */
+.gold-card { background: var(--gold-tint); border: 1px solid var(--gold-border); border-radius: var(--radius-inner); padding: 16px; }
+/* Green gradient card: a completed meet, the swimmer header. */
+.hero-card { position: relative; overflow: hidden; border-radius: var(--radius-inner); padding: 20px; color: #fff; background: linear-gradient(135deg, var(--hero-from), var(--hero-to)); }
+.hero-card.loss { background: linear-gradient(135deg, var(--loss-from), var(--loss-to)); }
+.hero-card::before, .hero-card::after { content: ""; position: absolute; border-radius: 50%; background: rgba(255,255,255,.06); pointer-events: none; }
+.hero-card::before { width: 210px; height: 210px; right: -70px; top: -80px; }
+.hero-card::after { width: 120px; height: 120px; right: 20px; top: -30px; }
+.hero-card > * { position: relative; z-index: 1; }
+@media (max-width: 600px) { .card { padding: 22px 18px; } }
+
+/* ---------- Stat tiles ---------- */
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.stat-grid.four { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; }
+@media (max-width: 760px) { .stat-grid.four { grid-template-columns: repeat(2, 1fr); } }
+.stat-tile { background: var(--soft); border: 1px solid var(--soft-border); border-radius: var(--radius-tile); padding: 14px 16px; }
+.stat-label { font-size: 14px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
+.stat-value { font-family: var(--font-head); font-size: 34px; font-weight: 700; line-height: 1; margin: 0; }
+.stat-caption { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.stat-tile.gold { background: var(--gold); border-color: transparent; color: var(--gold-ink); }
+.stat-tile.gold .stat-label, .stat-tile.gold .stat-caption { color: var(--gold-ink); opacity: .85; }
+.stat-tile.on-dark { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.24); color: #fff; }
+.stat-tile.on-dark .stat-label, .stat-tile.on-dark .stat-caption { color: #fff; opacity: .92; }
+
+/* ---------- Chips, badges, pills ---------- */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Filter chips are toggle buttons: aria-pressed carries the state for screen readers and for styling. */
+.chip { border: 1px solid var(--soft-border); background: var(--soft); color: var(--ink); border-radius: var(--radius-round); padding: 7px 15px; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+.chip:hover { border-color: var(--brand); }
+.chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.chip-count { margin-left: 4px; font-weight: 500; opacity: .75; }
+.badge { display: inline-block; padding: 3px 11px; border-radius: var(--radius-round); background: #EEF1E8; color: var(--muted); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.badge.ok { background: var(--ok-tint); color: var(--ok-text); }
+.badge.gold { background: var(--gold); color: var(--gold-ink); }
+.pill { display: inline-block; padding: 7px 16px; border-radius: var(--radius-round); background: var(--gold); color: var(--gold-ink); font-size: 15px; font-weight: 700; white-space: nowrap; }
+
+/* ---------- Buttons ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; border: 1.5px solid var(--brand); border-radius: var(--radius-round); background: #fff; color: var(--brand); font-size: 15px; font-weight: 600; line-height: 1.2; text-decoration: none; cursor: pointer; }
+.btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.btn:not(:disabled):not([aria-disabled="true"]):hover { background: var(--soft); }
+.btn.primary { background: var(--brand); color: #fff; }
+.btn.primary:not(:disabled):not([aria-disabled="true"]):hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+.btn.quiet { border-color: var(--card-border); color: var(--ink); }
+.btn.small { padding: 7px 14px; font-size: 14px; }
+.btn.block { display: flex; width: 100%; }
+/* On the green hero cards. */
+.btn.on-dark { background: #fff; border-color: #fff; color: var(--brand); }
+.btn.ghost-on-dark { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.55); color: #fff; }
+.btn.ghost-on-dark:not(:disabled):hover { background: rgba(255,255,255,.24); }
+/* Admin Delete only. */
+.btn.danger { border-color: #F0C9C4; color: var(--danger); }
+.btn.danger.solid { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.link-btn { padding: 0; border: 0; background: none; color: var(--brand); font-weight: 600; text-decoration: none; cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
+
+/* ---------- Form fields ---------- */
+.field { margin: 0 0 16px; }
+.field-label { display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600; color: var(--brand); }
+.input { width: 100%; padding: 12px 14px; border: 1px solid var(--card-border); border-radius: var(--radius-field); background: #fff; color: var(--ink); font-size: 16px; }
+.input::placeholder { color: var(--placeholder); }
+textarea.input { min-height: 70px; resize: vertical; }
+.field-help { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+/* Admin forms only (red stays off public pages); always paired with an icon, never color alone. */
+.field-error { display: flex; align-items: flex-start; gap: 6px; margin: 6px 0 0; font-size: 13px; font-weight: 600; color: var(--danger); }
+.field-error svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+.form-grid .full { grid-column: 1 / -1; }
+@media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+/* Two-way switch (Home / Away): real radio buttons underneath, so arrow keys and screen readers treat it as a radio group. */
+.seg { display: inline-flex; padding: 3px; border: 1px solid var(--soft-border); border-radius: var(--radius-field); background: var(--soft); }
+.seg label { position: relative; }
+.seg input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.seg span { display: block; padding: 9px 16px; border-radius: 11px; color: var(--muted); font-size: 15px; font-weight: 600; cursor: pointer; }
+.seg input:checked + span { background: #fff; color: var(--brand); box-shadow: 0 1px 4px rgba(16,36,15,.15); }
+.seg input:focus-visible + span { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 0 2px var(--ink); }
+.check { display: flex; align-items: center; gap: 10px; color: var(--brand); font-size: 15px; font-weight: 600; }
+.check input { width: 20px; height: 20px; margin: 0; accent-color: var(--brand); }
+
+/* ---------- Drop zone (wired up by SiteUI.setupDropZone in site.js) ---------- */
+.dropzone { padding: 30px 18px; border: 2px dashed var(--soft-border); border-radius: 22px; background: var(--soft); text-align: center; }
+.dropzone.is-over { border-color: var(--brand); background: #EAF3D9; }
+.dropzone > svg { width: 34px; height: 34px; color: var(--brand); }
+.dropzone p { margin: 8px 0 0; }
+.dropzone .btn { margin-top: 14px; }
+
+/* ---------- Dialog (native <dialog>, opened by SiteUI.openDialog in site.js) ---------- */
+/* Content scrolls inside .dialog-body, never on the dialog itself -- a scrolling <dialog> adds a second scrollbar. */
+dialog.dialog { width: min(520px, calc(100vw - 48px)); max-width: none; max-height: calc(100vh - 48px); padding: 0; border: 0; border-radius: var(--radius-card); background: #fff; color: var(--ink); box-shadow: 0 24px 60px rgba(0,0,0,.3); overflow: hidden; }
+dialog.dialog.wide { width: min(640px, calc(100vw - 48px)); }
+dialog.dialog[open] { display: flex; flex-direction: column; }
+dialog.dialog::backdrop { background: rgba(12,28,14,.55); }
+.dialog-grab { display: none; flex-shrink: 0; width: 40px; height: 4px; margin: 10px auto 0; border-radius: 4px; background: #D5DACF; }
+.dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; padding: 26px 26px 0; }
+.dialog-head h2 { margin: 0; font-size: 24px; }
+.dialog-head p { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+.dialog-close { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 40px; height: 40px; padding: 0; border: 1px solid var(--card-border); border-radius: 50%; background: var(--soft); color: var(--ink); cursor: pointer; }
+.dialog-close svg { width: 18px; height: 18px; }
+.dialog-body { min-height: 0; overflow-y: auto; padding: 18px 26px 26px; }
+.dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+/* Phones: a bottom sheet instead of a centered box. */
+@media (max-width: 600px) {
+    dialog.dialog, dialog.dialog.wide { width: 100%; max-height: 92vh; max-height: 92dvh; margin: auto 0 0; border-radius: 26px 26px 0 0; }
+    .dialog-grab { display: block; }
+    .dialog-head { padding: 14px 18px 0; }
+    .dialog-head h2 { font-size: 21px; }
+    .dialog-body { padding: 16px 18px calc(22px + env(safe-area-inset-bottom)); }
+}
