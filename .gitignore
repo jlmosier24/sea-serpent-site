@@ -5,3 +5,7 @@ node_modules/
 # Local-only fixture data for previewing pages without Azure -- real kids'
 # names/times, never meant for source control. See api/scripts/buildSampleData.js.
 sample-data/
+
+# Design handoff (mockups, real results PDFs and meet photos, kids' names) --
+# the redesign spec, local only, never pushed. See CLAUDE.md.
+design/
