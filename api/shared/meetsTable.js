@@ -56,8 +56,20 @@ function toMeetDto(entity) {
         // Likewise, every older meet that has a score had its results imported.
         resultsImported: entity.resultsImported != null ? !!entity.resultsImported : hasScore,
         lastImportFile: entity.lastImportFile || "",
-        lastImportAt: entity.lastImportAt || ""
+        lastImportAt: entity.lastImportAt || "",
+        // The meet's Spotswood numbers (stats.js meetSummary), worked out once
+        // at import so the home page can show them without reading every result.
+        summary: parseSummary(entity.summaryJson)
     };
+}
+
+function parseSummary(json) {
+    if (!json) return null;
+    try {
+        return JSON.parse(json);
+    } catch (e) {
+        return null;
+    }
 }
 
 function text(value) {
@@ -127,6 +139,7 @@ function buildMeetEntity(body, rowKey, existingEntity) {
         entity.resultsImported = true;
         entity.lastImportFile = existing.lastImportFile;
         entity.lastImportAt = existing.lastImportAt;
+        if (existingEntity.summaryJson) entity.summaryJson = existingEntity.summaryJson;
     }
     return { entity };
 }

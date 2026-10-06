@@ -282,3 +282,84 @@ test("the public meet list leaves out the import details", async () => {
     assert.equal(meet.resultsImported, true);
     for (const key of ["scoreSource", "lastImportFile", "lastImportAt"]) assert.equal(key in meet, false, key);
 });
+
+test("an import saves the meet's numbers for the home page, and editing the meet keeps them", async () => {
+    resetStore();
+    await addMeet("m");
+    await call(commitResults, { body: { meetId: "m", dataBase64: asUpload(sheetText()), fileName: "results.pdf" } });
+    const [meet] = (await call(publicMeets)).body;
+    assert.deepEqual(
+        (({ swims, relays, swimmers, firstPlaces, topThree, relayWins, relayEvents, firstTimeSwims, fasterThanSeed, timedWithSeed }) =>
+            ({ swims, relays, swimmers, firstPlaces, topThree, relayWins, relayEvents, firstTimeSwims, fasterThanSeed, timedWithSeed }))(meet.summary),
+        { swims: 5, relays: 2, swimmers: 5, firstPlaces: 1, topThree: 2, relayWins: 1, relayEvents: 1, firstTimeSwims: 1, fasterThanSeed: 1, timedWithSeed: 1 }
+    );
+    assert.deepEqual([meet.summary.biggestDrop.name, meet.summary.biggestDrop.age, meet.summary.biggestDrop.seconds], ["Doe, Jane", 8, 0.6]);
+
+    await call(saveMeet, { body: { id: "m", opponent: "Test Seahawks", shortName: "Test", homeAway: "away", date: "2026-07-13", note: "Edited", teamScore: 525, opponentScore: 511 } });
+    const [edited] = (await call(publicMeets)).body;
+    assert.equal(edited.note, "Edited");
+    assert.equal(edited.summary.firstPlaces, 1, "the numbers survive an edit");
+});
+
+// A stand-in for Azure Maps' fuzzy search, recording what was looked up.
+function fakeMaps(results, { fail = false } = {}) {
+    const lookups = [];
+    const realFetch = global.fetch;
+    const realKey = process.env.AZURE_MAPS_KEY;
+    process.env.AZURE_MAPS_KEY = "test-key";
+    global.fetch = async (url) => {
+        lookups.push(new URL(url).searchParams.get("query"));
+        if (fail) return new Response("nope", { status: 500 });
+        return new Response(JSON.stringify({ results }), { status: 200 });
+    };
+    return {
+        lookups,
+        restore() {
+            global.fetch = realFetch;
+            if (realKey === undefined) delete process.env.AZURE_MAPS_KEY; else process.env.AZURE_MAPS_KEY = realKey;
+        }
+    };
+}
+const MAPS_HIT = [{ address: { freeformAddress: "1 Main St, Town, VA" }, position: { lat: 38.25, lon: -77.48 } }];
+
+test("a typed-in meet address gets map coordinates looked up so the meet can have a forecast", async () => {
+    resetStore();
+    const maps = fakeMaps(MAPS_HIT);
+    try {
+        const typed = await call(saveMeet, { body: { ...massad, address: "1 Main St" } });
+        assert.deepEqual([typed.body.lat, typed.body.lon], [38.25, -77.48]);
+        assert.deepEqual(maps.lookups, ["1 Main St"]);
+
+        // An address picked from the suggestions already has coordinates, so there's no second lookup.
+        await call(saveMeet, { body: { ...massad, opponent: "Other", address: "2 Side St", lat: 1, lon: 2 } });
+        assert.equal(maps.lookups.length, 1);
+        // No address, no lookup.
+        await call(saveMeet, { body: { ...massad, opponent: "Third" } });
+        assert.equal(maps.lookups.length, 1);
+    } finally {
+        maps.restore();
+    }
+});
+
+test("a failed address lookup still saves the meet, just without coordinates", async () => {
+    resetStore();
+    const maps = fakeMaps([], { fail: true });
+    try {
+        const res = await call(saveMeet, { body: { ...massad, address: "1 Main St" } });
+        assert.equal(res.status, 200);
+        assert.equal(res.body.lat, undefined);
+    } finally {
+        maps.restore();
+    }
+});
+
+test("a typed-in home pool address gets coordinates too", async () => {
+    resetStore();
+    const maps = fakeMaps(MAPS_HIT);
+    try {
+        await call(saveSettings, { body: { homePool: { name: "Home Pool", address: "1 Main St" } } });
+        assert.deepEqual((await call(getSettings)).body.homePool, { name: "Home Pool", address: "1 Main St", lat: 38.25, lon: -77.48 });
+    } finally {
+        maps.restore();
+    }
+});

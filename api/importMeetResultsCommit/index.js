@@ -87,20 +87,22 @@ module.exports = async function (context, req) {
             await replaceMeetRows(resultsTable, parsed.individual.map(row => toResultEntity(row, meetId)), await listMeetResultEntities(resultsTable, meetId)) +
             await replaceMeetRows(relayTable, parsed.relays.map(row => toRelayResultEntity(row, meetId)), await listMeetRelayEntities(relayTable, meetId));
 
-        // A score the admin typed in is never replaced by an import.
+        // A score the admin typed in is never replaced by an import. The
+        // meet's numbers are saved with it for the home page's results popup.
         const scoreKept = meetEntity.scoreSource === "manual";
         const score = teamScore(parsed);
+        const summary = meetSummary(parsed.individual, parsed.relays);
         const update = {
             partitionKey: MEET_PARTITION_KEY,
             rowKey: meetId,
             resultsImported: true,
             lastImportFile: String(fileName || "").slice(0, 200),
-            lastImportAt: new Date().toISOString()
+            lastImportAt: new Date().toISOString(),
+            summaryJson: JSON.stringify(summary)
         };
         if (score && !scoreKept) Object.assign(update, { teamScore: score.us, opponentScore: score.them, scoreSource: "import" });
         await meetsTable.updateEntity(update, "Merge");
 
-        const summary = meetSummary(parsed.individual, parsed.relays);
         context.res = {
             status: 200,
             body: {

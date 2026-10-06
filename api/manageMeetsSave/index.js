@@ -1,4 +1,5 @@
 const { getMeetsTable, buildMeetEntity, toMeetDto, slugify, PARTITION_KEY } = require("../shared/meetsTable");
+const { coordinatesFor } = require("../shared/maps");
 
 async function generateUniqueId(table, base) {
     let candidate = base;
@@ -48,6 +49,9 @@ module.exports = async function (context, req) {
             return;
         }
         if (!existing) entity.rowKey = await generateUniqueId(table, slugify(`${entity.date}-${entity.opponent}`));
+        // An address typed in by hand (not picked from the suggestions) comes
+        // without map coordinates; look them up so the meet still gets a forecast.
+        if (entity.address && entity.lat == null) Object.assign(entity, await coordinatesFor(entity.address));
 
         await table.upsertEntity(entity, "Replace");
         context.res = { status: 200, body: toMeetDto(entity) };

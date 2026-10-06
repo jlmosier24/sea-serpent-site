@@ -1,4 +1,5 @@
 const { getSettingsTable, getHomePool, PARTITION_KEY, HOME_POOL_KEY } = require("../shared/settingsTable");
+const { coordinatesFor } = require("../shared/maps");
 
 function text(value) {
     return value == null ? "" : String(value).trim();
@@ -25,6 +26,8 @@ module.exports = async function (context, req) {
     }
 
     try {
+        // A typed-in address gets its coordinates looked up, so home meets filled from it get forecasts.
+        if (entity.address && entity.lat == null) Object.assign(entity, await coordinatesFor(entity.address));
         const table = getSettingsTable();
         await table.upsertEntity(entity, "Replace");
         context.res = { status: 200, body: { homePool: await getHomePool(table) } };

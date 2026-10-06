@@ -57,6 +57,7 @@ module.exports = async function (context, req) {
                 available: true,
                 name: match.name,
                 shortForecast: match.shortForecast,
+                detailedForecast: match.detailedForecast,
                 temperature: match.temperature,
                 temperatureUnit: match.temperatureUnit,
                 windSpeed: match.windSpeed,

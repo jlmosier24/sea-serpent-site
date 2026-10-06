@@ -11,211 +11,173 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/site.js"></script>
 <style>
-    :root {
-        --deep: #17261A; --navy: #2D6B34; --teal: #2F8F3E; --teal-dark: #1F6B2B;
-        --coral: #C1442E; --gold: #F0B429; --gold-dark: #D19B1F; --foam: #F6F8E7; --paper: #FFFFFF; --sub: #5B6B57; --line: rgba(22,38,27,0.12);
-    }
-    * { box-sizing: border-box; }
-    [hidden] { display: none !important; }
-    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-    html { scroll-behavior: smooth; }
-    body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #D7E8BB 0%, #EDF4DE 45%, #FFFFFF 100%) no-repeat; font-family: 'Inter', sans-serif; color: var(--deep); }
-    h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
+    /* Home page only. Cards, buttons, tiles, and dialogs come from /assets/site.css. */
+    .hero { text-align: center; padding: 56px 0 44px; }
+    .hero h1 { font-size: 60px; font-weight: 700; line-height: 1.1; margin: 0 0 20px; }
+    .hero p { max-width: 560px; margin: 0 auto; font-size: 20px; color: var(--muted-on-page); }
 
-    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
-    .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
-    .brand-mark { height: 26px; width: auto; display: block; }
-    .brand-name { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
-    .nav-links { display: flex; gap: 28px; font-size: 0.88rem; font-weight: 600; }
-    .nav-links a { color: var(--deep); text-decoration: none; }
-    .nav-links a:hover, .nav-links a.active { color: var(--teal-dark); }
-    .nav-toggle { display: none; background: none; border: none; padding: 4px; color: var(--deep); cursor: pointer; }
-    @media (max-width: 720px) {
-        .nav-links { position: absolute; top: 68px; left: 0; right: 0; background: var(--paper); flex-direction: column; gap: 0; padding: 8px 24px 16px; box-shadow: 0 12px 24px rgba(7,44,63,0.1); display: none; }
-        .nav-links.open { display: flex; }
-        .nav-links a { padding: 10px 0; border-bottom: 1px solid var(--line); }
-        .nav-toggle { display: block; }
-    }
+    .home-grid { display: grid; grid-template-columns: 1fr 1.45fr; gap: 32px; align-items: start; padding-bottom: 80px; }
+    .home-stack { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+    .card-head h2 { white-space: nowrap; }
+    .loading, .empty { margin: 0; padding: 24px 0; color: var(--muted); text-align: center; }
+    .ico { width: 18px; height: 18px; flex-shrink: 0; }
+    .card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 
-    main { max-width: 1080px; margin: 0 auto; padding: 0 24px 80px; }
+    .swimmer-select { padding: 18px 20px; font-size: 18px; border-radius: 16px; }
 
-    .hero { text-align: center; padding: 48px 0 8px; }
-    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.2rem); margin: 0 0 14px; }
-    .hero p { color: var(--sub); font-size: 1.1rem; max-width: 560px; margin: 0 auto 28px; }
+    /* Next meet: gold means "coming up". */
+    .upcoming { padding: 20px; }
+    .upcoming h3 { font-size: 23px; margin: 18px 0 8px; }
+    .upcoming-line { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 16px; font-weight: 500; color: var(--gold-text); }
+    .forecast { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 10px; border: 1px solid var(--gold-border); border-radius: 20px; background: #fff; font-size: 14px; font-weight: 600; }
+    .forecast svg { width: 20px; height: 20px; flex-shrink: 0; color: #D58B00; }
+    .forecast svg.overcast { color: var(--muted); }
+    .forecast.pending { color: var(--muted); font-size: 13px; font-weight: 500; }
+    .forecast.pending svg { color: var(--muted); }
+    .weather-note { margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed var(--gold-border); font-size: 15px; line-height: 1.45; color: var(--gold-text); }
+    .upcoming .btn-row { margin-top: 16px; }
+    .upcoming .btn { padding: 10px 16px; }
 
-    /* ---- dashboard grid ---- */
-    /* Swimmer Stats stacked above Previous Meet in the narrower left
-       column; Photo Gallery takes the wider right column, spanning both
-       rows -- filling the width the third column used to take up. */
-    .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; align-items: start; margin-top: 32px; }
-    .panel-stats { grid-column: 1; grid-row: 1; }
-    .panel-schedule { grid-column: 1; grid-row: 2; }
-    .panel-gallery { grid-column: 2; grid-row: 1 / 3; align-self: stretch; }
-    @media (max-width: 700px) {
-        .dashboard-grid { grid-template-columns: 1fr; }
-        .panel-stats, .panel-schedule, .panel-gallery { grid-column: auto; grid-row: auto; }
-    }
-    .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 22px; }
-    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-    .section-head h2 { margin: 0; font-size: 1.15rem; }
-    .see-all { color: var(--teal-dark); font-weight: 600; font-size: 0.82rem; text-decoration: none; white-space: nowrap; }
-    .see-all:hover { text-decoration: underline; }
+    /* Previous meet: green, or gray-green after a loss (never red). */
+    .result-card .pill { font-size: 14px; }
+    .result-chip { padding: 6px 14px; border-radius: var(--radius-round); background: #fff; color: var(--brand); font-size: 13px; font-weight: 700; }
+    .result-card.loss .result-chip { background: #E6EAE5; color: #2F3A33; }
+    .result-card h3 { font-size: 26px; line-height: 1.15; margin: 18px 0 10px; }
+    .score-row { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 19px; }
+    .score-row.us { font-weight: 700; }
+    .score-row.them { opacity: .92; }
+    .result-card.loss .score-row { font-weight: 600; opacity: 1; }
+    .score-row svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--gold); }
+    .quick-stats { margin: 14px 0 0; font-size: 14px; opacity: .95; }
+    .quick-stats b { font-size: 17px; }
+    .quick-stats .sep { display: inline-block; width: 4px; height: 4px; margin: 0 10px; border-radius: 50%; background: rgba(255,255,255,.6); vertical-align: middle; }
+    .result-card .btn-row { margin-top: 18px; }
+    .result-card .btn { padding: 11px 16px; }
+    .result-card.loss .btn.on-dark { color: #3A463E; }
 
-    /* schedule preview (borrowed from schedule.html) */
-    .meet-list { display: flex; flex-direction: column; gap: 14px; list-style: none; margin: 0; padding: 0; }
-    .upcoming-label { font-family: 'Poppins', sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--deep); margin-top: 4px; }
-    .meet-card { background: var(--foam); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
-    .meet-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-    .meet-date { background: var(--gold); color: var(--deep); font-weight: 700; font-size: 0.8rem; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
-    .meet-title { font-size: 1.1rem; font-weight: 700; margin: 10px 0 4px; }
-    .meet-score { font-size: 0.92rem; margin: 8px 0 6px; }
-    .meet-score-row { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--sub); }
-    .meet-score-row.meet-score-winner { font-weight: 700; color: var(--teal-dark); }
-    .meet-score-row.meet-score-winner svg { flex-shrink: 0; }
-    .meet-meta { color: var(--sub); font-size: 0.88rem; display: flex; flex-wrap: wrap; gap: 4px 16px; }
-    .directions-link { color: var(--teal-dark); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; }
-    .directions-link:hover { text-decoration: underline; }
-    .directions-link svg { flex-shrink: 0; }
-    .past-badge { color: var(--sub); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    /* Weather isn't wired to a real forecast yet -- see renderMeetCard's
-       SUN_SVG/weather-inline. Just another .meet-meta item, same as time
-       and directions, rather than a separate boxed callout. */
-    .weather-inline { display: inline-flex; align-items: center; gap: 4px; }
-    .weather-inline svg { width: 15px; height: 15px; flex-shrink: 0; }
-    .weather-inline em { font-style: italic; }
-    .results-toggle { background: none; border: none; color: var(--teal-dark); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 10px 0 0; }
+    /* The meet before the previous one, as one row. */
+    .mini { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 14px; padding: 14px 16px; border: 1px solid var(--soft-border); border-radius: var(--radius-tile); background: var(--soft); color: var(--ink); text-align: left; }
+    button.mini { cursor: pointer; }
+    button.mini:hover { border-color: var(--brand); }
+    .mini-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
+    .mini-title { display: block; font-size: 17px; font-weight: 700; }
+    .mini-sub { display: block; margin-top: 2px; font-size: 14px; color: var(--muted); }
+    .mini > svg { width: 20px; height: 20px; margin-left: auto; color: var(--brand); }
 
-    /* gallery preview: an auto-rotating carousel rather than a static grid,
-       filling the extra height panel-gallery stretches into (see
-       .dashboard-grid) rather than leaving it as dead space below a fixed-
-       height grid of thumbnails. */
-    .panel-gallery { display: flex; flex-direction: column; }
-    #galleryContent { flex: 1; min-height: 0; }
-    .photo-carousel { position: relative; display: block; width: 100%; height: 100%; min-height: 220px; padding: 0; border: none; border-radius: 12px; overflow: hidden; background: var(--foam); cursor: zoom-in; }
-    .photo-carousel img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.5s ease; }
-    @media (prefers-reduced-motion: reduce) { .photo-carousel img { transition: none; } }
+    /* Photo card: a slideshow of the newest photos. */
+    .photo-card { position: sticky; top: 64px; min-width: 0; }
+    .photo-frame { position: relative; }
+    .photo-open { display: block; width: 100%; padding: 0; border: 0; border-radius: 22px; overflow: hidden; background: var(--soft); cursor: zoom-in; }
+    .photo-open img { display: block; width: 100%; aspect-ratio: 4 / 4.2; object-fit: cover; object-position: 50% 30%; transition: opacity .5s ease; }
+    .photo-pause { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: rgba(16,36,15,.62); color: #fff; cursor: pointer; }
+    .photo-pause:hover { background: rgba(16,36,15,.8); }
+    @media (prefers-reduced-motion: reduce) { .photo-open img { transition: none; } }
 
-    /* stats preview (borrowed from stats.html) */
-    .picker { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-    select { flex: 1; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-family: inherit; font-size: 0.95rem; background: var(--paper); color: var(--deep); }
-    .highlights { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .highlight-tile { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; font-family: inherit; text-align: center; width: 100%; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
-    .highlight-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(22,38,27,0.08); }
-    .highlight-tile .htop { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 10px; color: var(--teal); }
-    .highlight-tile .hlabel { font-size: 0.76rem; font-weight: 600; color: var(--sub); }
-    .highlight-tile .hvalue { font-size: 1.6rem; font-weight: 700; color: var(--deep); line-height: 1.1; }
-    .highlight-tile .hcaption { font-size: 0.76rem; color: var(--sub); margin-top: 3px; }
+    /* Results popup */
+    .score-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 16px 18px; border-radius: 20px; background: var(--brand); color: #fff; }
+    .score-banner.loss { background: var(--loss); }
+    .banner-label { margin: 0 0 4px; font-size: 13px; font-weight: 600; opacity: .88; }
+    .banner-us { margin: 0; font-family: var(--font-head); font-size: 26px; font-weight: 700; line-height: 1.15; }
+    .banner-them { margin: 3px 0 0; font-size: 16px; opacity: .9; }
+    .banner-chip { flex-shrink: 0; padding: 7px 15px; border-radius: var(--radius-round); background: var(--gold); color: var(--gold-ink); font-size: 13px; font-weight: 700; }
+    .score-banner.loss .banner-chip { background: #E6EAE5; color: #2F3A33; }
+    .seed-card { display: flex; align-items: center; gap: 16px; margin-top: 12px; padding: 14px 16px; border-radius: 20px; }
+    .seed-ring { position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 70px; height: 70px; border-radius: 50%; background: conic-gradient(var(--brand) calc(var(--pct) * 3.6deg), var(--track) 0deg); }
+    .seed-ring::after { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: var(--soft); }
+    .seed-ring span { position: relative; z-index: 1; font-family: var(--font-head); font-size: 17px; font-weight: 700; }
+    .seed-card h3 { margin: 0 0 3px; font-size: 17px; }
+    .seed-card p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
+    .drop-card { margin-top: 12px; padding: 14px 16px; border-radius: 20px; }
+    .drop-eyebrow { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--gold-text); }
+    .drop-who { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .drop-avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; background: var(--gold); color: var(--gold-ink); font-size: 14px; font-weight: 700; }
+    .drop-name { flex: 1 1 130px; min-width: 0; }
+    .drop-times { margin-left: auto; text-align: right; }
+    .drop-swimmer { margin: 0; font-size: 16px; font-weight: 700; }
+    .drop-delta { margin: 0; font-size: 18px; font-weight: 700; color: var(--brand); }
+    .drop-detail { margin: 2px 0 0; font-size: 13px; color: var(--gold-text); }
+    .meet-foot { margin: 14px 2px 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+    .view-all { margin-top: 16px; padding: 14px; font-size: 17px; }
 
-    dialog#highlightModal, dialog#resultsModal { border: none; border-radius: 18px; padding: 0; max-height: 80vh; overflow: hidden; box-shadow: 0 24px 48px rgba(22,38,27,0.18); color: var(--deep); font-family: 'Inter', sans-serif; }
-    dialog#highlightModal { width: min(480px, 90vw); }
-    dialog#resultsModal { width: min(640px, 92vw); }
-    dialog#highlightModal::backdrop, dialog#resultsModal::backdrop { background: rgba(22,38,27,0.45); backdrop-filter: blur(2px); }
-    .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
-    .modal-head h3 { margin: 0; font-size: 1.05rem; }
-    .modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: var(--sub); cursor: pointer; padding: 2px 6px; border-radius: 8px; flex-shrink: 0; }
-    .modal-close:hover { color: var(--deep); background: var(--foam); }
-
-    /* Full-screen and dark, like a phone's photo app, so the photo gets all the room it can. */
-    dialog.photo-viewer { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; background: rgba(12,20,14,0.94); color: #fff; overflow: hidden; font-family: 'Inter', sans-serif; }
+    /* Full-screen photo viewer, dark like a phone's photo app. */
+    dialog.photo-viewer { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: rgba(12,20,14,.94); color: #fff; overflow: hidden; }
     dialog.photo-viewer[open] { display: flex; flex-direction: column; }
     dialog.photo-viewer::backdrop { background: transparent; }
     .photo-viewer-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 64px 16px 8px; }
     .photo-viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
     .photo-viewer-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); }
-    .photo-viewer-bar p { margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.85); }
-    .photo-viewer-close { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255,255,255,0.15); color: #fff; font-size: 1.7rem; line-height: 1; cursor: pointer; }
-    .photo-viewer-close:hover { background: rgba(255,255,255,0.25); }
-    .photo-viewer-download { flex-shrink: 0; padding: 10px 22px; border-radius: 999px; background: var(--teal); color: #fff; font-weight: 700; font-size: 0.9rem; text-decoration: none; }
-    .photo-viewer-download:hover { background: var(--teal-dark); }
-    #modalBody, #resultsModalBody { padding: 14px 20px 20px; overflow: auto; max-height: calc(80vh - 58px); }
-    #modalBody table, #resultsModalBody table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    #modalBody th, #modalBody td, #resultsModalBody th, #resultsModalBody td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-    #modalBody th, #resultsModalBody th { color: var(--sub); font-weight: 600; }
-    #resultsModalBody h4 { margin: 18px 0 6px; font-size: 0.85rem; font-weight: 700; color: var(--teal-dark); }
-    #resultsModalBody h4:first-child { margin-top: 0; }
+    .photo-viewer-bar p { margin: 0; font-size: 15px; color: rgba(255,255,255,.85); }
+    .photo-viewer-bar .btn { flex-shrink: 0; }
+    .photo-viewer-close { position: absolute; top: 12px; right: 12px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.15); color: #fff; cursor: pointer; }
+    .photo-viewer-close:hover { background: rgba(255,255,255,.25); }
+    .photo-viewer-close svg { width: 22px; height: 22px; }
 
-    .empty, .loading { color: var(--sub); text-align: center; padding: 30px 0; font-size: 0.9rem; }
-    footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
+    @media (max-width: 860px) {
+        .hero h1 { font-size: 42px; }
+        .home-grid { grid-template-columns: 1fr; }
+        .photo-card { position: static; }
+    }
+    @media (max-width: 600px) {
+        .banner-us { font-size: 22px; }
+    }
 </style>
 </head>
 <body>
-<nav>
-    <a class="brand" href="/">
-        <img class="brand-mark" src="/assets/logo.png" alt="Spotswood Sea Serpents logo">
-        <span class="brand-name">Spotswood Sea Serpents</span>
-    </a>
-    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="document.querySelector('.nav-links').classList.toggle('open'); this.setAttribute('aria-expanded', document.querySelector('.nav-links').classList.contains('open'))">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    <div class="nav-links">
-        <a href="/" class="active">Home</a>
-        <a href="/schedule.html">Schedule</a>
-        <a href="/gallery.html">Gallery</a>
-        <a href="/stats.html">Stats</a>
-    </div>
-</nav>
-<main>
+<site-header current="home"></site-header>
+<main class="wrap">
     <section class="hero">
         <h1>Go Sea Serpents!</h1>
         <p>Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
     </section>
 
-    <div class="dashboard-grid">
-        <section class="panel panel-schedule" id="schedule">
-            <div class="section-head">
-                <h2>Previous Meet</h2>
-                <a class="see-all" href="/schedule.html">Full schedule →</a>
-            </div>
-            <div id="scheduleContent"><p class="loading">Loading meets…</p></div>
-        </section>
+    <div class="home-grid">
+        <div class="home-stack">
+            <section class="card" aria-labelledby="statsHeading">
+                <div class="card-head"><h2 id="statsHeading">Swimmer Stats</h2><a href="/stats.html" id="fullStatsLink">Full stats →</a></div>
+                <select class="input swimmer-select" id="swimmerSelect" aria-label="Choose a swimmer"><option value="">Loading swimmers…</option></select>
+            </section>
 
-        <section class="panel panel-gallery" id="gallery">
-            <div class="section-head">
-                <h2>Photo Gallery</h2>
-                <a class="see-all" href="/gallery.html">Full gallery →</a>
-            </div>
+            <section class="card" id="nextMeetCard" aria-labelledby="nextMeetHeading" hidden>
+                <div class="card-head"><h2 id="nextMeetHeading">Next Meet</h2><a href="/schedule.html">Full schedule →</a></div>
+                <article class="gold-card upcoming" id="nextMeet"></article>
+            </section>
+
+            <section class="card" id="previousMeetCard" aria-labelledby="previousMeetHeading">
+                <div class="card-head"><h2 id="previousMeetHeading">Previous Meet</h2><a href="/schedule.html">Full schedule →</a></div>
+                <div id="previousMeet"><p class="loading">Loading meets…</p></div>
+            </section>
+        </div>
+
+        <section class="card photo-card" aria-labelledby="photoHeading">
+            <div class="card-head"><h2 id="photoHeading">Photo Gallery</h2><a href="/gallery.html">Full gallery →</a></div>
             <div id="galleryContent"><p class="loading">Loading photos…</p></div>
         </section>
-
-        <section class="panel panel-stats" id="stats">
-            <div class="section-head">
-                <h2>Swimmer Stats</h2>
-                <a class="see-all" href="/stats.html" id="fullStatsLink">Full stats →</a>
-            </div>
-            <div class="picker">
-                <select id="swimmerSelect"><option value="">Loading swimmers…</option></select>
-            </div>
-            <div id="highlightsContent"></div>
-        </section>
     </div>
-
 </main>
-<dialog id="highlightModal" closedby="any" aria-labelledby="modalTitle">
-    <div class="modal-head">
-        <h3 id="modalTitle"></h3>
-        <button type="button" class="modal-close" aria-label="Close" onclick="document.getElementById('highlightModal').close()">&times;</button>
+<site-footer></site-footer>
+
+<dialog class="dialog" id="meetDialog" aria-labelledby="meetDialogTitle">
+    <div class="dialog-grab" aria-hidden="true"></div>
+    <div class="dialog-head">
+        <div><h2 id="meetDialogTitle"></h2><p id="meetDialogWhen"></p></div>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close meet results"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
     </div>
-    <div id="modalBody"></div>
+    <div class="dialog-body" id="meetDialogBody"></div>
 </dialog>
-<dialog id="resultsModal" closedby="any" aria-labelledby="resultsModalTitle">
-    <div class="modal-head">
-        <h3 id="resultsModalTitle"></h3>
-        <button type="button" class="modal-close" aria-label="Close" onclick="document.getElementById('resultsModal').close()">&times;</button>
-    </div>
-    <div id="resultsModalBody"></div>
-</dialog>
-<dialog id="photoViewer" class="photo-viewer" closedby="any" aria-label="Photo">
-    <button type="button" class="photo-viewer-close" aria-label="Close" onclick="document.getElementById('photoViewer').close()">&times;</button>
+<dialog id="photoViewer" class="photo-viewer" aria-label="Photo">
+    <button type="button" class="photo-viewer-close" data-close-dialog aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
     <div class="photo-viewer-stage"><img id="photoViewerImg" alt=""></div>
     <div class="photo-viewer-bar">
         <p id="photoViewerCaption"></p>
-        <a id="photoViewerDownload" class="photo-viewer-download" href="#">Download</a>
+        <a id="photoViewerDownload" class="btn primary" hidden>Download</a>
     </div>
 </dialog>
-<footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
 <script>
+/* ---------------- Helpers ---------------- */
 function escapeHtml(str) {
     // Quotes too, not just <>& -- output also lands inside attributes like alt="…".
     return (str == null ? '' : String(str))
@@ -223,459 +185,516 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function fmtDate(dateStr) {
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+// "2026-07-13" -> "July 13"
+function fmtDate(isoDate) {
+    return new Date(isoDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 }
 
-function fmtShortDate(dateStr) {
-    if (!dateStr) return '';
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+// "18:00" -> "6:00pm"
+function fmtClock(time) {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const h = parseInt(hours, 10);
+    return `${h % 12 || 12}:${minutes}${h >= 12 ? 'pm' : 'am'}`;
 }
 
-function timeToClock(t) {
-    if (!t) return '';
-    const [hStr, mStr] = t.split(':');
-    let h = parseInt(hStr, 10);
-    const suffix = h >= 12 ? 'pm' : 'am';
-    h = h % 12 || 12;
-    return `${h}:${mStr}${suffix}`;
+// Today on the team's own clock -- at 8pm EDT, UTC is already tomorrow.
+function easternToday() {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 }
 
-function fmtTime(seconds) {
-    if (seconds == null) return '--';
-    if (seconds >= 60) {
-        const m = Math.floor(seconds / 60);
-        const s = (seconds % 60).toFixed(2).padStart(5, '0');
-        return `${m}:${s}`;
-    }
-    return seconds.toFixed(2);
+function daysBetween(fromIsoDate, toIsoDate) {
+    return Math.round((Date.parse(toIsoDate + 'T00:00:00Z') - Date.parse(fromIsoDate + 'T00:00:00Z')) / 86400000);
 }
 
-/* ---------------- Schedule & Results preview ---------------- */
-async function fetchResults(meetId) {
-    try {
-        const res = await fetch(`/api/resultsByMeet?meetId=${encodeURIComponent(meetId)}`);
-        return await res.json();
-    } catch (e) {
-        return { individual: [], relays: [] };
-    }
+// Meet sheets list swimmers last name first: "Doe, Jr., John" -> "John Doe Jr.", initials "JD".
+function nameParts(name) {
+    const parts = String(name || '').split(',').map(p => p.trim()).filter(Boolean);
+    return parts.length < 2 ? { first: parts[0] || '', rest: [] } : { first: parts[parts.length - 1], rest: parts.slice(0, -1) };
+}
+function displayName(name) {
+    const { first, rest } = nameParts(name);
+    return [first, ...rest].join(' ');
+}
+function initials(name) {
+    const { first, rest } = nameParts(name);
+    return (([...first][0] || '') + ([...(rest[0] || '')][0] || '')).toUpperCase();
 }
 
-let resultsByMeetId = {};
+// Event names read "<gender> <age group> <distance> <stroke>" ("Girls 12 & Under
+// 100yd Freestyle"). Next to the swimmer's age, only the distance and stroke are needed.
+function shortEventName(eventName) {
+    const m = String(eventName || '').match(/^.+?\s+(\d+(?:yd|m)\s+.+)$/);
+    return m ? m[1] : eventName;
+}
+
+function plural(count, one, many) {
+    return `${count} ${count === 1 ? one : many}`;
+}
+
+const ICONS = {
+    pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    calendar: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+    chart: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+    camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    chevron: '<path d="M9 6l6 6-6 6"/>',
+    pause: '<path d="M9 6v12M15 6v12"/>',
+    play: '<path d="M8 5.5v13l10-6.5z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    cloud: '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',
+    rain: '<path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><path d="M8 13v8M12 15v8M16 13v8"/>',
+    storm: '<path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><path d="M13 11l-4 6h6l-4 6"/>'
+};
+function icon(name, className = 'ico') {
+    return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
+}
+const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Winner"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
+
+/* ---------------- Meets ---------------- */
 let meetsById = {};
 
-// Individual and relay events share one numbering scheme in the source PDF
-// (e.g. a relay can be event #3 with individual events on either side), so
-// grouping by eventNumber across both -- not individual-then-relay -- is
-// what actually reproduces "event 1 through the last event" in order.
-function groupResultsByEvent(individual, relays) {
-    const byEvent = new Map();
-    for (const r of individual) {
-        if (!byEvent.has(r.eventNumber)) byEvent.set(r.eventNumber, { eventNumber: r.eventNumber, eventName: r.eventName, kind: 'individual', rows: [] });
-        byEvent.get(r.eventNumber).rows.push(r);
+function hasScore(m) {
+    return m.teamScore != null && m.opponentScore != null;
+}
+
+// 'win', 'loss', 'tie', or null when the meet has no score.
+function outcome(m) {
+    if (!hasScore(m)) return null;
+    if (m.teamScore > m.opponentScore) return 'win';
+    return m.teamScore < m.opponentScore ? 'loss' : 'tie';
+}
+const OUTCOME_CHIPS = { win: 'WIN', loss: 'LOSS', tie: 'TIE' };
+
+async function loadMeets() {
+    let meets;
+    try {
+        const res = await fetch('/api/meets');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        meets = await res.json();
+    } catch (e) {
+        document.getElementById('previousMeet').innerHTML = '<p class="empty">Couldn\'t load the meets right now.</p>';
+        return;
     }
-    for (const r of relays) {
-        if (!byEvent.has(r.eventNumber)) byEvent.set(r.eventNumber, { eventNumber: r.eventNumber, eventName: r.eventName, kind: 'relay', rows: [] });
-        byEvent.get(r.eventNumber).rows.push(r);
+    meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
+
+    // A meet is done once it has results or a score, even later the same day.
+    const today = easternToday();
+    const isDone = m => m.date <= today && (m.resultsImported || hasScore(m));
+    const done = meets.filter(isDone).sort((a, b) => b.date.localeCompare(a.date));
+    const next = meets.filter(m => m.date >= today && !isDone(m)).sort((a, b) => a.date.localeCompare(b.date))[0];
+    renderNextMeet(next);
+    renderPreviousMeets(done);
+}
+
+/* ---------------- Next meet ---------------- */
+function renderNextMeet(m) {
+    const card = document.getElementById('nextMeetCard');
+    if (!m) {
+        card.hidden = true;
+        return;
     }
-    const groups = [...byEvent.values()].sort((a, b) => a.eventNumber - b.eventNumber);
-    // No place (DQ'd, or an EXH swim that isn't scored) sorts after everyone
-    // who actually placed, rather than to the front as 0 would.
-    groups.forEach(g => g.rows.sort((a, b) => (a.place ?? Infinity) - (b.place ?? Infinity)));
-    return groups;
+    const where = m.placeName || m.address;
+    const destination = m.address || m.placeName;
+    const box = document.getElementById('nextMeet');
+    box.innerHTML = `
+        <div class="card-top">
+            <span class="pill">${escapeHtml(fmtDate(m.date))}${m.time ? ` · ${escapeHtml(fmtClock(m.time))}` : ''}</span>
+            <span class="forecast" id="forecastChip" hidden></span>
+        </div>
+        <h3>${escapeHtml(m.title)}</h3>
+        ${where ? `<p class="upcoming-line">${icon('pin')}${escapeHtml(where)}</p>` : ''}
+        ${m.warmUp ? `<p class="upcoming-line">${icon('clock')}Warm-up at ${escapeHtml(fmtClock(m.warmUp))}</p>` : ''}
+        <p class="weather-note" id="weatherNote" hidden></p>
+        <div class="btn-row">
+            ${destination ? `<a class="btn primary" href="https://www.google.com/maps/dir/?api=1&amp;destination=${encodeURIComponent(destination)}" target="_blank" rel="noopener">${icon('pin')}Directions</a>` : ''}
+            <button type="button" class="btn" id="addToCalendar">${icon('calendar')}Add to calendar</button>
+        </div>`;
+    box.querySelector('#addToCalendar').addEventListener('click', () => downloadCalendarFile(m));
+    card.hidden = false;
+    loadForecast(m);
 }
 
-function renderEventGroup(g) {
-    // "; " rather than ", " -- each swimmer's own name already has a comma
-    // ("Last, First"), so a comma-joined list of several reads as one long
-    // ambiguous name.
-    const table = g.kind === 'relay'
-        ? `<table><thead><tr><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${g.rows.map(r => `<tr><td>${escapeHtml(r.team)} (${escapeHtml(r.relayLetter)})</td><td>${escapeHtml((r.swimmers || []).map(s => s.name).join('; '))}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('')}</tbody></table>`
-        : `<table><thead><tr><th>Swimmer</th><th>Team</th><th>Time</th><th>Place</th></tr></thead><tbody>${g.rows.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('')}</tbody></table>`;
-    return `<h4>#${g.eventNumber} &mdash; ${escapeHtml(g.eventName)}</h4>${table}`;
+// The Weather Service forecasts about a week ahead.
+const FORECAST_DAYS = 7;
+
+function weatherIcon(shortForecast) {
+    const text = shortForecast || '';
+    if (/thunder|t-storm/i.test(text)) return icon('storm', 'overcast');
+    if (/rain|shower|drizzle/i.test(text)) return icon('rain', 'overcast');
+    if (/sunny|clear|fair|hot/i.test(text)) return icon('sun', '');
+    return icon('cloud', 'overcast');
 }
 
-function openResultsModal(meetId) {
-    const m = meetsById[meetId];
-    const data = resultsByMeetId[meetId];
-    if (!m || !data) return;
-    const groups = groupResultsByEvent(data.individual, data.relays);
-    document.getElementById('resultsModalTitle').textContent = `${fmtDate(m.date)} — ${m.title}`;
-    document.getElementById('resultsModalBody').innerHTML = groups.length
-        ? groups.map(renderEventGroup).join('')
-        : '<p class="muted">No results yet.</p>';
-    document.documentElement.style.overflow = 'hidden';
-    document.getElementById('resultsModal').showModal();
+async function loadForecast(m) {
+    if (m.lat == null || m.lon == null) return; // no map location, so no forecast
+    const chip = document.getElementById('forecastChip');
+    const note = document.getElementById('weatherNote');
+    let forecast = null;
+    if (daysBetween(easternToday(), m.date) <= FORECAST_DAYS) {
+        try {
+            const res = await fetch(`/api/meetWeather?lat=${encodeURIComponent(m.lat)}&lon=${encodeURIComponent(m.lon)}&date=${encodeURIComponent(m.date)}`);
+            if (res.ok) forecast = await res.json();
+        } catch (e) {
+            // Shown as "Forecast soon" below.
+        }
+    }
+    if (forecast && forecast.available) {
+        // "Chance Showers And Thunderstorms then Mostly Sunny" is a lot for a chip;
+        // the start of it fits, and the note below has the whole forecast.
+        const conditions = (forecast.shortForecast || '').split(/\s+then\s+/i)[0];
+        const summary = [forecast.temperature != null && `${forecast.temperature}°`, conditions].filter(Boolean).join(' · ');
+        chip.className = 'forecast';
+        chip.innerHTML = `${weatherIcon(forecast.shortForecast)}<span>${escapeHtml(summary)}</span>`;
+        note.textContent = forecast.detailedForecast || '';
+    } else {
+        chip.className = 'forecast pending';
+        chip.innerHTML = `${icon('clock', '')}<span>Forecast soon</span>`;
+        note.textContent = 'We\'ll show the forecast here a week before the meet.';
+    }
+    chip.hidden = false;
+    note.hidden = !note.textContent;
 }
 
-// closedby="any" (click-outside-to-close) isn't supported everywhere yet
-// (missing in Safari as of this writing) -- fall back to manually closing
-// on a genuine backdrop click. Esc-to-close needs no fallback; showModal()
-// has handled that natively for as long as <dialog> has existed.
+/* ---------------- Add to calendar ---------------- */
+// Meets have no end time and calendars need one.
+const MEET_LENGTH_HOURS = 3;
+// Meet times are Eastern; the file spells out the zone's daylight-saving rules.
+const EASTERN_TIMEZONE = [
+    'BEGIN:VTIMEZONE', 'TZID:America/New_York',
+    'BEGIN:DAYLIGHT', 'TZOFFSETFROM:-0500', 'TZOFFSETTO:-0400', 'TZNAME:EDT', 'DTSTART:20070311T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU', 'END:DAYLIGHT',
+    'BEGIN:STANDARD', 'TZOFFSETFROM:-0400', 'TZOFFSETTO:-0500', 'TZNAME:EST', 'DTSTART:20071104T020000', 'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU', 'END:STANDARD',
+    'END:VTIMEZONE'
+];
+
+function icsText(value) {
+    return String(value).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+
+// Calendar file lines stop at 75 bytes; a longer one continues on the next line after a space.
+function foldIcsLine(line) {
+    const encoder = new TextEncoder();
+    let folded = '';
+    let bytes = 0;
+    for (const ch of line) {
+        const size = encoder.encode(ch).length;
+        if (bytes + size > 75) {
+            folded += '\r\n ';
+            bytes = 1;
+        }
+        folded += ch;
+        bytes += size;
+    }
+    return folded;
+}
+
+// "2026-07-22" at "18:00", plus `addHours` -> "20260722T180000" (a wall-clock time, not UTC).
+function icsDateTime(date, time, addHours = 0) {
+    const [y, mo, d] = date.split('-').map(Number);
+    const [h, mi] = time.split(':').map(Number);
+    const t = new Date(Date.UTC(y, mo - 1, d, h + addHours, mi));
+    return t.toISOString().slice(0, 16).replace(/[-:]/g, '') + '00';
+}
+
+function icsDate(date, addDays = 0) {
+    const [y, mo, d] = date.split('-').map(Number);
+    return new Date(Date.UTC(y, mo - 1, d + addDays)).toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+function calendarFile(m) {
+    const when = m.time
+        ? [`DTSTART;TZID=America/New_York:${icsDateTime(m.date, m.time)}`, `DTEND;TZID=America/New_York:${icsDateTime(m.date, m.time, MEET_LENGTH_HOURS)}`]
+        : [`DTSTART;VALUE=DATE:${icsDate(m.date)}`, `DTEND;VALUE=DATE:${icsDate(m.date, 1)}`];
+    const location = [m.placeName, m.address].filter(Boolean).join(', ');
+    const details = [m.warmUp && `Warm-up at ${fmtClock(m.warmUp)}.`, m.time && `Meet starts at ${fmtClock(m.time)}.`].filter(Boolean).join(' ');
+    const lines = [
+        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Spotswood Sea Serpents//Meet schedule//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+        ...(m.time ? EASTERN_TIMEZONE : []),
+        'BEGIN:VEVENT',
+        `UID:${m.id}@spotswood-sea-serpents`,
+        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')}`,
+        ...when,
+        `SUMMARY:${icsText(`Sea Serpents ${m.title}`)}`,
+        location && `LOCATION:${icsText(location)}`,
+        details && `DESCRIPTION:${icsText(details)}`,
+        'END:VEVENT', 'END:VCALENDAR'
+    ];
+    return lines.filter(Boolean).map(foldIcsLine).join('\r\n') + '\r\n';
+}
+
+function downloadCalendarFile(m) {
+    const url = URL.createObjectURL(new Blob([calendarFile(m)], { type: 'text/calendar;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sea-serpents-${m.id}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ---------------- Previous meets ---------------- */
+function renderPreviousMeets(done) {
+    const card = document.getElementById('previousMeetCard');
+    if (!done.length) {
+        card.hidden = true;
+        return;
+    }
+    const box = document.getElementById('previousMeet');
+    box.innerHTML = resultCard(done[0]) + (done[1] ? miniRow(done[1]) : '');
+    box.querySelectorAll('[data-meet-stats]').forEach(button => {
+        button.addEventListener('click', () => openMeetDialog(meetsById[button.dataset.meetStats], button));
+    });
+}
+
+function resultCard(m) {
+    const result = outcome(m);
+    const s = m.summary;
+    return `
+        <article class="hero-card result-card${result === 'loss' ? ' loss' : ''}">
+            <div class="card-top">
+                <span class="pill">${escapeHtml(fmtDate(m.date))} · Final</span>
+                ${result ? `<span class="result-chip">${OUTCOME_CHIPS[result]}</span>` : ''}
+            </div>
+            <h3>${escapeHtml(m.title)}</h3>
+            ${result ? `
+                <p class="score-row us"><span>Spotswood ${escapeHtml(m.teamScore)}</span>${result === 'win' ? TROPHY : ''}</p>
+                <p class="score-row them"><span>${escapeHtml(m.opponent)} ${escapeHtml(m.opponentScore)}</span>${result === 'loss' ? TROPHY : ''}</p>` : ''}
+            ${s ? `<p class="quick-stats"><b>${s.firstPlaces}</b> ${s.firstPlaces === 1 ? 'first place' : 'first places'}<span class="sep" aria-hidden="true"></span><b>${s.relayWins}</b> ${s.relayWins === 1 ? 'relay win' : 'relay wins'}</p>` : ''}
+            <div class="btn-row">
+                ${s ? `<button type="button" class="btn on-dark" data-meet-stats="${escapeHtml(m.id)}">${icon('chart')}See team stats</button>` : ''}
+                <a class="btn ghost-on-dark" href="/gallery.html?meet=${encodeURIComponent(m.id)}">${icon('camera')}View photos</a>
+            </div>
+        </article>`;
+}
+
+// "Won 550–473": the higher score first, whoever had it.
+function scoreLine(m) {
+    const result = outcome(m);
+    if (!result) return '';
+    const verb = { win: 'Won', loss: 'Lost', tie: 'Tied' }[result];
+    return `${verb} ${Math.max(m.teamScore, m.opponentScore)}–${Math.min(m.teamScore, m.opponentScore)}`;
+}
+
+function miniRow(m) {
+    const text = `
+        <span class="mini-dot" aria-hidden="true"></span>
+        <span><span class="mini-title">${escapeHtml(m.title)}</span><span class="mini-sub">${escapeHtml([fmtDate(m.date), scoreLine(m)].filter(Boolean).join(' · '))}</span></span>`;
+    return m.summary
+        ? `<button type="button" class="mini" data-meet-stats="${escapeHtml(m.id)}">${text}<span class="sr-only">, see team stats</span>${icon('chevron')}</button>`
+        : `<div class="mini">${text}</div>`;
+}
+
+/* ---------------- Results popup ---------------- */
+function openMeetDialog(m, opener) {
+    if (!m || !m.summary) return;
+    const s = m.summary;
+    document.getElementById('meetDialogTitle').textContent = m.title;
+    document.getElementById('meetDialogWhen').textContent = `${fmtDate(m.date)} · Final`;
+    const body = document.getElementById('meetDialogBody');
+    body.innerHTML = scoreBanner(m) + statTiles(s) + seedCard(s) + dropCard(s.biggestDrop) + `
+        <p class="meet-foot">Individual and relay results from the official meet sheet. Biggest drop is the largest percent improvement over seed among swimmers age 7 and up.</p>
+        <button type="button" class="btn primary block view-all" disabled>View all swimmer results</button>`;
+    SiteUI.openDialog(document.getElementById('meetDialog'), opener);
+    body.scrollTop = 0; // only once it's showing; a hidden box keeps its old scroll position
+}
+
+function scoreBanner(m) {
+    const result = outcome(m);
+    if (!result) return '';
+    const label = result === 'loss' ? `Final team score · lost by ${Math.abs(m.teamScore - m.opponentScore)}` : 'Final team score';
+    return `
+        <div class="score-banner${result === 'loss' ? ' loss' : ''}">
+            <div>
+                <p class="banner-label">${escapeHtml(label)}</p>
+                <p class="banner-us">Spotswood ${escapeHtml(m.teamScore)}</p>
+                <p class="banner-them">${escapeHtml(m.opponent)} ${escapeHtml(m.opponentScore)}</p>
+            </div>
+            <span class="banner-chip">${OUTCOME_CHIPS[result]}</span>
+        </div>`;
+}
+
+function statTiles(s) {
+    const tile = (label, value, caption) => `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value">${escapeHtml(value)}</p><p class="stat-caption">${caption}</p></div>`;
+    return `
+        <div class="stat-grid">
+            ${tile('1st places', s.firstPlaces, 'Individual events')}
+            ${tile('Relay wins', `${s.relayWins} of ${s.relayEvents}`, 'Relays won')}
+            ${tile('Top-3 finishes', s.topThree, 'Individual podiums')}
+            ${tile('First-time swims', s.firstTimeSwims, 'No seed time on file')}
+        </div>`;
+}
+
+function seedCard(s) {
+    if (!s.timedWithSeed) return '';
+    const pct = Math.round(s.fasterThanSeed / s.timedWithSeed * 100);
+    return `
+        <div class="inset seed-card">
+            <div class="seed-ring" style="--pct: ${pct}"><span>${pct}%</span></div>
+            <div><h3>Swims faster than seed</h3><p>${s.fasterThanSeed} of ${plural(s.timedWithSeed, 'timed swim', 'timed swims')} beat the swimmer's seed time.</p></div>
+        </div>`;
+}
+
+function dropCard(drop) {
+    if (!drop) return '';
+    return `
+        <div class="gold-card drop-card">
+            <p class="drop-eyebrow">Biggest drop of the meet</p>
+            <div class="drop-who">
+                <span class="drop-avatar" aria-hidden="true">${escapeHtml(initials(drop.name))}</span>
+                <div class="drop-name">
+                    <p class="drop-swimmer">${escapeHtml(displayName(drop.name))}</p>
+                    <p class="drop-detail">${escapeHtml(shortEventName(drop.eventName))}${drop.age != null ? ` · age ${escapeHtml(drop.age)}` : ''}</p>
+                </div>
+                <div class="drop-times">
+                    <p class="drop-delta">−${drop.seconds.toFixed(2)}s</p>
+                    <p class="drop-detail">${escapeHtml(drop.seedTime)} → ${escapeHtml(drop.officialTime)} · ${(drop.percent * 100).toFixed(1)}%</p>
+                </div>
+            </div>
+        </div>`;
+}
+
+/* ---------------- Swimmer dropdown ---------------- */
+async function loadSwimmers() {
+    const select = document.getElementById('swimmerSelect');
+    try {
+        const res = await fetch('/api/swimmerStats');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { swimmers } = await res.json();
+        select.innerHTML = swimmers.length
+            ? '<option value="">Choose a swimmer…</option>' + swimmers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('')
+            : '<option value="">No swimmers on record yet</option>';
+    } catch (e) {
+        select.innerHTML = '<option value="">Couldn\'t load swimmers</option>';
+    }
+}
+
+function statsUrl(name) {
+    return name ? `/stats.html?swimmer=${encodeURIComponent(name)}` : '/stats.html';
+}
+
+// Picking a swimmer opens their Stats page. On Windows, arrow keys change a
+// closed dropdown as they go, so a keyboard pick waits for Enter instead of
+// leaving the page on the first key press. "Full stats" follows the pick either way.
 (function () {
-    const dialog = document.getElementById('resultsModal');
-    if ('closedBy' in HTMLDialogElement.prototype) return;
-    dialog.addEventListener('click', (event) => {
-        if (event.target !== dialog) return;
-        const rect = dialog.getBoundingClientRect();
-        const inside = rect.top <= event.clientY && event.clientY <= rect.top + rect.height && rect.left <= event.clientX && event.clientX <= rect.left + rect.width;
-        if (!inside) dialog.close();
+    const select = document.getElementById('swimmerSelect');
+    let pickedWithPointer = false;
+    select.addEventListener('pointerdown', () => { pickedWithPointer = true; });
+    select.addEventListener('keydown', (event) => {
+        pickedWithPointer = false;
+        // After the key's own work, which may have just chosen a name.
+        if (event.key === 'Enter') setTimeout(() => { if (select.value) location.href = statsUrl(select.value); }, 0);
+    });
+    select.addEventListener('change', () => {
+        document.getElementById('fullStatsLink').href = statsUrl(select.value);
+        if (pickedWithPointer && select.value) location.href = statsUrl(select.value);
+    });
+    // Back from a swimmer's page, the browser can show this page as it was left;
+    // start over so picking that same swimmer again still works.
+    window.addEventListener('pageshow', (event) => {
+        if (!event.persisted) return;
+        select.value = '';
+        document.getElementById('fullStatsLink').href = statsUrl('');
     });
 })();
 
-// The page behind a modal <dialog> isn't guaranteed to stop scrolling on
-// its own (varies by browser), so open handlers lock it explicitly --
-// 'close' fires no matter how a dialog closed (button, backdrop, Esc), so
-// unlocking here covers every path from one place. Shared between all the
-// dialogs on this page since only one can ever be open at a time (a modal
-// dialog makes the rest of the page, including the others' triggers, inert).
-document.querySelectorAll('dialog').forEach(dialog => {
-    dialog.addEventListener('close', () => { document.documentElement.style.overflow = ''; });
-});
+/* ---------------- Photo card ---------------- */
+// A slideshow of the newest photos. It pauses while the pointer is over it,
+// stops when keyboard focus reaches it, and has its own pause button.
+const SLIDESHOW_MAX = 10;
+const SLIDESHOW_INTERVAL_MS = 4500;
+const slideshow = { photos: [], shown: 0, timer: null, paused: false, hovering: false };
 
-async function loadSchedulePreview() {
-    const content = document.getElementById('scheduleContent');
-    try {
-        const res = await fetch('/api/meets');
-        const meets = await res.json();
-        if (!meets.length) { content.innerHTML = '<p class="empty">No meets scheduled yet.</p>'; return; }
-
-        // Eastern, not UTC -- toISOString() rolls over to tomorrow at 8pm EDT, mid-meet.
-        const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-        // A compact dashboard panel, not the full list: the single most
-        // recent past meet with results, plus just the next upcoming meet --
-        // schedule.html has the complete list either direction.
-        const upcoming = meets.filter(m => m.date >= today).sort((a, b) => a.date.localeCompare(b.date));
-        const nextUpcoming = upcoming.slice(0, 1);
-        const pastCandidates = meets.filter(m => m.date < today).sort((a, b) => b.date.localeCompare(a.date));
-        const fetchTargets = [...nextUpcoming, ...pastCandidates.slice(0, 4)];
-        const resultsList = await Promise.all(fetchTargets.map(m => fetchResults(m.id)));
-        fetchTargets.forEach((m, i) => { resultsByMeetId[m.id] = resultsList[i]; });
-        meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
-
-        // No upcoming meet to show yet -- show the two most recent past
-        // meets instead of just one, so the card isn't left half-empty.
-        const pastCount = nextUpcoming.length ? 1 : 2;
-        const pastWithResults = pastCandidates.filter(m => {
-            const d = resultsByMeetId[m.id];
-            return d && (d.individual.length > 0 || d.relays.length > 0);
-        }).slice(0, pastCount);
-        const past = pastWithResults.length ? pastWithResults : pastCandidates.slice(0, pastCount);
-
-        // Same trophy glyph as stats.html's highlight tiles (HIGHLIGHT_ICONS.trophy),
-        // kept as a hand-rolled inline SVG rather than an emoji for a consistent
-        // look across browsers/platforms.
-        const TROPHY_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 01-8 0V4z"/><path d="M8 5H6a2 2 0 000 4h1"/><path d="M16 5h2a2 2 0 010 4h-1"/><path d="M12 12v3M9 19h6M10 15h4v4h-4z"/></svg>';
-
-        // Shortened just for these scoreboard rows, to read as cleanly as
-        // "Spotswood" does alone -- its own mascot ("Sea Serpents") is
-        // dropped the same way everywhere on this site. The full name (as
-        // it appears in the results PDF) still drives parsing/scoring, and
-        // still shows in full in the meet title and everywhere else.
-        const SCORE_DISPLAY_NAMES = { 'Fawn Lake Fliers': 'Fawn Lake' };
-
-        function renderMeetScore(m) {
-            if (m.teamScore == null || m.opponentScore == null) return '';
-            const us = { name: 'Spotswood', pts: m.teamScore };
-            const them = { name: SCORE_DISPLAY_NAMES[m.opponent] || m.opponent, pts: m.opponentScore };
-            // A tie has no winner -- keep the default (us-first) order and skip the trophy on both.
-            const winner = m.teamScore > m.opponentScore ? us : (m.opponentScore > m.teamScore ? them : null);
-            const [first, second] = winner === them ? [them, us] : [us, them];
-            const row = t => `
-                <div class="meet-score-row${t === winner ? ' meet-score-winner' : ''}">
-                    <span class="meet-score-team">${escapeHtml(t.name)}</span><span class="meet-score-pts">${t.pts}</span>${t === winner ? TROPHY_SVG : ''}
-                </div>`;
-            return `<div class="meet-score">${row(first)}${row(second)}</div>`;
-        }
-
-        const DIRECTIONS_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 10-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>';
-        // Filled/colored, unlike the site's other hand-rolled stroke icons --
-        // this box is a placeholder (see renderMeetCard), not the real
-        // per-meet forecast, so it deliberately doesn't reuse schedule.html's
-        // .weather/.weather-icon (that one renders a live NWS icon URL via
-        // loadWeather/api/meetWeather).
-        const SUN_SVG = '<svg width="26" height="26" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8" fill="var(--gold-dark)"/><g stroke="var(--gold-dark)" stroke-width="2.4" stroke-linecap="round"><line x1="16" y1="2" x2="16" y2="6"/><line x1="16" y1="26" x2="16" y2="30"/><line x1="2" y1="16" x2="6" y2="16"/><line x1="26" y1="16" x2="30" y2="16"/><line x1="5.8" y1="5.8" x2="8.6" y2="8.6"/><line x1="23.4" y1="23.4" x2="26.2" y2="26.2"/><line x1="5.8" y1="26.2" x2="8.6" y2="23.4"/><line x1="23.4" y1="8.6" x2="26.2" y2="5.8"/></g></svg>';
-
-        // No API key needed -- opens the user's own Maps app/site with the
-        // address pre-filled, rather than us rendering turn-by-turn directions.
-        function directionsUrl(m) {
-            const query = m.address || m.placeName;
-            return query ? escapeHtml(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`) : null;
-        }
-
-        function renderMeetCard(m) {
-            const d = resultsByMeetId[m.id];
-            const hasResults = d && (d.individual.length > 0 || d.relays.length > 0);
-            const dirUrl = directionsUrl(m);
-            const isUpcoming = m.date >= today;
-            return `
-            <li class="meet-card">
-                <div class="meet-top">
-                    <span class="meet-date">${fmtDate(m.date)}${m.time ? ` &middot; ${escapeHtml(timeToClock(m.time))}` : ''}</span>
-                    ${m.date < today && m.teamScore == null ? '<span class="past-badge">Past</span>' : ''}
-                </div>
-                <div class="meet-title">${escapeHtml(m.title)}</div>
-                ${renderMeetScore(m)}
-                <div class="meet-meta">
-                    ${m.placeName ? `<span>${escapeHtml(m.placeName)}</span>` : ''}
-                    ${dirUrl ? `<a class="directions-link" href="${dirUrl}" target="_blank" rel="noopener">${DIRECTIONS_SVG}Directions</a>` : ''}
-                    ${isUpcoming ? `<span class="weather-inline">${SUN_SVG}82&deg;F Sunny <em>(sample)</em></span>` : ''}
-                </div>
-                ${hasResults ? `<button class="results-toggle" onclick="openResultsModal('${escapeHtml(m.id)}')">View results</button>` : ''}
-            </li>`;
-        }
-
-        const list = document.createElement('ul');
-        list.className = 'meet-list';
-        list.innerHTML =
-            past.map(renderMeetCard).join('') +
-            (nextUpcoming.length ? `<li class="upcoming-label">Upcoming Meet</li>` + nextUpcoming.map(renderMeetCard).join('') : '');
-        content.innerHTML = '';
-        content.appendChild(list);
-    } catch (e) {
-        content.innerHTML = '<p class="empty">Couldn\'t load the schedule right now.</p>';
-    }
-}
-
-/* ---------------- Gallery preview ---------------- */
-// Rotates through the approved photos (capped -- there's no "featured"
-// flag in the data yet, so this is all of them, not a curated "best of").
-const GALLERY_CAROUSEL_MAX = 10;
-const GALLERY_CAROUSEL_INTERVAL_MS = 4500;
-let galleryCarouselTimer = null;
-// Which photo is showing, so a tap opens that one full size.
-let galleryCarouselIndex = 0;
-
-async function loadGalleryPreview() {
-    const content = document.getElementById('galleryContent');
+async function loadPhotos() {
+    const box = document.getElementById('galleryContent');
+    let photos;
     try {
         const res = await fetch('/api/galleryPublic');
-        const photos = await res.json();
-        if (!photos.length) { content.innerHTML = '<p class="empty">No photos yet -- be the first to share one!</p>'; return; }
-        const carouselPhotos = photos.slice(0, GALLERY_CAROUSEL_MAX);
-        content.innerHTML = `
-            <button type="button" class="photo-carousel" aria-label="View photo full size">
-                <img id="galleryCarouselImg" src="${escapeHtml(carouselPhotos[0].url)}" alt="${escapeHtml(carouselPhotos[0].caption || 'Team photo')}">
-            </button>
-        `;
-        galleryCarouselIndex = 0;
-        content.querySelector('.photo-carousel').addEventListener('click', () => openPhotoViewer(carouselPhotos[galleryCarouselIndex]));
-        startGalleryCarousel(carouselPhotos);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        photos = await res.json();
     } catch (e) {
-        content.innerHTML = '<p class="empty">Couldn\'t load the gallery right now.</p>';
+        box.innerHTML = '<p class="empty">Couldn\'t load the photos right now.</p>';
+        return;
+    }
+    if (!photos.length) {
+        box.innerHTML = '<p class="empty">No photos yet. Be the first to share one!</p>';
+        return;
+    }
+    slideshow.photos = photos.slice(0, SLIDESHOW_MAX);
+    slideshow.shown = 0;
+    const rotates = slideshow.photos.length > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const first = slideshow.photos[0];
+    box.innerHTML = `
+        <div class="photo-frame">
+            <button type="button" class="photo-open" aria-label="View this photo full size"><img id="slideshowImg" src="${escapeHtml(first.url)}" alt="${escapeHtml(first.caption || 'Team photo')}"></button>
+            ${rotates ? `<button type="button" class="photo-pause" aria-label="Pause slideshow">${icon('pause')}</button>` : ''}
+        </div>`;
+    box.querySelector('.photo-open').addEventListener('click', (event) => openPhotoViewer(slideshow.photos[slideshow.shown], event.currentTarget));
+    if (rotates) startSlideshow(box.querySelector('.photo-frame'));
+}
+
+function startSlideshow(frame) {
+    const pauseButton = frame.querySelector('.photo-pause');
+    function setPaused(paused) {
+        slideshow.paused = paused;
+        pauseButton.setAttribute('aria-label', paused ? 'Play slideshow' : 'Pause slideshow');
+        pauseButton.innerHTML = icon(paused ? 'play' : 'pause');
+        syncSlideshow();
+    }
+    pauseButton.addEventListener('click', () => setPaused(!slideshow.paused));
+    frame.addEventListener('mouseenter', () => { slideshow.hovering = true; syncSlideshow(); });
+    frame.addEventListener('mouseleave', () => { slideshow.hovering = false; syncSlideshow(); });
+    frame.addEventListener('focusin', (event) => {
+        if (!slideshow.paused && event.target.matches(':focus-visible')) setPaused(true);
+    });
+    syncSlideshow();
+}
+
+function syncSlideshow() {
+    const run = !slideshow.paused && !slideshow.hovering;
+    if (run && !slideshow.timer) slideshow.timer = setInterval(showNextPhoto, SLIDESHOW_INTERVAL_MS);
+    if (!run && slideshow.timer) {
+        clearInterval(slideshow.timer);
+        slideshow.timer = null;
     }
 }
 
-// The carousel crops each photo to fill the card; the viewer shows the whole thing.
-function openPhotoViewer(photo) {
+// Fade out, swap once the next photo has loaded, fade back in.
+function showNextPhoto() {
+    const img = document.getElementById('slideshowImg');
+    const index = (slideshow.shown + 1) % slideshow.photos.length;
+    const photo = slideshow.photos[index];
+    const next = new Image();
+    next.src = photo.url;
+    img.style.opacity = '0';
+    Promise.all([next.decode().catch(() => {}), new Promise(resolve => setTimeout(resolve, 500))]).then(() => {
+        img.src = photo.url;
+        img.alt = photo.caption || 'Team photo';
+        img.style.opacity = '1';
+        slideshow.shown = index;
+    });
+}
+
+// The slideshow crops each photo to fill the card; the viewer shows all of it.
+function openPhotoViewer(photo, opener) {
     const img = document.getElementById('photoViewerImg');
     img.src = photo.url;
     img.alt = photo.caption || 'Team photo';
     document.getElementById('photoViewerCaption').textContent = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(' ');
     const download = document.getElementById('photoViewerDownload');
     download.hidden = !photo.downloadUrl;
-    download.href = photo.downloadUrl || '#';
-    document.documentElement.style.overflow = 'hidden';
-    document.getElementById('photoViewer').showModal();
+    if (photo.downloadUrl) download.href = photo.downloadUrl;
+    else download.removeAttribute('href');
+    SiteUI.openDialog(document.getElementById('photoViewer'), opener);
 }
-// The viewer fills the screen, so there's no backdrop to tap -- tapping the dark area around the photo closes it instead.
+// The viewer fills the screen, so there's no backdrop to tap; tapping the dark area around the photo closes it instead.
 document.getElementById('photoViewer').addEventListener('click', (event) => {
     if (event.target === event.currentTarget || event.target.classList.contains('photo-viewer-stage')) event.currentTarget.close();
 });
 
-function startGalleryCarousel(photos) {
-    clearInterval(galleryCarouselTimer);
-    if (photos.length < 2) return; // nothing to rotate through
-    const carousel = document.querySelector('.photo-carousel');
-    const img = document.getElementById('galleryCarouselImg');
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    function advance() {
-        galleryCarouselIndex = (galleryCarouselIndex + 1) % photos.length;
-        const next = photos[galleryCarouselIndex];
-        if (reduceMotion) {
-            img.src = next.url;
-            img.alt = next.caption || 'Team photo';
-            return;
-        }
-        img.style.opacity = '0';
-        setTimeout(() => {
-            img.src = next.url;
-            img.alt = next.caption || 'Team photo';
-            img.style.opacity = '1';
-        }, 500);
-    }
-
-    galleryCarouselTimer = setInterval(advance, GALLERY_CAROUSEL_INTERVAL_MS);
-    // Pause while the caption/photo is being looked at up close, resume on
-    // mouse-away, same as most photo carousels.
-    carousel.addEventListener('mouseenter', () => clearInterval(galleryCarouselTimer));
-    carousel.addEventListener('mouseleave', () => { galleryCarouselTimer = setInterval(advance, GALLERY_CAROUSEL_INTERVAL_MS); });
-}
-
-/* ---------------- Stats preview ---------------- */
-const HIGHLIGHT_ICONS = {
-    trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
-    trophy: '<path d="M8 4h8v4a4 4 0 01-8 0V4z"/><path d="M8 5H6a2 2 0 000 4h1"/><path d="M16 5h2a2 2 0 010 4h-1"/><path d="M12 12v3M9 19h6M10 15h4v4h-4z"/>',
-    medal: '<circle cx="12" cy="15" r="5"/><path d="M9.5 11L7 3M14.5 11L17 3M9.5 3h5"/>',
-    stopwatch: '<circle cx="12" cy="13" r="8"/><path d="M12 13V9M10 2h4M12 2v2"/>',
-    list: '<circle cx="4.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/>',
-    calendar: '<path d="M8 2v3M16 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>'
-};
-function highlightIcon(type) {
-    return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${HIGHLIGHT_ICONS[type]}</svg>`;
-}
-
-function computeHighlights(results) {
-    const ok = results.filter(r => r.status === 'OK');
-    const firstPlaceRows = ok.filter(r => r.place === 1);
-    const top3Rows = ok.filter(r => r.place != null && r.place <= 3);
-    const eventsSwumRows = results.filter(r => r.status === 'OK' || r.status === 'DQ');
-    const meetsSeen = new Map();
-    for (const r of results) if (!meetsSeen.has(r.meetId)) meetsSeen.set(r.meetId, { meetDate: r.meetDate, meetTitle: r.meetTitle });
-    const meetsRows = [...meetsSeen.values()];
-
-    const byEvent = new Map();
-    for (const r of ok) {
-        if (r.officialSeconds == null) continue;
-        if (!byEvent.has(r.eventName)) byEvent.set(r.eventName, []);
-        byEvent.get(r.eventName).push(r);
-    }
-    const personalBestRows = [];
-    let mostImproved = null;
-    for (const [eventName, swims] of byEvent) {
-        const sorted = swims.slice().sort((a, b) => a.meetDate.localeCompare(b.meetDate));
-        let best = sorted[0].officialSeconds;
-        for (let i = 1; i < sorted.length; i++) {
-            if (sorted[i].officialSeconds < best) { personalBestRows.push(sorted[i]); best = sorted[i].officialSeconds; }
-        }
-        if (sorted.length > 1) {
-            const drop = sorted[0].officialSeconds - sorted[sorted.length - 1].officialSeconds;
-            if (drop > 0.005 && (!mostImproved || drop > mostImproved.dropSeconds)) mostImproved = { eventName, dropSeconds: drop, rows: sorted };
-        }
-    }
-
-    const candidates = [];
-    if (mostImproved) candidates.push({ icon: 'trend', label: 'Most improved', value: `-${mostImproved.dropSeconds.toFixed(2)}s`, valueColor: 'var(--teal-dark)', caption: mostImproved.eventName, modalTitle: mostImproved.eventName, modalColumns: ['date', 'meet', 'time'], modalRows: mostImproved.rows });
-    if (firstPlaceRows.length > 0) candidates.push({ icon: 'trophy', label: 'First-place finishes', value: String(firstPlaceRows.length), modalTitle: 'First-place finishes', modalColumns: ['date', 'meet', 'event', 'time'], modalRows: firstPlaceRows });
-    if (top3Rows.length > 0) candidates.push({ icon: 'medal', label: 'Top-3 finishes', value: String(top3Rows.length), modalTitle: 'Top-3 finishes', modalColumns: ['date', 'meet', 'event', 'time', 'place'], modalRows: top3Rows });
-    if (personalBestRows.length > 0) candidates.push({ icon: 'stopwatch', label: 'Personal bests', value: String(personalBestRows.length), modalTitle: 'Personal bests', modalColumns: ['date', 'meet', 'event', 'time'], modalRows: personalBestRows });
-    candidates.push({ icon: 'list', label: 'Events swum', value: String(eventsSwumRows.length), modalTitle: 'Events swum', modalColumns: ['date', 'meet', 'event', 'time', 'place'], modalRows: eventsSwumRows });
-    candidates.push({ icon: 'calendar', label: 'Meets attended', value: String(meetsRows.length), modalTitle: 'Meets attended', modalColumns: ['date', 'meet'], modalRows: meetsRows });
-    return candidates.slice(0, 4);
-}
-
-let currentHighlights = [];
-
-// Event names are always "<gender> <age group> <distance><unit> <stroke>"
-// (e.g. "Girls 9-10 25m Backstroke") -- the gender/age-group prefix is
-// redundant once a specific swimmer is already selected, so this tile only
-// shows the distance+stroke. The distance+unit token (digits glued
-// directly to "m"/"yd", unlike the age group's own numbers) is a reliable
-// place to find where that prefix ends.
-function trimEventCaption(text) {
-    const m = text.match(/^.+?\s+(\d+(?:yd|m)\s+.+)$/);
-    return escapeHtml(m ? m[1] : text);
-}
-
-function renderHighlights(results) {
-    const box = document.getElementById('highlightsContent');
-    currentHighlights = computeHighlights(results);
-    box.innerHTML = `<div class="highlights">${currentHighlights.map((h, i) => `
-        <button type="button" class="highlight-tile" onclick="openHighlightModal(${i})">
-            <div class="htop">${highlightIcon(h.icon)}<span class="hlabel">${escapeHtml(h.label)}</span></div>
-            <div class="hvalue" style="${h.valueColor ? `color:${h.valueColor}` : ''}">${escapeHtml(h.value)}</div>
-            ${h.caption ? `<div class="hcaption">${trimEventCaption(h.caption)}</div>` : ''}
-        </button>
-    `).join('')}</div>`;
-    equalizeHighlightHeights();
-}
-
-// Grid's own row-stretch only matches tiles within the same row (so
-// "Most improved" and "First-place finishes" already match each other,
-// separately from "Top-3 finishes"/"Personal bests" matching each other)
-// -- this makes all four match each other too, recomputed whenever a
-// resize could change which tile is tallest (e.g. a caption wrapping to a
-// different number of lines at a new width).
-function equalizeHighlightHeights() {
-    const tiles = document.querySelectorAll('.highlight-tile');
-    if (!tiles.length) return;
-    tiles.forEach(t => { t.style.minHeight = ''; });
-    const tallest = Math.max(...[...tiles].map(t => t.getBoundingClientRect().height));
-    tiles.forEach(t => { t.style.minHeight = `${tallest}px`; });
-}
-
-let equalizeHighlightsResizeTimer = null;
-window.addEventListener('resize', () => {
-    clearTimeout(equalizeHighlightsResizeTimer);
-    equalizeHighlightsResizeTimer = setTimeout(equalizeHighlightHeights, 150);
-});
-
-const MODAL_COLUMN_LABELS = { date: 'Meet', meet: 'Opponent', event: 'Event', time: 'Time', place: 'Place' };
-function modalCellValue(col, r) {
-    switch (col) {
-        case 'date': return escapeHtml(fmtShortDate(r.meetDate));
-        case 'meet': return escapeHtml(r.meetTitle);
-        case 'event': return escapeHtml(r.eventName);
-        case 'time': return escapeHtml(r.status && r.status !== 'OK' ? r.status : fmtTime(r.officialSeconds));
-        case 'place': return escapeHtml(r.place || '');
-        default: return '';
-    }
-}
-function openHighlightModal(index) {
-    const h = currentHighlights[index];
-    if (!h) return;
-    const rows = h.modalRows.slice().sort((a, b) => (a.meetDate || '').localeCompare(b.meetDate || ''));
-    document.getElementById('modalTitle').textContent = h.modalTitle;
-    document.getElementById('modalBody').innerHTML = `
-        <table><thead><tr>${h.modalColumns.map(c => `<th>${MODAL_COLUMN_LABELS[c]}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(r => `<tr>${h.modalColumns.map(c => `<td>${modalCellValue(c, r)}</td>`).join('')}</tr>`).join('')}</tbody></table>
-    `;
-    document.documentElement.style.overflow = 'hidden';
-    document.getElementById('highlightModal').showModal();
-}
-(function () {
-    const dialog = document.getElementById('highlightModal');
-    if ('closedBy' in HTMLDialogElement.prototype) return;
-    dialog.addEventListener('click', (event) => {
-        if (event.target !== dialog) return;
-        const rect = dialog.getBoundingClientRect();
-        const inside = rect.top <= event.clientY && event.clientY <= rect.top + rect.height && rect.left <= event.clientX && event.clientX <= rect.left + rect.width;
-        if (!inside) dialog.close();
-    });
-})();
-
-async function loadSwimmer(name) {
-    const box = document.getElementById('highlightsContent');
-    document.getElementById('fullStatsLink').href = name ? `/stats.html?swimmer=${encodeURIComponent(name)}` : '/stats.html';
-    if (!name) { box.innerHTML = ''; return; }
-    box.innerHTML = '<p class="loading">Loading…</p>';
-    try {
-        const res = await fetch(`/api/swimmerStats?name=${encodeURIComponent(name)}`);
-        const results = await res.json();
-        if (!results.length) { box.innerHTML = '<p class="empty">No results on record for this swimmer yet.</p>'; return; }
-        renderHighlights(results);
-    } catch (e) {
-        box.innerHTML = '<p class="empty">Couldn\'t load results right now.</p>';
-    }
-}
-
-async function loadStatsPreview() {
-    const select = document.getElementById('swimmerSelect');
-    try {
-        const res = await fetch('/api/swimmerStats');
-        const { swimmers } = await res.json();
-        if (!swimmers.length) { select.innerHTML = '<option value="">No swimmers on record yet</option>'; return; }
-        select.innerHTML = '<option value="">Choose a swimmer…</option>' + swimmers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-        select.addEventListener('change', () => loadSwimmer(select.value));
-    } catch (e) {
-        select.innerHTML = '<option value="">Couldn\'t load swimmers</option>';
-    }
-}
-
-loadSchedulePreview();
-loadGalleryPreview();
-loadStatsPreview();
+loadMeets();
+loadSwimmers();
+loadPhotos();
 </script>
 </body>
 </html>
