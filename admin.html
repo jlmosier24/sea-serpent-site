@@ -7,62 +7,85 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/site.js"></script>
 <style>
-    :root {
-        --deep: #17261A; --navy: #2D6B34; --teal: #2F8F3E; --teal-dark: #1F6B2B;
-        --coral: #C1442E; --gold: #F0B429; --gold-dark: #D19B1F; --foam: #F6F8E7; --paper: #FFFFFF; --sub: #5B6B57; --line: rgba(22,38,27,0.12);
+    /* Admin-only layout. Cards, buttons, fields, and dialogs come from /assets/site.css. */
+    main.wrap { max-width: 1040px; padding-bottom: 80px; }
+    h1 { font-size: 36px; margin: 34px 0 18px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 14px; }
+    .optional { color: var(--muted); font-weight: 500; }
+    .stack { display: flex; flex-direction: column; gap: 24px; }
+    .card h2 { margin: 0 0 18px; font-size: 22px; }
+
+    .tabs { display: flex; gap: 6px; margin-bottom: 22px; border-bottom: 1px solid var(--soft-border); }
+    .tabs button { padding: 12px 18px; margin-bottom: -1px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--muted); font-size: 17px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+    .tabs button[aria-selected="true"] { color: var(--brand); border-bottom-color: var(--brand); }
+
+    /* Status notes inside cards and dialogs. */
+    .note-box { margin: 0 0 14px; padding: 12px 14px; border-radius: 16px; font-size: 14.5px; line-height: 1.45; }
+    .note-box.warn { background: var(--gold-tint); border: 1px solid var(--gold-border); color: var(--gold-text); }
+    .note-box.ok { background: #E8F3D6; border: 1px solid #CFE3AE; color: var(--ok-text); }
+    .badge.attention { background: var(--gold-tint); border: 1px solid var(--gold-border); color: var(--gold-text); }
+
+    /* Home pool */
+    .pool-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .pool-head h2 { margin: 0; }
+    .pool-view b { font-size: 17px; }
+    .pool-view .sub { display: block; margin-top: 3px; color: var(--muted); font-size: 14px; }
+
+    /* Meet form */
+    .form-grid .field { margin: 0; }
+    .form-grid .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .label-row .link-btn { margin-bottom: 6px; font-size: 13px; text-decoration: underline; }
+    .title-preview { min-height: 48px; padding: 12px 14px; border: 1px solid var(--gold-border); border-radius: var(--radius-field); background: var(--gold-tint); font-size: 16px; font-weight: 700; }
+    .score-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .score-row .input { width: 96px; }
+    .score-row .team { font-size: 15px; font-weight: 600; }
+    .form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 22px; }
+    .addr-suggestions { margin-top: 6px; overflow: hidden; border: 1px solid var(--card-border); border-radius: 12px; }
+    .addr-suggestions button { display: block; width: 100%; padding: 9px 12px; border: 0; border-bottom: 1px solid var(--card-border); background: #fff; font-size: 14px; text-align: left; cursor: pointer; }
+    .addr-suggestions button:last-child { border-bottom: 0; }
+    .addr-suggestions button:hover { background: var(--soft); }
+
+    /* Meet list */
+    .meet-head, .meet-row { display: grid; grid-template-columns: 90px minmax(180px, 1.2fr) minmax(170px, 1.2fr) 270px; gap: 14px; align-items: center; }
+    .meet-head { padding: 0 8px 10px; border-bottom: 1px solid var(--card-border); color: var(--muted); font-size: 14px; font-weight: 600; }
+    .meet-row { padding: 14px 8px; border-bottom: 1px solid var(--card-border); }
+    .meet-row:last-child { border-bottom: 0; }
+    .meet-row .sub { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; font-weight: 400; }
+    .meet-when { font-weight: 600; }
+    .meet-title { font-weight: 700; }
+    .meet-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .meet-actions .btn svg { width: 16px; height: 16px; }
+    .btn.imported { background: var(--ok-tint); border-color: var(--ok-border); color: var(--ok-text); }
+    .btn.imported:hover { background: #D8EABA; }
+    .note-line { display: flex; align-items: flex-start; gap: 6px; margin-top: 4px; color: var(--gold-text); font-size: 13px; line-height: 1.35; }
+    .note-line svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
+    .note-line span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .empty { padding: 28px 10px; text-align: center; color: var(--muted); }
+    @media (max-width: 860px) {
+        .meet-head { display: none; }
+        .meet-row { grid-template-columns: 1fr; gap: 6px; padding: 16px 4px; }
+        .meet-actions { justify-content: flex-start; margin-top: 6px; }
     }
-    * { box-sizing: border-box; }
-    [hidden] { display: none !important; }
-    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-    body { margin: 0; min-height: 100vh; background: var(--foam); font-family: 'Inter', sans-serif; color: var(--deep); }
-    h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
-
-    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
-    .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
-    .brand-mark { height: 26px; width: auto; display: block; }
-    .brand-name { font-weight: 800; font-size: 1.1rem; }
-
-    main { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
-    h1 { font-size: 1.6rem; margin: 8px 0 20px; }
-
-    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
-    .tab-btn { background: none; border: none; padding: 12px 18px; font-family: inherit; font-size: 0.92rem; font-weight: 600; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; }
-    .tab-btn.active { color: var(--teal-dark); border-color: var(--teal); }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; margin-bottom: 20px; }
-    .panel h2 { margin: 0 0 16px; font-size: 1.1rem; }
-
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
-    .form-grid .full { grid-column: 1 / -1; }
-    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
-    label { font-size: 0.8rem; font-weight: 600; color: var(--navy); display: block; margin-bottom: 4px; }
-    input[type="text"], input[type="date"], input[type="time"], input[type="file"], select, textarea {
-        width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; font-family: inherit; font-size: 0.9rem; background: var(--paper); color: var(--deep);
+    @media (max-width: 640px) {
+        h1 { font-size: 30px; }
+        .form-grid .three { grid-template-columns: 1fr; }
+        .tabs button { padding: 10px 12px; font-size: 15px; }
     }
-    .checkbox-row { display: flex; align-items: center; gap: 8px; }
-    .checkbox-row input { width: auto; }
 
-    .btn { display: inline-block; padding: 10px 20px; border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 0.88rem; border: none; cursor: pointer; }
-    .btn-primary { background: var(--teal); color: var(--paper); }
-    .btn-primary:hover { background: var(--teal-dark); }
-    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
-    .btn-ghost { background: var(--paper); color: var(--deep); border: 1px solid var(--line); }
-    .btn-danger { background: #fff; color: var(--coral); border: 1px solid #f0c9c0; }
-    .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
-
-    .addr-suggestions { border: 1px solid var(--line); border-radius: 10px; margin-top: 6px; overflow: hidden; }
-    .addr-suggestions button { display: block; width: 100%; text-align: left; padding: 8px 12px; background: var(--paper); border: none; border-bottom: 1px solid var(--line); font-size: 0.85rem; cursor: pointer; }
-    .addr-suggestions button:last-child { border-bottom: none; }
-    .addr-suggestions button:hover { background: var(--foam); }
-
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-    th { color: var(--sub); font-weight: 600; }
-    /* On a div inside the cell, never the <td> itself -- display:flex on a cell stops it acting as one, so it doesn't fill the row and its bottom line sits too high. */
+    /* Gallery and Import Results tabs */
+    .msg { margin: 10px 0 0; font-size: 14px; }
+    .msg.success { color: var(--ok-text); }
+    .msg.error { color: var(--danger); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 8px; border-bottom: 1px solid var(--card-border); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    /* On a div inside the cell, never the <td> itself -- display:flex on a cell stops it acting as one. */
     .row-actions { display: flex; gap: 6px; }
     /* Photo rows center on the thumbnail, and both photo tables share column widths so Pending and Approved line up. */
     .photo-table td { vertical-align: middle; }
@@ -70,13 +93,13 @@
         .photo-table { table-layout: fixed; }
         .photo-table th:first-child { width: 84px; }
         .photo-table th:nth-child(2) { width: 30%; }
-        .photo-table th:last-child { width: 180px; }
+        .photo-table th:last-child { width: 190px; }
     }
-    /* Phones: each meet or photo stacks into its own block -- as table rows they ran wider than the screen. */
+    /* Phones: each photo stacks into its own block -- as table rows they ran wider than the screen. */
     @media (max-width: 600px) {
         .stack-table, .stack-table tbody { display: block; }
         .stack-table thead { display: none; }
-        .stack-table tr { display: grid; gap: 6px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+        .stack-table tr { display: grid; gap: 6px 12px; padding: 12px 0; border-bottom: 1px solid var(--card-border); }
         .stack-table td { border: none; padding: 0; }
         .stack-table td:empty { display: none; }
         .photo-table tr { grid-template-columns: 64px 1fr; align-items: center; }
@@ -86,13 +109,9 @@
     }
     /* The import preview keeps its columns and scrolls sideways on narrow screens instead. */
     .table-scroll { overflow-x: auto; }
-
-    .msg { font-size: 0.85rem; margin-top: 10px; }
-    .msg.success { color: var(--teal-dark); }
-    .msg.error { color: var(--coral); }
-    .muted { color: var(--sub); font-size: 0.85rem; }
-    .thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; display: block; }
-    .thumb-open { display: block; padding: 0; border: none; background: none; border-radius: 8px; cursor: zoom-in; }
+    .warn-box { max-height: 160px; overflow: auto; margin-top: 12px; padding: 10px 14px; border: 1px solid var(--gold-border); border-radius: 12px; background: var(--gold-tint); color: var(--gold-text); font-size: 13px; }
+    .thumb { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
+    .thumb-open { display: block; padding: 0; border: none; border-radius: 8px; background: none; cursor: zoom-in; }
 
     /* Full-screen and dark, like a phone's photo app, so a photo can be checked properly before approving it. */
     dialog.photo-viewer { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; background: rgba(12,20,14,0.94); color: #fff; overflow: hidden; }
@@ -104,86 +123,142 @@
     .photo-viewer-bar p { margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.85); }
     .photo-viewer-close { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255,255,255,0.15); color: #fff; font-size: 1.7rem; line-height: 1; cursor: pointer; }
     .photo-viewer-close:hover { background: rgba(255,255,255,0.25); }
-    .warn-box { background: #FFF6EC; border: 1px solid #F3D9B1; border-radius: 10px; padding: 10px 14px; font-size: 0.82rem; color: #8A5A1F; margin-top: 12px; max-height: 160px; overflow: auto; }
 </style>
 </head>
 <body>
-<nav>
-    <a class="brand" href="/">
-        <img class="brand-mark" src="/assets/logo.png" alt="Spotswood Sea Serpents logo">
-        <span class="brand-name">Sea Serpents Admin</span>
-    </a>
-</nav>
-<main>
+<site-header admin></site-header>
+<main class="wrap">
     <h1>Team Admin</h1>
-    <div class="tabs">
-        <button class="tab-btn active" data-tab="meets">Meets</button>
-        <button class="tab-btn" data-tab="gallery">Gallery</button>
-        <button class="tab-btn" data-tab="import">Import Results</button>
+    <div class="tabs" role="tablist" aria-label="Admin sections">
+        <button type="button" role="tab" id="tabBtn-meets" aria-controls="tab-meets" aria-selected="true">Meets</button>
+        <button type="button" role="tab" id="tabBtn-gallery" aria-controls="tab-gallery" aria-selected="false" tabindex="-1">Gallery</button>
+        <button type="button" role="tab" id="tabBtn-import" aria-controls="tab-import" aria-selected="false" tabindex="-1">Import Results</button>
     </div>
 
     <!-- MEETS -->
-    <section class="tab-panel active" id="tab-meets">
-        <div class="panel">
-            <h2 id="meetFormTitle">Add a meet</h2>
-            <form id="meetForm">
-                <input type="hidden" id="meetId">
+    <section class="stack" id="tab-meets" role="tabpanel" aria-labelledby="tabBtn-meets">
+        <div class="card" id="poolCard">
+            <div class="pool-head"><h2>Home pool</h2><button type="button" class="btn small quiet" id="poolEditBtn" hidden>Edit</button></div>
+            <div id="poolBody"><p class="muted" style="margin:0">Loading…</p></div>
+        </div>
+
+        <div class="card" id="formCard">
+            <h2 id="formTitle">Add a meet</h2>
+            <form id="meetForm" novalidate>
                 <div class="form-grid">
-                    <div><label for="meetOpponent">Opponent</label><input type="text" id="meetOpponent" placeholder="Fawn Lake Fliers"></div>
-                    <div><label for="meetTitleField">Title</label><input type="text" id="meetTitleField" placeholder="vs. Fawn Lake Fliers" required></div>
-                    <div><label for="meetDate">Date</label><input type="date" id="meetDate" required></div>
-                    <div><label for="meetTime">Time</label><input type="time" id="meetTime"></div>
-                    <div class="full">
-                        <label for="meetAddress">Address</label>
-                        <input type="text" id="meetAddress" placeholder="Start typing an address…">
-                        <div class="addr-suggestions" id="addrSuggestions" hidden></div>
+                    <div class="field">
+                        <label class="field-label" for="fOpponent">Opponent</label>
+                        <input class="input" type="text" id="fOpponent" placeholder="e.g. Fawn Lake Fliers" autocomplete="off" aria-describedby="eOpponent">
+                        <p class="field-error" id="eOpponent" role="alert" hidden></p>
                     </div>
-                    <div><label for="meetPlaceName">Venue name</label><input type="text" id="meetPlaceName"></div>
-                    <div class="checkbox-row full"><input type="checkbox" id="meetHidden"><label for="meetHidden" style="margin:0;">Hidden from public schedule</label></div>
-                    <div class="full">
-                        <button type="submit" class="btn btn-primary" id="meetSaveBtn">Save meet</button>
-                        <button type="button" class="btn btn-ghost" id="meetCancelBtn" hidden>Cancel edit</button>
-                        <span class="msg" id="meetFormMsg"></span>
+                    <div class="field">
+                        <label class="field-label" for="fShort">Short name <span class="optional">(shown on cards)</span></label>
+                        <input class="input" type="text" id="fShort" placeholder="e.g. Fawn Lake" autocomplete="off">
                     </div>
+                    <div class="field">
+                        <span class="field-label" id="homeAwayLabel">Home or away</span>
+                        <div class="seg" role="radiogroup" aria-labelledby="homeAwayLabel">
+                            <label><input type="radio" name="homeAway" value="home" checked><span>Home</span></label>
+                            <label><input type="radio" name="homeAway" value="away"><span>Away</span></label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-label" id="titlePreviewLabel">Public title</span>
+                        <div class="title-preview" id="titlePreview" role="status" aria-labelledby="titlePreviewLabel"></div>
+                    </div>
+                    <div class="full three">
+                        <div class="field">
+                            <label class="field-label" for="fDate">Date</label>
+                            <input class="input" type="date" id="fDate" aria-describedby="eDate">
+                            <p class="field-error" id="eDate" role="alert" hidden></p>
+                        </div>
+                        <div class="field"><label class="field-label" for="fWarmUp">Warm-up</label><input class="input" type="time" id="fWarmUp"></div>
+                        <div class="field"><label class="field-label" for="fTime">Start time</label><input class="input" type="time" id="fTime" value="18:00"></div>
+                    </div>
+                    <div class="field">
+                        <div class="label-row"><label class="field-label" for="fVenue">Venue name</label><button type="button" class="link-btn" id="usePoolBtn" hidden>Use home pool</button></div>
+                        <input class="input" type="text" id="fVenue" autocomplete="off">
+                    </div>
+                    <div class="field">
+                        <label class="field-label" for="fAddress">Address</label>
+                        <input class="input" type="text" id="fAddress" placeholder="Start typing an address…" autocomplete="off">
+                        <div class="addr-suggestions" id="fAddressSuggestions" hidden></div>
+                    </div>
+                    <p class="field-help full" id="venueHelp" hidden></p>
+                    <div class="field full">
+                        <div class="label-row"><label class="field-label" for="fNote">Note for parents <span class="optional">(optional)</span></label><span class="small muted" id="noteCount" aria-live="polite">0/120</span></div>
+                        <textarea class="input" id="fNote" maxlength="120" rows="2" placeholder="e.g. Bring a towel and a chair."></textarea>
+                    </div>
+                    <div class="field full">
+                        <span class="field-label" id="scoreLabel">Final score <span class="optional">(optional)</span></span>
+                        <div class="score-row" role="group" aria-labelledby="scoreLabel">
+                            <span class="team">Spotswood</span><input class="input" type="number" id="fTeamScore" min="0" step="1" inputmode="numeric" aria-label="Spotswood score">
+                            <span class="team" id="opponentScoreName">Opponent</span><input class="input" type="number" id="fOpponentScore" min="0" step="1" inputmode="numeric" aria-label="Opponent score">
+                        </div>
+                        <p class="field-help">Added up automatically when results are imported. A score you type here won't be changed by an import.</p>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary" id="saveBtn">Save meet</button>
+                    <button type="button" class="btn" id="cancelEditBtn" hidden>Cancel</button>
+                    <span class="small" id="formMsg" role="status"></span>
                 </div>
             </form>
         </div>
-        <div class="panel">
-            <h2>All meets</h2>
-            <table id="meetsTable" class="stack-table"><thead><tr><th>Date</th><th>Title</th><th>Location</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
+
+        <div class="card">
+            <h2 id="allMeetsTitle" tabindex="-1">All meets</h2>
+            <div class="meet-head" aria-hidden="true"><div>Date</div><div>Meet</div><div>Venue</div><div></div></div>
+            <div id="meetList"><p class="empty">Loading…</p></div>
         </div>
     </section>
 
     <!-- GALLERY -->
-    <section class="tab-panel" id="tab-gallery">
-        <div class="panel">
+    <section class="stack" id="tab-gallery" role="tabpanel" aria-labelledby="tabBtn-gallery" hidden>
+        <div class="card">
             <h2>Pending review</h2>
             <table id="pendingTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
         </div>
-        <div class="panel">
+        <div class="card">
             <h2>Approved</h2>
             <table id="approvedTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
         </div>
     </section>
 
-    <!-- IMPORT RESULTS -->
-    <section class="tab-panel" id="tab-import">
-        <div class="panel">
+    <!-- IMPORT RESULTS (replaced by each meet's Import button in Step 3) -->
+    <section id="tab-import" role="tabpanel" aria-labelledby="tabBtn-import" hidden>
+        <div class="card">
             <h2>Import a meet's results PDF</h2>
-            <p class="muted">Only rows for "Spotswood" swimmers are kept. Review the preview below, then commit to save it.</p>
+            <p class="muted" style="margin-top:0">Both teams' results are saved; swimmer stats show Spotswood swimmers only. Review the preview below, then save it.</p>
             <div class="form-grid">
-                <div><label for="importMeetSelect">Meet</label><select id="importMeetSelect"><option value="">Loading meets…</option></select></div>
-                <div><label for="importFile">Results PDF</label><input type="file" id="importFile" accept="application/pdf"></div>
-                <div class="full">
-                    <button type="button" class="btn btn-primary" id="previewBtn">Preview</button>
-                    <button type="button" class="btn btn-primary" id="commitBtn" hidden>Commit to Results</button>
-                    <span class="msg" id="importMsg"></span>
+                <div class="field"><label class="field-label" for="importMeetSelect">Meet</label><select class="input" id="importMeetSelect"><option value="">Loading meets…</option></select></div>
+                <div class="field"><label class="field-label" for="importFile">Results PDF</label><input class="input" type="file" id="importFile" accept="application/pdf"></div>
+                <div class="full btn-row">
+                    <button type="button" class="btn primary" id="previewBtn">Preview</button>
+                    <button type="button" class="btn primary" id="commitBtn" hidden>Save results</button>
+                    <span class="msg" id="importMsg" role="status"></span>
                 </div>
             </div>
             <div id="importPreview"></div>
         </div>
     </section>
 </main>
+
+<dialog class="dialog" id="deleteDialog" aria-labelledby="deleteTitle">
+    <div class="dialog-grab" aria-hidden="true"></div>
+    <div class="dialog-head">
+        <div><h2 id="deleteTitle"></h2><p id="deleteDate"></p></div>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="dialog-body">
+        <p class="note-box warn" id="deleteWarning"></p>
+        <p class="msg error" id="deleteError" role="alert" hidden></p>
+        <div class="dialog-actions">
+            <button type="button" class="btn" data-close-dialog>Cancel</button>
+            <button type="button" class="btn danger solid" id="deleteConfirmBtn">Delete meet</button>
+        </div>
+    </div>
+</dialog>
 <dialog id="photoViewer" class="photo-viewer" closedby="any" aria-label="Photo">
     <button type="button" class="photo-viewer-close" aria-label="Close" onclick="document.getElementById('photoViewer').close()">&times;</button>
     <div class="photo-viewer-stage"><img id="photoViewerImg" alt=""></div>
@@ -197,132 +272,459 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+// Errors carry the HTTP status: a 400 explains what to fix, anything else is a plain failure.
+async function api(path, opts) {
+    const res = await fetch(path, opts);
+    const text = await res.text().catch(() => '');
+    if (!res.ok) {
+        const err = new Error(text || res.statusText);
+        err.status = res.status;
+        throw err;
+    }
+    return text ? JSON.parse(text) : null;
+}
+function postJson(path, body) {
+    return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+}
+
+const $ = id => document.getElementById(id);
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function fmtDate(iso) { const [, m, d] = iso.split('-').map(Number); return `${MONTHS[m - 1]} ${d}`; }
+function fmtTime(t) {
+    if (!t) return '';
+    let [h, m] = t.split(':').map(Number);
+    const ap = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    return `${h}:${String(m).padStart(2, '0')}${ap}`;
+}
+// Eastern, not UTC -- toISOString() rolls over to tomorrow at 8pm EDT, mid-meet.
+const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+
+const ICON_UPLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>';
+const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
+const ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+const ICON_ALERT = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.5v4M8 10.8v.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+/* ---------- Tabs ---------- */
+const TAB_NAMES = ['meets', 'gallery', 'import'];
+function showTab(name, focus) {
+    TAB_NAMES.forEach(t => {
+        const selected = t === name;
+        const button = $('tabBtn-' + t);
+        button.setAttribute('aria-selected', String(selected));
+        button.tabIndex = selected ? 0 : -1;
+        $('tab-' + t).hidden = !selected;
+    });
+    if (focus) $('tabBtn-' + name).focus();
+}
+TAB_NAMES.forEach((name, i) => {
+    const button = $('tabBtn-' + name);
+    button.addEventListener('click', () => showTab(name));
+    // Arrow keys move between tabs, the usual keyboard pattern for a tab list.
+    button.addEventListener('keydown', (event) => {
+        const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+        if (step) {
+            event.preventDefault();
+            showTab(TAB_NAMES[(i + step + TAB_NAMES.length) % TAB_NAMES.length], true);
+        } else if (event.key === 'Home' || event.key === 'End') {
+            event.preventDefault();
+            showTab(TAB_NAMES[event.key === 'Home' ? 0 : TAB_NAMES.length - 1], true);
+        }
     });
 });
 
-async function api(path, opts) {
-    const res = await fetch(path, opts);
-    if (!res.ok) throw new Error(await res.text().catch(() => res.statusText));
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
+/* ---------- Address suggestions ---------- */
+// Suggestions come from Azure Maps (geocodeAddress) when it's set up; until
+// then the field is a plain text box. Picking one supplies map coordinates,
+// and typing clears them so a changed address never keeps old ones.
+function attachAddressSuggestions(input, box, onCoords) {
+    let timer = null;
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        onCoords(null);
+        const q = input.value.trim();
+        if (q.length < 4) { box.hidden = true; return; }
+        timer = setTimeout(async () => {
+            try {
+                const results = await api(`/api/geocodeAddress?q=${encodeURIComponent(q)}`);
+                if (!results.length) { box.hidden = true; return; }
+                box.innerHTML = results.map((r, i) => `<button type="button" data-i="${i}">${escapeHtml(r.placeName ? r.placeName + ' — ' : '')}${escapeHtml(r.address)}</button>`).join('');
+                box.hidden = false;
+                box.querySelectorAll('button').forEach((button, i) => button.addEventListener('click', () => {
+                    input.value = results[i].address;
+                    onCoords({ lat: results[i].lat, lon: results[i].lon }, results[i]);
+                    box.hidden = true;
+                    input.dispatchEvent(new Event('change'));
+                }));
+            } catch (e) { box.hidden = true; }
+        }, 350);
+    });
 }
 
 /* ---------- Meets ---------- */
-let currentGeo = null;
+let meets = [];
+let homePool = null;
+let editingId = null;
+let shortTouched = false;   // once the admin edits the short name, the opponent box stops rewriting it
+let venueFromPool = false;  // venue and address currently hold the home pool's
+let meetCoords = null;      // map coordinates for the form's address, if it came from a suggestion
+
+// Same rule as the server's autoShortName: drop the last word, usually the mascot.
+function autoShortName(opponent) {
+    const words = opponent.trim().split(/\s+/).filter(Boolean);
+    return words.length > 1 ? words.slice(0, -1).join(' ') : (words[0] || '');
+}
+function isHome() { return document.querySelector('input[name="homeAway"]:checked').value === 'home'; }
+function meetState(m) { return m.resultsImported ? 'imported' : (m.date > todayIso ? 'upcoming' : 'needs'); }
+
+// A blank short name is filled in automatically on save, so the preview shows that one.
+function currentShortName() { return $('fShort').value.trim() || autoShortName($('fOpponent').value); }
+function updateTitlePreview() {
+    const short = currentShortName();
+    $('titlePreview').textContent = `${isHome() ? 'vs.' : 'at'} ${short || '…'}`;
+    $('opponentScoreName').textContent = short || 'Opponent';
+}
+function updateNoteCount() { $('noteCount').textContent = `${$('fNote').value.length}/120`; }
+function poolMatchesForm() { return homePool && $('fVenue').value === homePool.name && $('fAddress').value === homePool.address; }
+function updateVenueHelp() {
+    $('usePoolBtn').hidden = !(homePool && isHome() && !poolMatchesForm());
+    const help = $('venueHelp');
+    help.hidden = !(venueFromPool && poolMatchesForm());
+    help.textContent = 'Filled in from your home pool. Change either box to use a different venue for just this meet.';
+}
+function fillFromPool() {
+    $('fVenue').value = homePool.name;
+    $('fAddress').value = homePool.address;
+    meetCoords = homePool.lat != null && homePool.lon != null ? { lat: homePool.lat, lon: homePool.lon } : null;
+    venueFromPool = true;
+}
+// Home meets start with the home pool, unless the admin already typed a venue.
+function applyPoolToForm() {
+    if (homePool && isHome() && (venueFromPool || (!$('fVenue').value && !$('fAddress').value))) fillFromPool();
+    updateVenueHelp();
+}
+function showFieldError(id, message) {
+    const el = $(id);
+    el.innerHTML = message ? ICON_ALERT + escapeHtml(message) : '';
+    el.hidden = !message;
+    const input = $(id === 'eOpponent' ? 'fOpponent' : 'fDate');
+    if (message) input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid');
+}
+
+$('fOpponent').addEventListener('input', () => {
+    if (!shortTouched) $('fShort').value = autoShortName($('fOpponent').value);
+    updateTitlePreview();
+    showFieldError('eOpponent', '');
+});
+$('fShort').addEventListener('input', () => {
+    // Clearing the box hands it back to the automatic short name (filled in as the opponent changes).
+    shortTouched = $('fShort').value.trim() !== '';
+    updateTitlePreview();
+});
+document.querySelectorAll('input[name="homeAway"]').forEach(radio => radio.addEventListener('change', () => {
+    updateTitlePreview();
+    if (isHome()) applyPoolToForm();
+    else {
+        // The home pool's venue doesn't belong on an away meet.
+        if (venueFromPool) { $('fVenue').value = ''; $('fAddress').value = ''; meetCoords = null; venueFromPool = false; }
+        updateVenueHelp();
+    }
+}));
+$('fVenue').addEventListener('input', () => { venueFromPool = false; updateVenueHelp(); });
+$('fAddress').addEventListener('input', () => { venueFromPool = false; updateVenueHelp(); });
+$('fAddress').addEventListener('change', updateVenueHelp);
+attachAddressSuggestions($('fAddress'), $('fAddressSuggestions'), (coords, picked) => {
+    meetCoords = coords;
+    if (picked && picked.placeName && !$('fVenue').value) $('fVenue').value = picked.placeName;
+});
+$('usePoolBtn').addEventListener('click', () => { fillFromPool(); updateVenueHelp(); });
+$('fDate').addEventListener('input', () => showFieldError('eDate', ''));
+$('fNote').addEventListener('input', updateNoteCount);
+
+function resetForm() {
+    editingId = null;
+    shortTouched = false;
+    venueFromPool = false;
+    meetCoords = null;
+    ['fOpponent', 'fShort', 'fDate', 'fWarmUp', 'fVenue', 'fAddress', 'fNote', 'fTeamScore', 'fOpponentScore'].forEach(id => { $(id).value = ''; });
+    $('fTime').value = '18:00';
+    document.querySelector('input[name="homeAway"][value="home"]').checked = true;
+    $('formTitle').textContent = 'Add a meet';
+    $('saveBtn').textContent = 'Save meet';
+    $('cancelEditBtn').hidden = true;
+    $('fAddressSuggestions').hidden = true;
+    showFieldError('eOpponent', '');
+    showFieldError('eDate', '');
+    updateTitlePreview();
+    updateNoteCount();
+    applyPoolToForm();
+}
+$('cancelEditBtn').addEventListener('click', resetForm);
+
+function editMeet(id, focusScore) {
+    const m = meets.find(x => x.id === id);
+    if (!m) return;
+    editingId = id;
+    shortTouched = true;
+    venueFromPool = false;
+    $('fOpponent').value = m.opponent;
+    $('fShort').value = m.shortName;
+    document.querySelector(`input[name="homeAway"][value="${m.homeAway === 'away' ? 'away' : 'home'}"]`).checked = true;
+    $('fDate').value = m.date || '';
+    $('fWarmUp').value = m.warmUp || '';
+    $('fTime').value = m.time || '';
+    $('fVenue').value = m.placeName || '';
+    $('fAddress').value = m.address || '';
+    meetCoords = m.lat != null && m.lon != null ? { lat: m.lat, lon: m.lon } : null;
+    $('fNote').value = m.note || '';
+    $('fTeamScore').value = m.teamScore == null ? '' : m.teamScore;
+    $('fOpponentScore').value = m.opponentScore == null ? '' : m.opponentScore;
+    $('formTitle').textContent = `Edit meet: ${m.title}`;
+    $('saveBtn').textContent = 'Save changes';
+    $('cancelEditBtn').hidden = false;
+    showFieldError('eOpponent', '');
+    showFieldError('eDate', '');
+    updateTitlePreview();
+    updateNoteCount();
+    updateVenueHelp();
+    $('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => $(focusScore ? 'fTeamScore' : 'fOpponent').focus({ preventScroll: true }), 300);
+}
+
+let formMsgTimer = null;
+function showFormMsg(text, kind) {
+    clearTimeout(formMsgTimer);
+    $('formMsg').textContent = text;
+    $('formMsg').className = `small msg ${kind || ''}`;
+    if (kind === 'success') formMsgTimer = setTimeout(() => { $('formMsg').textContent = ''; }, 4000);
+}
+
+$('meetForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const opponent = $('fOpponent').value.trim();
+    const date = $('fDate').value;
+    showFieldError('eOpponent', opponent ? '' : "Enter the opponent's name.");
+    showFieldError('eDate', date ? '' : 'Pick a date.');
+    if (!opponent || !date) {
+        $(opponent ? 'fDate' : 'fOpponent').focus();
+        return;
+    }
+    const wasEditing = !!editingId;
+    const body = {
+        id: editingId || undefined,
+        opponent,
+        shortName: $('fShort').value.trim(),
+        homeAway: isHome() ? 'home' : 'away',
+        date,
+        time: $('fTime').value,
+        warmUp: $('fWarmUp').value,
+        placeName: $('fVenue').value.trim(),
+        address: $('fAddress').value.trim(),
+        note: $('fNote').value.trim(),
+        teamScore: $('fTeamScore').value,
+        opponentScore: $('fOpponentScore').value,
+        lat: meetCoords ? meetCoords.lat : '',
+        lon: meetCoords ? meetCoords.lon : ''
+    };
+    $('saveBtn').disabled = true;
+    try {
+        await postJson('/api/manageMeetsSave', body);
+        resetForm();
+        showFormMsg(wasEditing ? 'Changes saved.' : 'Meet saved.', 'success');
+        await loadMeets();
+    } catch (e) {
+        showFormMsg(e.status === 400 ? e.message : "Couldn't save the meet. Please try again.", 'error');
+    } finally {
+        $('saveBtn').disabled = false;
+    }
+});
+
+function scoreText(m) {
+    if (m.teamScore == null) return '';
+    const result = m.teamScore > m.opponentScore ? 'W' : m.teamScore < m.opponentScore ? 'L' : 'T';
+    return `${result} ${m.teamScore}–${m.opponentScore}`;
+}
+function importButton(m) {
+    const state = meetState(m);
+    if (state === 'imported') return `<button type="button" class="btn small imported" data-act="import" data-id="${escapeHtml(m.id)}" aria-label="Imported. Replace results for ${escapeHtml(m.title)}">${ICON_CHECK}Imported</button>`;
+    if (state === 'needs') return `<button type="button" class="btn small primary" data-act="import" data-id="${escapeHtml(m.id)}" aria-label="Import results for ${escapeHtml(m.title)}">${ICON_UPLOAD}Import</button>`;
+    return `<button type="button" class="btn small" disabled title="Available after the meet" aria-label="Import results for ${escapeHtml(m.title)}, available after the meet">${ICON_UPLOAD}Import</button>`;
+}
+function venueCell(m) {
+    if (m.placeName) return `<b>${escapeHtml(m.placeName)}</b>${m.address ? `<span class="sub">${escapeHtml(m.address)}</span>` : ''}`;
+    if (m.address) return escapeHtml(m.address);
+    return meetState(m) === 'upcoming' ? '<span class="badge attention">Add venue</span>' : '<span class="muted">—</span>';
+}
+
+function renderMeetList() {
+    const list = $('meetList');
+    if (!meets.length) { list.innerHTML = '<p class="empty">No meets yet.</p>'; return; }
+    list.innerHTML = meets.map(m => {
+        const score = scoreText(m);
+        const scorePart = score ? ` · ${escapeHtml(score)}` : (meetState(m) !== 'upcoming' ? ` · <button type="button" class="link-btn" data-act="score" data-id="${escapeHtml(m.id)}">Add score</button>` : '');
+        return `
+            <div class="meet-row">
+                <div class="meet-when">${escapeHtml(fmtDate(m.date))}${m.time ? `<span class="sub">${escapeHtml(fmtTime(m.time))}</span>` : ''}</div>
+                <div>
+                    <span class="meet-title">${escapeHtml(m.title)}</span>
+                    <span class="sub">${escapeHtml(m.opponent)}${scorePart}</span>
+                    ${m.note ? `<span class="note-line" title="Note for parents">${ICON_NOTE}<span>${escapeHtml(m.note)}</span></span>` : ''}
+                </div>
+                <div>${venueCell(m)}</div>
+                <div class="meet-actions">
+                    ${importButton(m)}
+                    <button type="button" class="btn small quiet" data-act="edit" data-id="${escapeHtml(m.id)}" aria-label="Edit ${escapeHtml(m.title)}">Edit</button>
+                    <button type="button" class="btn small danger" data-act="delete" data-id="${escapeHtml(m.id)}" aria-label="Delete ${escapeHtml(m.title)}">Delete</button>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+$('meetList').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-act]');
+    if (!button || button.disabled) return;
+    const id = button.dataset.id;
+    const act = button.dataset.act;
+    if (act === 'edit') editMeet(id);
+    else if (act === 'score') editMeet(id, true);
+    else if (act === 'delete') openDeleteDialog(id, button);
+    else if (act === 'import') openImportFor(id);
+});
 
 async function loadMeets() {
-    const tbody = document.querySelector('#meetsTable tbody');
     try {
-        const meets = await api('/api/manageMeetsList');
-        window._meets = meets;
-        if (!meets.length) { tbody.innerHTML = '<tr><td colspan="4" class="muted">No meets yet.</td></tr>'; return; }
-        tbody.innerHTML = meets.map(m => `
-            <tr>
-                <td>${escapeHtml(m.date)}${m.time ? ' ' + escapeHtml(m.time) : ''}</td>
-                <td>${escapeHtml(m.title)}${m.hidden ? ' <span class="muted">(hidden)</span>' : ''}</td>
-                <td>${escapeHtml(m.placeName || m.address || '')}</td>
-                <td><div class="row-actions">
-                    <button class="btn btn-ghost btn-sm" onclick="editMeet('${escapeHtml(m.id)}')">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteMeet('${escapeHtml(m.id)}')">Delete</button>
-                </div></td>
-            </tr>
-        `).join('');
+        meets = await api('/api/manageMeetsList');
+        renderMeetList();
         populateImportMeetSelect(meets);
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="4" class="muted">Couldn\'t load meets.</td></tr>';
+        $('meetList').innerHTML = '<p class="empty">Couldn\'t load meets.</p>';
     }
 }
 
-function editMeet(id) {
-    const m = (window._meets || []).find(x => x.id === id);
+/* ---------- Delete ---------- */
+let deletingId = null;
+function openDeleteDialog(id, opener) {
+    const m = meets.find(x => x.id === id);
     if (!m) return;
-    document.getElementById('meetFormTitle').textContent = 'Edit meet';
-    document.getElementById('meetId').value = m.id;
-    document.getElementById('meetOpponent').value = m.opponent || '';
-    document.getElementById('meetTitleField').value = m.title || '';
-    document.getElementById('meetDate').value = m.date || '';
-    document.getElementById('meetTime').value = m.time || '';
-    document.getElementById('meetAddress').value = m.address || '';
-    document.getElementById('meetPlaceName').value = m.placeName || '';
-    document.getElementById('meetHidden').checked = !!m.hidden;
-    currentGeo = (m.lat != null && m.lon != null) ? { lat: m.lat, lon: m.lon } : null;
-    document.getElementById('meetCancelBtn').hidden = false;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    deletingId = id;
+    $('deleteTitle').textContent = `Delete ${m.title}?`;
+    $('deleteDate').textContent = fmtDate(m.date);
+    $('deleteWarning').textContent = (m.resultsImported
+        ? 'This also deletes the results imported for this meet, including swimmer times and places, and its saved results sheet.'
+        : 'This removes the meet from the schedule.') + " This can't be undone.";
+    $('deleteError').hidden = true;
+    $('deleteConfirmBtn').disabled = false;
+    $('deleteConfirmBtn').textContent = 'Delete meet';
+    SiteUI.openDialog($('deleteDialog'), opener);
 }
-
-function resetMeetForm() {
-    document.getElementById('meetForm').reset();
-    document.getElementById('meetId').value = '';
-    document.getElementById('meetFormTitle').textContent = 'Add a meet';
-    document.getElementById('meetCancelBtn').hidden = true;
-    currentGeo = null;
-}
-document.getElementById('meetCancelBtn').addEventListener('click', resetMeetForm);
-
-async function deleteMeet(id) {
-    if (!confirm('Delete this meet? This does not delete any imported results.')) return;
+$('deleteConfirmBtn').addEventListener('click', async () => {
+    const id = deletingId;
+    $('deleteConfirmBtn').disabled = true;
+    $('deleteConfirmBtn').textContent = 'Deleting…';
     try {
         await api(`/api/manageMeetsDelete?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-        loadMeets();
+        if (editingId === id) resetForm();
+        $('deleteDialog').close();
+        await loadMeets();
+        // The row (and its Delete button) is gone, so focus lands on the list's heading instead.
+        $('allMeetsTitle').focus();
     } catch (e) {
-        alert('Could not delete meet.');
+        $('deleteError').textContent = "Couldn't delete the meet. Please try again.";
+        $('deleteError').hidden = false;
+        $('deleteConfirmBtn').disabled = false;
+        $('deleteConfirmBtn').textContent = 'Delete meet';
+    }
+});
+
+/* ---------- Home pool ---------- */
+let poolEditing = false;
+let poolCoords = null;
+function homeMeetsMissingVenue() {
+    return meets.filter(m => m.homeAway === 'home' && (!m.placeName || !m.address)).length;
+}
+function renderPool(extraHtml) {
+    const body = $('poolBody');
+    if (homePool && !poolEditing) {
+        $('poolEditBtn').hidden = false;
+        body.innerHTML = `<div class="pool-view"><b>${escapeHtml(homePool.name)}</b>${homePool.address
+            ? `<span class="sub">${escapeHtml(homePool.address)}</span>`
+            : '<span class="sub"><span class="badge attention">Add an address so Directions works</span></span>'}</div>${extraHtml || ''}`;
+        return;
+    }
+    $('poolEditBtn').hidden = true;
+    body.innerHTML = `
+        <p class="field-help" style="margin:0 0 14px">Save your pool once. Home meets will fill in the venue and address automatically.</p>
+        <div class="form-grid">
+            <div class="field"><label class="field-label" for="poolName">Pool name</label><input class="input" type="text" id="poolName" autocomplete="off" value="${escapeHtml(homePool ? homePool.name : '')}"></div>
+            <div class="field"><label class="field-label" for="poolAddress">Address</label><input class="input" type="text" id="poolAddress" placeholder="Start typing an address…" autocomplete="off" value="${escapeHtml(homePool ? homePool.address : '')}"><div class="addr-suggestions" id="poolAddressSuggestions" hidden></div></div>
+        </div>
+        <p class="field-error" id="poolError" role="alert" hidden></p>
+        <div class="form-actions" style="margin-top:14px">
+            <button type="button" class="btn primary" id="poolSaveBtn">Save home pool</button>
+            ${homePool ? '<button type="button" class="btn" id="poolCancelBtn">Cancel</button>' : ''}
+        </div>`;
+    poolCoords = homePool && homePool.lat != null ? { lat: homePool.lat, lon: homePool.lon } : null;
+    attachAddressSuggestions($('poolAddress'), $('poolAddressSuggestions'), coords => { poolCoords = coords; });
+    $('poolSaveBtn').addEventListener('click', savePool);
+    if (homePool) $('poolCancelBtn').addEventListener('click', () => { poolEditing = false; renderPool(); $('poolEditBtn').focus(); });
+}
+$('poolEditBtn').addEventListener('click', () => { poolEditing = true; renderPool(); $('poolName').focus(); });
+
+async function savePool() {
+    const name = $('poolName').value.trim();
+    const error = $('poolError');
+    if (!name) {
+        error.innerHTML = ICON_ALERT + 'Enter a name for the pool.';
+        error.hidden = false;
+        $('poolName').focus();
+        return;
+    }
+    $('poolSaveBtn').disabled = true;
+    try {
+        const saved = await postJson('/api/manageSettingsSave', { homePool: {
+            name, address: $('poolAddress').value.trim(), lat: poolCoords ? poolCoords.lat : '', lon: poolCoords ? poolCoords.lon : ''
+        } });
+        homePool = saved.homePool;
+        poolEditing = false;
+        const missing = homeMeetsMissingVenue();
+        renderPool(missing ? `
+            <div class="note-box ok" style="margin:14px 0 0" role="status">${missing} home meet${missing === 1 ? ' has' : 's have'} no venue or address yet.
+                <button type="button" class="btn small" id="poolFillBtn" style="margin-left:6px">Fill them in</button>
+                <button type="button" class="link-btn" id="poolSkipBtn" style="margin-left:6px">Not now</button>
+            </div>` : '');
+        if (missing) {
+            $('poolFillBtn').addEventListener('click', fillHomeMeets);
+            $('poolSkipBtn').addEventListener('click', () => renderPool());
+        }
+        $('poolEditBtn').focus();
+        applyPoolToForm();
+    } catch (e) {
+        error.innerHTML = ICON_ALERT + escapeHtml(e.status === 400 ? e.message : "Couldn't save the home pool. Please try again.");
+        error.hidden = false;
+        $('poolSaveBtn').disabled = false;
     }
 }
 
-let addrTimer = null;
-document.getElementById('meetAddress').addEventListener('input', (e) => {
-    clearTimeout(addrTimer);
-    const q = e.target.value.trim();
-    const box = document.getElementById('addrSuggestions');
-    if (q.length < 4) { box.hidden = true; return; }
-    addrTimer = setTimeout(async () => {
-        try {
-            const results = await api(`/api/geocodeAddress?q=${encodeURIComponent(q)}`);
-            if (!results.length) { box.hidden = true; return; }
-            box.innerHTML = results.map((r, i) => `<button type="button" data-i="${i}">${escapeHtml(r.placeName ? r.placeName + ' — ' : '')}${escapeHtml(r.address)}</button>`).join('');
-            box.hidden = false;
-            box.querySelectorAll('button').forEach((btn, i) => btn.addEventListener('click', () => {
-                const r = results[i];
-                document.getElementById('meetAddress').value = r.address;
-                if (r.placeName) document.getElementById('meetPlaceName').value = r.placeName;
-                currentGeo = { lat: r.lat, lon: r.lon };
-                box.hidden = true;
-            }));
-        } catch (e) { box.hidden = true; }
-    }, 350);
-});
-
-document.getElementById('meetForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById('meetFormMsg');
-    msg.textContent = ''; msg.className = 'msg';
-    const body = {
-        id: document.getElementById('meetId').value || undefined,
-        opponent: document.getElementById('meetOpponent').value,
-        title: document.getElementById('meetTitleField').value,
-        date: document.getElementById('meetDate').value,
-        time: document.getElementById('meetTime').value,
-        address: document.getElementById('meetAddress').value,
-        placeName: document.getElementById('meetPlaceName').value,
-        hidden: document.getElementById('meetHidden').checked,
-        lat: currentGeo ? currentGeo.lat : undefined,
-        lon: currentGeo ? currentGeo.lon : undefined
-    };
+async function fillHomeMeets() {
+    $('poolFillBtn').disabled = true;
     try {
-        await api('/api/manageMeetsSave', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        msg.textContent = 'Saved.'; msg.className = 'msg success';
-        resetMeetForm();
-        loadMeets();
+        const { updated } = await postJson('/api/manageMeetsFillHomePool', {});
+        renderPool(`<p class="note-box ok" style="margin:14px 0 0" role="status">Updated ${updated} home meet${updated === 1 ? '' : 's'}.</p>`);
+        await loadMeets();
     } catch (e) {
-        msg.textContent = 'Could not save meet.'; msg.className = 'msg error';
+        renderPool('<p class="field-error" style="margin:14px 0 0" role="alert">Couldn\'t fill in the home meets. Please try again.</p>');
     }
-});
+}
+
+async function loadSettings() {
+    try {
+        homePool = (await api('/api/manageSettingsGet')).homePool;
+    } catch (e) {
+        homePool = null;
+    }
+    poolEditing = !homePool;
+    renderPool();
+}
 
 /* ---------- Gallery ---------- */
 // The thumbnails are too small to judge a photo by -- tapping one opens it full size.
@@ -330,17 +732,17 @@ const galleryPhotosById = new Map();
 function viewPhoto(id) {
     const photo = galleryPhotosById.get(id);
     if (!photo) return;
-    const img = document.getElementById('photoViewerImg');
+    const img = $('photoViewerImg');
     img.src = photo.url;
     img.alt = photo.caption || 'Submitted photo';
-    document.getElementById('photoViewerCaption').textContent = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(' ');
+    $('photoViewerCaption').textContent = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(' ');
     document.documentElement.style.overflow = 'hidden';
-    document.getElementById('photoViewer').showModal();
+    $('photoViewer').showModal();
 }
 // The page behind a modal dialog doesn't reliably stop scrolling on its own, so opening locks it and any way of closing unlocks it.
-document.getElementById('photoViewer').addEventListener('close', () => { document.documentElement.style.overflow = ''; });
+$('photoViewer').addEventListener('close', () => { document.documentElement.style.overflow = ''; });
 // The viewer fills the screen, so there's no backdrop to tap -- tapping the dark area around the photo closes it instead.
-document.getElementById('photoViewer').addEventListener('click', (event) => {
+$('photoViewer').addEventListener('click', (event) => {
     if (event.target === event.currentTarget || event.target.classList.contains('photo-viewer-stage')) event.currentTarget.close();
 });
 
@@ -360,8 +762,8 @@ async function loadGallery() {
                 <td>${escapeHtml(p.submittedBy || 'Anonymous')}<br><span class="muted">${escapeHtml(new Date(p.submittedAt).toLocaleDateString())}</span></td>
                 <td>${escapeHtml(p.caption || '')}</td>
                 <td><div class="row-actions">
-                    <button class="btn btn-primary btn-sm" onclick="approvePhoto('${escapeHtml(p.id)}')">Approve</button>
-                    <button class="btn btn-danger btn-sm" onclick="rejectPhoto('${escapeHtml(p.id)}')">Reject</button>
+                    <button type="button" class="btn small primary" onclick="approvePhoto('${escapeHtml(p.id)}')">Approve</button>
+                    <button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}')">Reject</button>
                 </div></td>
             </tr>
         `).join('') : '<tr><td colspan="4" class="muted">Nothing pending.</td></tr>';
@@ -371,7 +773,7 @@ async function loadGallery() {
                 <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
                 <td>${escapeHtml(p.submittedBy || 'Anonymous')}</td>
                 <td>${escapeHtml(p.caption || '')}</td>
-                <td><div class="row-actions"><button class="btn btn-danger btn-sm" onclick="rejectPhoto('${escapeHtml(p.id)}')">Remove</button></div></td>
+                <td><div class="row-actions"><button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}')">Remove</button></div></td>
             </tr>
         `).join('') : '<tr><td colspan="4" class="muted">Nothing approved yet.</td></tr>';
     } catch (e) {
@@ -380,23 +782,34 @@ async function loadGallery() {
 }
 
 async function approvePhoto(id) {
-    try { await api('/api/manageGalleryApprove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); loadGallery(); }
+    try { await postJson('/api/manageGalleryApprove', { id }); loadGallery(); }
     catch (e) { alert('Could not approve photo.'); }
 }
 async function rejectPhoto(id) {
     if (!confirm('Remove this photo permanently?')) return;
-    try { await api('/api/manageGalleryReject', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); loadGallery(); }
+    try { await postJson('/api/manageGalleryReject', { id }); loadGallery(); }
     catch (e) { alert('Could not remove photo.'); }
 }
 
 /* ---------- Import Results ---------- */
-function populateImportMeetSelect(meets) {
-    const select = document.getElementById('importMeetSelect');
-    select.innerHTML = '<option value="">Choose a meet…</option>' + meets.slice().sort((a, b) => b.date.localeCompare(a.date)).map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.date)} — ${escapeHtml(m.title)}</option>`).join('');
+function populateImportMeetSelect(list) {
+    const select = $('importMeetSelect');
+    const current = select.value;
+    select.innerHTML = '<option value="">Choose a meet…</option>' + list.slice().sort((a, b) => b.date.localeCompare(a.date))
+        .map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(fmtDate(m.date))}, ${escapeHtml(m.date.slice(0, 4))} — ${escapeHtml(m.title)}</option>`).join('');
+    select.value = current;
+}
+
+// A meet's Import button opens this tab with that meet already picked.
+function openImportFor(id) {
+    showTab('import');
+    $('importMeetSelect').value = id;
+    $('importFile').focus();
 }
 
 let lastParsed = null;
 let lastPdfBase64 = null;
+let lastFileName = '';
 
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
@@ -407,20 +820,21 @@ function fileToBase64(file) {
     });
 }
 
-document.getElementById('previewBtn').addEventListener('click', async () => {
-    const msg = document.getElementById('importMsg');
-    const preview = document.getElementById('importPreview');
-    const file = document.getElementById('importFile').files[0];
+$('previewBtn').addEventListener('click', async () => {
+    const msg = $('importMsg');
+    const preview = $('importPreview');
+    const file = $('importFile').files[0];
     msg.textContent = ''; msg.className = 'msg';
-    document.getElementById('commitBtn').hidden = true;
+    $('commitBtn').hidden = true;
 
     if (!file) { msg.textContent = 'Choose a PDF first.'; msg.className = 'msg error'; return; }
-    if (!document.getElementById('importMeetSelect').value) { msg.textContent = 'Pick which meet this is for.'; msg.className = 'msg error'; return; }
+    if (!$('importMeetSelect').value) { msg.textContent = 'Pick which meet this is for.'; msg.className = 'msg error'; return; }
 
-    msg.textContent = 'Parsing…';
+    msg.textContent = 'Reading the results…';
     try {
         lastPdfBase64 = await fileToBase64(file);
-        lastParsed = await api('/api/importMeetResultsPreview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataBase64: lastPdfBase64 }) });
+        lastFileName = file.name;
+        lastParsed = await postJson('/api/importMeetResultsPreview', { dataBase64: lastPdfBase64 });
 
         // Both teams come back now (see meetResultsParser.js) -- a Team
         // column makes that legible instead of two teams' rows looking
@@ -438,33 +852,38 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
             <div class="table-scroll"><table><thead><tr><th>Event</th><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${relayRows || '<tr><td colspan="5" class="muted">None found.</td></tr>'}</tbody></table></div>
             ${lastParsed.unparsedLines.length ? `<div class="warn-box"><strong>${lastParsed.unparsedLines.length} line(s) couldn't be read</strong> -- these are skipped, not guessed at:<br>${lastParsed.unparsedLines.map(l => escapeHtml(l)).join('<br>')}</div>` : ''}
         `;
-        msg.textContent = 'Review the rows above, then commit.'; msg.className = 'msg success';
-        document.getElementById('commitBtn').hidden = false;
+        msg.textContent = 'Review the rows above, then save them.'; msg.className = 'msg success';
+        $('commitBtn').hidden = false;
     } catch (e) {
-        msg.textContent = 'Could not parse that PDF.'; msg.className = 'msg error';
+        msg.textContent = 'Could not read that PDF.'; msg.className = 'msg error';
     }
 });
 
-document.getElementById('commitBtn').addEventListener('click', async () => {
-    const msg = document.getElementById('importMsg');
-    const meetId = document.getElementById('importMeetSelect').value;
+$('commitBtn').addEventListener('click', async () => {
+    const msg = $('importMsg');
+    const meetId = $('importMeetSelect').value;
     if (!lastParsed || !meetId) return;
     msg.textContent = 'Saving…'; msg.className = 'msg';
     try {
-        const result = await api('/api/importMeetResultsCommit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ meetId, dataBase64: lastPdfBase64, individual: lastParsed.individual, relays: lastParsed.relays, teamPoints: lastParsed.teamPoints })
+        const result = await postJson('/api/importMeetResultsCommit', {
+            meetId, fileName: lastFileName, dataBase64: lastPdfBase64,
+            individual: lastParsed.individual, relays: lastParsed.relays, teamPoints: lastParsed.teamPoints
         });
         msg.textContent = `Saved ${result.savedIndividual} individual and ${result.savedRelays} relay results.`;
         msg.className = 'msg success';
-        document.getElementById('commitBtn').hidden = true;
+        $('commitBtn').hidden = true;
+        loadMeets(); // so the meet's Import button shows it's done
     } catch (e) {
         msg.textContent = 'Could not save results.'; msg.className = 'msg error';
     }
 });
 
-loadMeets();
+/* ---------- Start ---------- */
+resetForm();
+Promise.all([loadSettings(), loadMeets()]).then(() => {
+    // The home pool may arrive after the form was reset, so fill it in now if it applies.
+    if (!editingId) applyPoolToForm();
+});
 loadGallery();
 </script>
 </body>
