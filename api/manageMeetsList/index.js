@@ -2,7 +2,7 @@ const { getMeetsTable, toMeetDto, sortByDate, PARTITION_KEY } = require("../shar
 
 // Reachable at /api/manageMeetsList. Protected by an explicit route rule in
 // staticwebapp.config.json (requires the "administrator" role) -- returns
-// every meet, hidden or not.
+// every meet, including where its score and results came from.
 module.exports = async function (context, req) {
     try {
         const table = getMeetsTable();

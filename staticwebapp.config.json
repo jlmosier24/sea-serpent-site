@@ -5,12 +5,17 @@
     { "route": "/api/manageMeetsList", "allowedRoles": ["administrator"] },
     { "route": "/api/manageMeetsSave", "allowedRoles": ["administrator"] },
     { "route": "/api/manageMeetsDelete", "allowedRoles": ["administrator"] },
+    { "route": "/api/manageMeetsFillHomePool", "allowedRoles": ["administrator"] },
+    { "route": "/api/manageSettingsGet", "allowedRoles": ["administrator"] },
+    { "route": "/api/manageSettingsSave", "allowedRoles": ["administrator"] },
     { "route": "/api/geocodeAddress", "allowedRoles": ["administrator"] },
     { "route": "/api/manageGalleryList", "allowedRoles": ["administrator"] },
     { "route": "/api/manageGalleryApprove", "allowedRoles": ["administrator"] },
     { "route": "/api/manageGalleryReject", "allowedRoles": ["administrator"] },
     { "route": "/api/importMeetResultsPreview", "allowedRoles": ["administrator"] },
-    { "route": "/api/importMeetResultsCommit", "allowedRoles": ["administrator"] }
+    { "route": "/api/importMeetResultsCommit", "allowedRoles": ["administrator"] },
+    { "route": "/api/manage*", "allowedRoles": ["administrator"] },
+    { "route": "/api/import*", "allowedRoles": ["administrator"] }
   ],
   "responseOverrides": {
     "401": {

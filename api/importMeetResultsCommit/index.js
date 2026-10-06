@@ -1,16 +1,8 @@
-const { getResultsPdfContainer } = require("../shared/resultsPdfContainer");
+const { getResultsPdfContainer, sheetBlobName } = require("../shared/resultsPdfContainer");
 const { getResultsTable, getRelayResultsTable, toResultEntity, toRelayResultEntity } = require("../shared/resultsTable");
 const { getMeetsTable, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { isSpotswoodTeam } = require("../shared/meetResultsParser");
-
-const SAVE_CONCURRENCY = 20;
-
-// Saved one at a time, a ~700-row dual meet can outrun SWA's 45-second API request limit.
-async function forEachInBatches(items, fn) {
-    for (let i = 0; i < items.length; i += SAVE_CONCURRENCY) {
-        await Promise.all(items.slice(i, i + SAVE_CONCURRENCY).map(fn));
-    }
-}
+const { forEachInBatches } = require("../shared/batches");
 
 // Reachable at /api/importMeetResultsCommit. Protected by an explicit route
 // rule in staticwebapp.config.json (requires the "administrator" role).
@@ -23,7 +15,7 @@ async function forEachInBatches(items, fn) {
 // reads (listSwimmerNames, swimmerStats/index.js) filter back down to
 // Spotswood themselves, so no filtering happens on the write side here.
 module.exports = async function (context, req) {
-    const { meetId, dataBase64, individual, relays, teamPoints } = req.body || {};
+    const { meetId, fileName, dataBase64, individual, relays, teamPoints } = req.body || {};
 
     if (!meetId) {
         context.res = { status: 400, body: "Missing meetId." };
@@ -37,8 +29,7 @@ module.exports = async function (context, req) {
     try {
         if (dataBase64) {
             const buffer = Buffer.from(dataBase64, "base64");
-            const blobName = `${meetId}-${Date.now()}.pdf`;
-            await getResultsPdfContainer().getBlockBlobClient(blobName).uploadData(buffer, {
+            await getResultsPdfContainer().getBlockBlobClient(sheetBlobName(meetId)).uploadData(buffer, {
                 blobHTTPHeaders: { blobContentType: "application/pdf" }
             });
         }
@@ -49,25 +40,34 @@ module.exports = async function (context, req) {
         const relayTable = getRelayResultsTable();
         await forEachInBatches(relays || [], row => relayTable.upsertEntity(toRelayResultEntity(row, meetId), "Replace"));
 
-        // teamPoints covers every team seen in the PDF (see
-        // meetResultsParser.js), not just the ones whose swimmer-level rows
-        // got kept -- that's what makes a final score possible at all.
-        // Best-effort: a failure here shouldn't roll back the results above.
-        if (teamPoints && typeof teamPoints === "object") {
-            try {
+        // Marks the meet imported (for its Import button on the admin page)
+        // and adds up its score. Best-effort: a failure here shouldn't roll
+        // back the results above.
+        try {
+            const meetsTable = getMeetsTable();
+            const meetEntity = await meetsTable.getEntity(MEET_PARTITION_KEY, meetId);
+            const update = {
+                partitionKey: MEET_PARTITION_KEY,
+                rowKey: meetId,
+                resultsImported: true,
+                lastImportFile: String(fileName || ""),
+                lastImportAt: new Date().toISOString()
+            };
+            // teamPoints covers every team seen in the PDF (see
+            // meetResultsParser.js), not just the ones whose swimmer-level
+            // rows got kept -- that's what makes a final score possible at
+            // all. A score the admin typed in is never overwritten.
+            if (teamPoints && typeof teamPoints === "object" && meetEntity.scoreSource !== "manual") {
                 let teamScore = 0, opponentScore = 0;
                 for (const [team, points] of Object.entries(teamPoints)) {
                     if (isSpotswoodTeam(team)) teamScore += points;
                     else opponentScore += points;
                 }
-                const meetsTable = getMeetsTable();
-                const meetEntity = await meetsTable.getEntity(MEET_PARTITION_KEY, meetId);
-                meetEntity.teamScore = teamScore;
-                meetEntity.opponentScore = opponentScore;
-                await meetsTable.updateEntity(meetEntity, "Merge");
-            } catch (e) {
-                context.log.error("Failed to save meet score (non-fatal):", e);
+                Object.assign(update, { teamScore, opponentScore, scoreSource: "import" });
             }
+            await meetsTable.updateEntity(update, "Merge");
+        } catch (e) {
+            context.log.error("Failed to update the meet after import (non-fatal):", e);
         }
 
         context.res = { status: 200, body: { savedIndividual: (individual || []).length, savedRelays: (relays || []).length } };
