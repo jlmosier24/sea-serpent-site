@@ -43,7 +43,8 @@
     .chart-dot { fill: #fff; stroke: var(--brand); stroke-width: 3; }
     .chart-best { fill: var(--gold); stroke: #fff; stroke-width: 2.5; }
     .chart-best-halo { fill: var(--gold); opacity: .28; }
-    .chart-value { font-size: 14px; font-weight: 700; fill: var(--ink); }
+    /* An outline in the box's color keeps a time readable where the line runs behind it. */
+    .chart-value { font-size: 14px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--soft); stroke-width: 4px; stroke-linejoin: round; }
     .chart-date { font-size: 12.5px; fill: var(--muted); }
 
     .swims { width: 100%; border-collapse: collapse; }
