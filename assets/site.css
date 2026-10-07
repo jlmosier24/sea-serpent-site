@@ -114,7 +114,9 @@ site-header, site-footer { display: block; }
 /* Gold tint means "coming up" or a highlight: upcoming meet, biggest drop, notes. */
 .gold-card { background: var(--gold-tint); border: 1px solid var(--gold-border); border-radius: var(--radius-inner); padding: 16px; }
 /* Green gradient card: a completed meet, the swimmer header. */
-.hero-card { position: relative; overflow: hidden; border-radius: var(--radius-inner); padding: 20px; color: #fff; background: linear-gradient(135deg, var(--hero-from), var(--hero-to)); }
+/* clip, not hidden: the circles hang past the edge, and a hidden overflow can
+   still be scrolled sideways (bringing a badge or found text into view). */
+.hero-card { position: relative; overflow: clip; border-radius: var(--radius-inner); padding: 20px; color: #fff; background: linear-gradient(135deg, var(--hero-from), var(--hero-to)); }
 .hero-card.loss { background: linear-gradient(135deg, var(--loss-from), var(--loss-to)); }
 .hero-card::before, .hero-card::after { content: ""; position: absolute; border-radius: 50%; background: rgba(255,255,255,.06); pointer-events: none; }
 .hero-card::before { width: 210px; height: 210px; right: -70px; top: -80px; }
@@ -124,18 +126,10 @@ site-header, site-footer { display: block; }
 
 /* ---------- Stat tiles ---------- */
 .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.stat-grid.four { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; }
-@media (max-width: 760px) { .stat-grid.four { grid-template-columns: repeat(2, 1fr); } }
 .stat-tile { background: var(--soft); border: 1px solid var(--soft-border); border-radius: var(--radius-tile); padding: 14px 16px; }
 .stat-label { font-size: 14px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .stat-value { font-family: var(--font-head); font-size: 34px; font-weight: 700; line-height: 1; margin: 0; }
 .stat-caption { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
-.stat-tile.gold { background: var(--gold); border-color: transparent; color: var(--gold-ink); }
-.stat-tile.gold .stat-label, .stat-tile.gold .stat-caption { color: var(--gold-ink); opacity: .85; }
-/* A light wash and full-white text: at the hero card's lightest corner this is
-   4.9:1, where a stronger wash with faded text fell under 4.5:1. */
-.stat-tile.on-dark { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.24); color: #fff; }
-.stat-tile.on-dark .stat-label, .stat-tile.on-dark .stat-caption { color: #fff; }
 
 /* ---------- Chips, badges, pills ---------- */
 .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }

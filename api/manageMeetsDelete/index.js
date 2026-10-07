@@ -2,6 +2,7 @@ const { getMeetsTable, PARTITION_KEY } = require("../shared/meetsTable");
 const { getResultsTable, getRelayResultsTable, listMeetResultEntities, listMeetRelayEntities } = require("../shared/resultsTable");
 const { getResultsPdfContainer, isSheetForMeet } = require("../shared/resultsPdfContainer");
 const { forEachInBatches } = require("../shared/batches");
+const { getBadgesTable, recomputeBadges } = require("../shared/badgeStore");
 
 // Reachable at /api/manageMeetsDelete?id=... Admin only (the /api/manage*
 // rule in staticwebapp.config.json). Deleting a meet also deletes its
@@ -15,6 +16,7 @@ module.exports = async function (context, req) {
     }
 
     try {
+        const meetsTable = getMeetsTable();
         const resultsTable = getResultsTable();
         const results = await listMeetResultEntities(resultsTable, id);
         await forEachInBatches(results, entity => resultsTable.deleteEntity(entity.partitionKey, entity.rowKey));
@@ -33,13 +35,22 @@ module.exports = async function (context, req) {
         // The meet itself goes last, so if anything above fails it's still
         // listed and can simply be deleted again.
         try {
-            await getMeetsTable().deleteEntity(PARTITION_KEY, id);
+            await meetsTable.deleteEntity(PARTITION_KEY, id);
         } catch (e) {
             const status = e.statusCode || (e.response && e.response.status);
             if (status !== 404) throw e;
         }
 
-        context.res = { status: 200, body: { deletedResults: results.length, deletedRelays: relays.length, deletedSheets: sheets.length } };
+        // The deleted meet's swims no longer count toward anyone's badges.
+        let badgesUpdated = true;
+        try {
+            await recomputeBadges({ resultsTable, relayTable, meetsTable, badgesTable: getBadgesTable() });
+        } catch (e) {
+            badgesUpdated = false;
+            context.log.error("Failed to update badges:", e);
+        }
+
+        context.res = { status: 200, body: { deletedResults: results.length, deletedRelays: relays.length, deletedSheets: sheets.length, badgesUpdated } };
     } catch (e) {
         context.log.error("Failed to delete meet:", e);
         context.res = { status: 500, body: "Error: " + (e.message || e.code || JSON.stringify(e)) };

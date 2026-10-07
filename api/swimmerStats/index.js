@@ -3,13 +3,14 @@ const { getResultsTable, toResultDto, listSwimmerNames } = require("../shared/re
 const { getMeetsTable, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { isSpotswoodTeam } = require("../shared/meetResultsParser");
 const { swimmerSeason } = require("../shared/stats");
+const { getBadgesTable, readSwimmerBadges } = require("../shared/badgeStore");
 
 // Reachable at /api/swimmerStats. Public, and Spotswood swimmers only.
 // - No ?name= : { swimmers: [...] }, every Spotswood swimmer's name
 //   ("Last, First"), for the swimmer pickers.
 // - ?name=... : that swimmer's season for the Stats page (shared/stats.js
-//   swimmerSeason): the header tiles, and each event's swims with their
-//   changes and personal bests.
+//   swimmerSeason): their badges (saved by shared/badgeStore.js), the stat
+//   strip, and each event's swims with their changes and personal bests.
 module.exports = async function (context, req) {
     const name = (req.query.name || "").trim();
 
@@ -39,7 +40,7 @@ module.exports = async function (context, req) {
             return;
         }
 
-        context.res = { status: 200, body: swimmerSeason(name, swims) };
+        context.res = { status: 200, body: swimmerSeason(name, swims, await readSwimmerBadges(getBadgesTable(), name)) };
     } catch (e) {
         context.log.error("Failed to load swimmer stats:", e);
         context.res = { status: 500, body: "Error: " + e.message };

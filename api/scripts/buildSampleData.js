@@ -17,6 +17,7 @@ const { parseMeetResultsText, isSpotswoodTeam } = require("../shared/meetResults
 const { slugify, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { toResultEntity, toResultDto, toRelayResultEntity, toRelayResultDto } = require("../shared/resultsTable");
 const { meetSummary, swimmerSeason } = require("../shared/stats");
+const { teamBadges } = require("../shared/badges");
 
 const OUT_DIR = path.join(__dirname, "..", "..", "sample-data");
 
@@ -35,8 +36,8 @@ const MEETS = [
     { file: "2026 Woodland Wahoos at Spotswood 06_17_2026 _ Meet Maestro™.pdf", date: "2026-06-17", opponent: "Woodland Wahoos", title: "vs. Woodland Wahoos" },
     { file: "2026 Fox Point at Spotswood 06_24_2026 _ Meet Maestro™.pdf", date: "2026-06-24", opponent: "Fox Point", title: "vs. Fox Point" },
     { file: "2026 Spotswood at Fawn Lake Fliers 07_01_2026 _ Meet Maestro™.pdf", date: "2026-07-01", opponent: "Fawn Lake Fliers", title: "at Fawn Lake Fliers" },
-    { date: "2026-07-08", opponent: "Massad Marlins", title: "vs. Massad Marlins", time: "18:00", address: "413 Lorraine Ave, Fredericksburg, VA 22408" },
-    { date: "2026-07-13", opponent: "Curtis Park Seahawks", title: "at Curtis Park Seahawks", time: "18:00", address: "58 Jesse Curtis Ln, Fredericksburg, VA 22406" }
+    { file: "2026 Massad Marlins at Spotswood 07_08_2026 _ Meet Maestro™.pdf", date: "2026-07-08", opponent: "Massad Marlins", title: "vs. Massad Marlins", time: "18:00", address: "413 Lorraine Ave, Fredericksburg, VA 22408" },
+    { file: "2026 Spotswood at CPST Seahawks 07_13_2026 _ Meet Maestro™.pdf", date: "2026-07-13", opponent: "Curtis Park Seahawks", title: "at Curtis Park Seahawks", time: "18:00", address: "58 Jesse Curtis Ln, Fredericksburg, VA 22406" }
 ];
 
 const DOWNLOADS = "C:/Users/jlmos/Downloads";
@@ -49,6 +50,7 @@ async function main() {
 
     const meetDtos = [];
     const spotswoodResultDtos = []; // Spotswood only, each with its meet's date, as swimmerStats reads them
+    const spotswoodRelayDtos = []; // the same for relays, which badges count
     let totalUnparsed = 0;
 
     for (const m of MEETS) {
@@ -96,6 +98,9 @@ async function main() {
         for (const dto of individualDtos) {
             if (isSpotswoodTeam(dto.team)) spotswoodResultDtos.push({ ...dto, meetDate: meetDto.date });
         }
+        for (const dto of relayDtos) {
+            if (isSpotswoodTeam(dto.team)) spotswoodRelayDtos.push({ ...dto, meetDate: meetDto.date });
+        }
     }
 
     writeJson(path.join(OUT_DIR, "meets.json"), meetDtos.sort((a, b) => a.date.localeCompare(b.date)));
@@ -107,9 +112,11 @@ async function main() {
     const swimmerNames = [...new Set(spotswoodResultDtos.map(r => r.name))].sort((a, b) => a.localeCompare(b));
     writeJson(path.join(OUT_DIR, "swimmer-names.json"), { swimmers: swimmerNames });
 
-    // Each swimmer's season, built the same way /api/swimmerStats?name= builds it.
+    // Each swimmer's season, built the same way /api/swimmerStats?name= builds
+    // it, with the badges an import would have saved (shared/badgeStore.js).
+    const badgesByName = new Map(teamBadges(spotswoodResultDtos, spotswoodRelayDtos).map(e => [e.name, e]));
     for (const name of swimmerNames) {
-        writeJson(path.join(OUT_DIR, "swimmer", `${slugify(name)}.json`), swimmerSeason(name, spotswoodResultDtos.filter(r => r.name === name)));
+        writeJson(path.join(OUT_DIR, "swimmer", `${slugify(name)}.json`), swimmerSeason(name, spotswoodResultDtos.filter(r => r.name === name), badgesByName.get(name)));
     }
 
     console.log(`\n${meetDtos.length} meets, ${swimmerNames.length} Spotswood swimmers, ${spotswoodResultDtos.length} Spotswood individual results, ${totalUnparsed} unparsed lines across all meets.`);

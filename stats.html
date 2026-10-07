@@ -28,8 +28,52 @@
     .swimmer-avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 60px; height: 60px; border-radius: 50%; background: var(--gold); color: var(--gold-ink); font-size: 20px; font-weight: 700; }
     .swimmer-head h2 { margin: 0; font-size: 30px; line-height: 1.15; }
     .swimmer-head p { margin: 4px 0 0; font-size: 16px; opacity: .9; }
-    .swimmer-tiles { margin-top: 22px; }
-    .getting-started { grid-column: span 3; display: flex; align-items: center; margin: 0; padding: 8px 6px 8px 14px; font-size: 16px; line-height: 1.45; opacity: .92; }
+
+    /* Badges (design/update-2/UPDATE.md, section 2): white tiles on the green
+       card, New ones first. Wider screens show 10 and phones 6, until "Show all". */
+    .badges-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-top: 22px; }
+    .badges-head h3 { margin: 0; font-size: 20px; }
+    .badges-count { font-size: 14px; font-weight: 600; }
+    .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
+    .badge-grid:not(.expanded) > .badge-tile:nth-child(n+11) { display: none; }
+    .badge-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 16px 8px 12px; border: 1px solid #fff; border-radius: 20px; background: #fff; color: var(--ink); font: inherit; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+    .badge-tile:hover { background: var(--gold-tint); }
+    .badge-new { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 10px; background: var(--gold); color: var(--gold-ink); font-size: 11px; font-weight: 700; }
+    .badge-disc { position: relative; display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; margin-bottom: 8px; border: 2px solid var(--gold); border-radius: 50%; background: var(--gold-tint); color: var(--gold-text); }
+    .badge-disc svg { width: 30px; height: 30px; }
+    .badge-pill { position: absolute; right: -6px; bottom: -4px; display: flex; align-items: center; justify-content: center; min-width: 26px; height: 22px; padding: 0 6px; border: 2px solid #fff; border-radius: 12px; background: var(--brand); color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .badge-tile:hover .badge-pill { border-color: var(--gold-tint); }
+    .badge-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
+    .badge-when { font-size: 13px; color: var(--muted); }
+    .show-all { display: none; }
+    .badge-area[data-more="all"] .show-all { display: flex; width: fit-content; margin: 14px auto 0; }
+
+    /* The slim stat strip under the badges, or a friendly line when it's empty.
+       Full-white text, and only a light wash behind it: faded text, or a
+       stronger wash, falls under 4.5:1 at the card's lightest corner. */
+    .stat-strip { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 16px 0 0; padding: 12px 6px 0; border-top: 1px solid rgba(255,255,255,.22); list-style: none; }
+    .stat-strip li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+    .strip-value { font-family: var(--font-head); font-size: 22px; font-weight: 700; line-height: 1; }
+    .strip-label { font-size: 14px; }
+    .strip-label small { font-size: 12.5px; }
+    .friendly-line { margin: 20px 0 0; padding: 16px 18px; border: 1px solid rgba(255,255,255,.24); border-radius: var(--radius-tile); background: rgba(255,255,255,.08); font-size: 16px; line-height: 1.45; }
+
+    /* The badge dialog, a little narrower than the site's others (the mockup's 440px). */
+    @media (min-width: 601px) { dialog.dialog.badge-dialog { width: min(440px, calc(100vw - 48px)); } }
+    /* The close button sits in the corner, beside the disc rather than above it. */
+    .badge-dialog .dialog-head { position: absolute; top: 0; right: 0; }
+    .badge-dialog .dialog-body { padding-top: 30px; }
+    .badge-big { text-align: center; }
+    .badge-big .badge-disc { width: 96px; height: 96px; margin: 0 auto 10px; }
+    .badge-big .badge-disc svg { width: 48px; height: 48px; }
+    .badge-big .badge-pill { height: 26px; font-size: 14px; }
+    .badge-big h2 { margin: 0 0 6px; font-size: 26px; }
+    .badge-big p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.45; }
+    .badge-earned { margin-top: 18px; padding: 14px 16px; border-radius: var(--radius-tile); }
+    .earned-label { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .earned-value { margin: 0; font-size: 16px; font-weight: 600; }
+    .earned-value + .earned-label { margin-top: 12px; }
+    .badge-done { margin-top: 16px; padding: 14px; font-size: 17px; }
 
     /* One card per event */
     .event-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
@@ -69,12 +113,14 @@
     .place { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; border-radius: 50%; font-weight: 600; }
     .place.podium { background: var(--gold); color: var(--gold-ink); font-weight: 700; }
 
-    @media (max-width: 760px) {
-        .getting-started { grid-column: span 1; padding-left: 4px; font-size: 14px; }
-    }
     @media (max-width: 600px) {
         .swimmer-hero { padding: 20px 16px; }
         .swimmer-head h2 { font-size: 26px; }
+        /* Two tiles across, even at 340px. */
+        .badge-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 10px; }
+        .badge-grid:not(.expanded) > .badge-tile:nth-child(n+7) { display: none; }
+        .badge-area[data-more] .show-all { display: flex; width: fit-content; margin: 14px auto 0; }
+        .badge-dialog .dialog-body { padding-top: 12px; }
         .event-card { padding: 20px 14px; }
         .swims th, .swims td { padding: 10px 6px; }
         .swims td { font-size: 15px; }
@@ -102,8 +148,29 @@
     </div>
 </main>
 <site-footer></site-footer>
+
+<dialog class="dialog badge-dialog" id="badgeDialog" aria-labelledby="badgeDialogTitle" aria-describedby="badgeDialogAbout">
+    <div class="dialog-grab" aria-hidden="true"></div>
+    <div class="dialog-head">
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close badge"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="dialog-body">
+        <div class="badge-big">
+            <span class="badge-disc" id="badgeDialogDisc" aria-hidden="true"></span>
+            <h2 id="badgeDialogTitle"></h2>
+            <p id="badgeDialogAbout"></p>
+        </div>
+        <div class="inset badge-earned">
+            <p class="earned-label">How it was earned</p>
+            <p class="earned-value" id="badgeDialogHow"></p>
+            <p class="earned-label">Earned at</p>
+            <p class="earned-value" id="badgeDialogWhere"></p>
+        </div>
+        <button type="button" class="btn primary block badge-done" data-close-dialog>Done</button>
+    </div>
+</dialog>
 <script>
-const { escapeHtml, fmtShortDate, fmtSeconds, displayName, initials, shortEventName, plural } = Meets;
+const { escapeHtml, fmtDate, fmtShortDate, fmtSeconds, displayName, initials, shortEventName, plural } = Meets;
 
 // For each opponent's short name, and the results popup its name opens.
 let meetsById = {};
@@ -113,29 +180,7 @@ const meetsReady = fetch('/api/meets')
     .then(meets => { meetsById = Object.fromEntries(meets.map(m => [m.id, m])); });
 
 /* ---------------- Header card ---------------- */
-// The tiles the ranking can pick (api/shared/stats.js rankHighlights), each
-// with its label, number, and caption from the swimmer's season totals.
-const TILES = {
-    mostImproved: t => ({ label: 'Most improved', value: `−${t.mostImproved.seconds.toFixed(2)}s`, caption: shortEventName(t.mostImproved.eventName) }),
-    firstPlaces: t => ({ label: '1st places', value: t.firstPlaces, caption: `of ${plural(t.eventsSwum, 'swim', 'swims')}` }),
-    topThree: t => ({ label: 'Top-3 finishes', value: t.topThree, caption: `of ${plural(t.eventsSwum, 'swim', 'swims')}` }),
-    personalBests: t => ({ label: 'Personal bests', value: t.personalBests, caption: t.latestPersonalBestDate ? `Latest ${fmtShortDate(t.latestPersonalBestDate)}` : '' }),
-    meetsSwum: t => ({ label: 'Meets swum', value: t.meetsSwum, caption: t.firstMeetDate ? `${fmtShortDate(t.firstMeetDate)} to ${fmtShortDate(t.lastMeetDate)}` : '' }),
-    eventsSwum: t => ({ label: 'Events swum', value: t.eventsSwum, caption: t.differentEvents === 1 ? '1 event' : `${t.differentEvents} different events` })
-};
-
-function tileHtml(tile, totals) {
-    const { label, value, caption } = TILES[tile.key](totals);
-    return `
-        <div class="stat-tile ${tile.gold ? 'gold' : 'on-dark'}">
-            <p class="stat-label">${label}</p>
-            <p class="stat-value">${escapeHtml(value)}</p>
-            ${caption ? `<p class="stat-caption">${escapeHtml(caption)}</p>` : ''}
-        </div>`;
-}
-
 function swimmerHeader(season) {
-    const { tiles, gettingStarted } = season.highlights;
     const about = [season.age != null && `Age ${season.age}`, season.season && `${season.season} season`].filter(Boolean).join(' · ');
     return `
         <section class="hero-card swimmer-hero" aria-labelledby="swimmerName">
@@ -146,11 +191,132 @@ function swimmerHeader(season) {
                     ${about ? `<p>${escapeHtml(about)}</p>` : ''}
                 </div>
             </div>
-            <div class="stat-grid four swimmer-tiles">
-                ${tiles.map(tile => tileHtml(tile, season.totals)).join('')}
-                ${gettingStarted ? '<p class="getting-started">Just getting started. More highlights will show up as the season goes on.</p>' : ''}
-            </div>
+            ${badgesHtml(season.badges || [])}
+            ${stripHtml(season)}
         </section>`;
+}
+
+/* ---------------- Badges ---------------- */
+// Worked out on the server after each import (api/shared/badges.js) and sent
+// in display order: New ones first, then the rarest, First Splash last.
+// The icons are the badge mockup's (design/update-2).
+const BADGE_ICONS = {
+    splash: '<path d="M2 17c2 0 2-1.5 4-1.5S8 17 10 17s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5M2 21c2 0 2-1.5 4-1.5S8 21 10 21s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5M12 3v7M8.5 6.5 12 10l3.5-3.5"/>',
+    pb: '<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>',
+    streak: '<path d="M3 18l5-5 4 3 8-9M15 7h5v5"/>',
+    barrier: '<circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 1.5M10 3h4"/>',
+    distance: '<path d="M3 12h18M3 8v8M21 8v8M7 9l-4 3 4 3M17 9l4 3-4 3"/>',
+    podium: '<path d="M3 20v-6h5v6zM8 20V8h8v12zM16 20v-8h5v8z"/>',
+    champion: '<path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 20h8"/>',
+    scorer: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>',
+    triple: '<path d="M12 3l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6L6.8 6.8l3.6-.5z"/><path d="M8 16l-2 5 3-1.5M16 16l2 5-3-1.5M12 15v6"/>',
+    relay: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+    anchor: '<path d="M12 8v13M8 12h8M5 15a7 7 0 0 0 14 0M12 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>',
+    rounded: '<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 3v18M3 12h18"/>',
+    dropper: '<path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/>'
+};
+const BADGES_SHOWN = { wide: 10, phone: 6 }; // matches the nth-child rules in the styles above
+
+// The gold disc: the icon, and the swimmer's count or total in a green pill.
+function badgeDisc(badge) {
+    const icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${BADGE_ICONS[badge.id] || ''}</svg>`;
+    return icon + (badge.pill ? `<span class="badge-pill">${escapeHtml(badge.pill)}</span>` : '');
+}
+
+// The pill and sub-label as they'd be read aloud: "×5" is "5 times", "Under 1:00" is "under 1 minute".
+function spokenPill(badge) {
+    if (!badge.pill) return '';
+    const count = badge.pill.replace(/^×/, '');
+    if (badge.id === 'streak') return `${count} meets in a row`;
+    if (badge.id === 'relay') return `${count} relay legs`;
+    if (count !== badge.pill) return `${count} times`;
+    return badge.pill.replace(/ pts$/, ' points').replace(/ m$/, ' meters').replace(/(\d)s$/, '$1 seconds');
+}
+function spokenSub(sub) {
+    return (sub || '').replace('1:00', '1 minute').replace(/(\d)s$/, '$1 seconds');
+}
+
+function badgeTile(badge, index) {
+    const date = badge.meetDate ? fmtDate(badge.meetDate) : '';
+    const label = [badge.name, spokenPill(badge), spokenSub(badge.sub), date && `earned ${date}`, badge.isNew && 'new'].filter(Boolean).join(', ');
+    const when = badge.sub || date;
+    return `
+        <button type="button" class="badge-tile" data-badge="${index}" aria-label="${escapeHtml(label)}">
+            ${badge.isNew ? '<span class="badge-new">New</span>' : ''}
+            <span class="badge-disc">${badgeDisc(badge)}</span>
+            <span class="badge-name">${escapeHtml(badge.name)}</span>
+            ${when ? `<span class="badge-when">${escapeHtml(when)}</span>` : ''}
+        </button>`;
+}
+
+function badgesHtml(badges) {
+    if (!badges.length) return '';
+    const fresh = badges.filter(b => b.isNew).length;
+    // "all": more than either screen shows; "phone": more than a phone shows.
+    const more = badges.length > BADGES_SHOWN.wide ? 'all' : badges.length > BADGES_SHOWN.phone ? 'phone' : '';
+    return `
+        <div class="badges-head">
+            <h3>Badges</h3>
+            <span class="badges-count">${plural(badges.length, 'badge', 'badges')}${fresh ? ` · ${fresh} new` : ''}</span>
+        </div>
+        <div class="badge-area"${more ? ` data-more="${more}"` : ''}>
+            <div class="badge-grid" id="badgeGrid">${badges.map(badgeTile).join('')}</div>
+            ${more ? `<button type="button" class="btn on-dark small show-all" aria-controls="badgeGrid">Show all ${badges.length} badges</button>` : ''}
+        </div>`;
+}
+
+// Shows every badge, and moves focus to the first one that was hidden.
+function showAllBadges(button) {
+    const grid = document.getElementById('badgeGrid');
+    const hidden = [...grid.children].filter(tile => !tile.getClientRects().length);
+    grid.classList.add('expanded');
+    button.remove();
+    if (hidden.length) hidden[0].focus();
+}
+
+function openBadge(badge, opener) {
+    const meet = meetsById[badge.meetId];
+    document.getElementById('badgeDialogDisc').innerHTML = badgeDisc(badge);
+    document.getElementById('badgeDialogTitle').textContent = badge.name;
+    document.getElementById('badgeDialogAbout').textContent = badge.description;
+    document.getElementById('badgeDialogHow').textContent = badge.detail;
+    // "July 13 · at Curtis Park"
+    document.getElementById('badgeDialogWhere').textContent = [badge.meetDate && fmtDate(badge.meetDate), meet && meet.title].filter(Boolean).join(' · ');
+    const dialog = document.getElementById('badgeDialog');
+    SiteUI.openDialog(dialog, opener);
+    dialog.querySelector('.dialog-body').scrollTop = 0;
+}
+
+/* ---------------- Stat strip ---------------- */
+// Up to three of these, in the order the server picked (api/shared/stats.js statStrip).
+const STRIP = {
+    mostImproved: item => ({
+        value: `−${item.seconds.toFixed(2)}s`,
+        spoken: `${item.seconds.toFixed(2)} seconds faster`,
+        label: 'Most improved',
+        more: [shortEventName(item.eventName), item.meetDate && fmtDate(item.meetDate)].filter(Boolean).join(' · ')
+    }),
+    points: item => ({ value: item.value, label: 'Points for the team' }),
+    personalBests: item => ({ value: item.value, label: 'Personal bests' }),
+    relayLegs: item => ({ value: item.value, label: 'Relay legs' })
+};
+
+function stripHtml(season) {
+    const strip = season.strip || [];
+    if (!strip.length) return `<p class="friendly-line">${escapeHtml(friendlyLine(season))}</p>`;
+    return `<ul class="stat-strip">${strip.map(item => {
+        const { value, spoken, label, more } = STRIP[item.key](item);
+        const shown = spoken ? `<span aria-hidden="true">${escapeHtml(value)}</span><span class="sr-only">${escapeHtml(spoken)}</span>` : escapeHtml(value);
+        return `<li><span class="strip-value">${shown}</span><span class="strip-label">${label}${more ? ` <small>· ${escapeHtml(more)}</small>` : ''}</span></li>`;
+    }).join('')}</ul>`;
+}
+
+// When fewer than two strip stats apply yet.
+function friendlyLine(season) {
+    const first = String(season.name).split(',').pop().trim() || displayName(season.name);
+    return season.meetsSwum === 1
+        ? `${first}’s first meet is in the books! Stats like personal bests and time dropped start showing up after the next meet.`
+        : 'Stats like personal bests and points for the team show up here as the season goes on.';
 }
 
 /* ---------------- Event cards ---------------- */
@@ -302,6 +468,10 @@ async function loadSwimmer(name) {
 document.getElementById('swimmerContent').addEventListener('click', (event) => {
     const link = event.target.closest('.opponent-link');
     if (link) Meets.openResults(meetsById[link.dataset.meet], link);
+    const tile = event.target.closest('.badge-tile');
+    if (tile && shownSeason) openBadge(shownSeason.badges[tile.dataset.badge], tile);
+    const more = event.target.closest('.show-all');
+    if (more) showAllBadges(more);
 });
 
 /* ---------------- Swimmer dropdown ---------------- */

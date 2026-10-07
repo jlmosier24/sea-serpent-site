@@ -12,6 +12,7 @@ function notFound() {
 class FakeTable {
     constructor() { this.rows = new Map(); }
     key(pk, rk) { return `${pk}\u0000${rk}`; }
+    async createTable() {}
     async getEntity(pk, rk) {
         const row = this.rows.get(this.key(pk, rk));
         if (!row) throw notFound();

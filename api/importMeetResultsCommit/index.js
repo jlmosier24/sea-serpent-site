@@ -7,6 +7,7 @@ const { getMeetsTable, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require(
 const { readResultsSheet } = require("../shared/resultsSheet");
 const { meetSummary, teamScore } = require("../shared/stats");
 const { forEachInBatches } = require("../shared/batches");
+const { getBadgesTable, recomputeBadges } = require("../shared/badgeStore");
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function fmtDate(iso) {
@@ -103,6 +104,16 @@ module.exports = async function (context, req) {
         if (score && !scoreKept) Object.assign(update, { teamScore: score.us, opponentScore: score.them, scoreSource: "import" });
         await meetsTable.updateEntity(update, "Merge");
 
+        // Badges compare teammates, so everyone's are worked out again. A failure
+        // here doesn't undo the import; the next import or delete tries again.
+        let badgesUpdated = true;
+        try {
+            await recomputeBadges({ resultsTable, relayTable, meetsTable, badgesTable: getBadgesTable() });
+        } catch (e) {
+            badgesUpdated = false;
+            context.log.error("Failed to update badges:", e);
+        }
+
         context.res = {
             status: 200,
             body: {
@@ -113,7 +124,8 @@ module.exports = async function (context, req) {
                 removedRows: removed,
                 teamScore: scoreKept
                     ? { us: meetEntity.teamScore, them: meetEntity.opponentScore, source: "manual" }
-                    : score
+                    : score,
+                badgesUpdated
             }
         };
     } catch (e) {

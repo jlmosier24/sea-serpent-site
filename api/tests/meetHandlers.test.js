@@ -11,6 +11,7 @@ function resetStore() {
     store.results = new FakeTable();
     store.relays = new FakeTable();
     store.settings = new FakeTable();
+    store.badges = new FakeTable();
     store.sheets = new FakeContainer();
 }
 resetStore();
@@ -20,6 +21,7 @@ Object.assign(require("../shared/meetsTable"), { getMeetsTable: () => store.meet
 Object.assign(require("../shared/resultsTable"), { getResultsTable: () => store.results, getRelayResultsTable: () => store.relays });
 Object.assign(require("../shared/settingsTable"), { getSettingsTable: () => store.settings });
 Object.assign(require("../shared/resultsPdfContainer"), { getResultsPdfContainer: () => store.sheets });
+Object.assign(require("../shared/badgeStore"), { getBadgesTable: () => store.badges });
 // The "PDF" in these tests is just a sample sheet's text, so reading it is decoding it.
 Object.assign(require("../shared/pdfText"), { extractPdfText: async buffer => buffer.toString("utf8") });
 
@@ -83,10 +85,13 @@ test("deleting a meet deletes its results and sheets, and only its own", async (
     }
     store.sheets.blobs.set("m-1791164034802.pdf", "x");
     store.sheets.blobs.set("m-2-1791164034803.pdf", "x");
+    // Saved badges for a swimmer whose only meet this was.
+    await store.badges.upsertEntity({ partitionKey: "swimmer", rowKey: "Gone%2C%20Kid", name: "Gone, Kid", badgesJson: "[]" });
 
     const res = await call(deleteMeet, { query: { id: "m" } });
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { deletedResults: 2, deletedRelays: 1, deletedSheets: 1 });
+    assert.deepEqual(res.body, { deletedResults: 2, deletedRelays: 1, deletedSheets: 1, badgesUpdated: true });
+    assert.equal(store.badges.all().some(r => r.name === "Gone, Kid"), false);
     assert.deepEqual(store.meets.all().map(r => r.rowKey), ["m-2"]);
     assert.ok(store.results.all().every(r => r.meetId === "m-2"));
     assert.ok(store.relays.all().every(r => r.meetId === "m-2"));
@@ -302,4 +307,19 @@ test("a typed-in home pool address gets coordinates too", async () => {
     } finally {
         maps.restore();
     }
+});
+
+test("an import works out everyone's badges and saves them in display order", async () => {
+    resetStore();
+    await addMeet("m");
+    const res = await call(commitResults, { body: { meetId: "m", dataBase64: asUpload(sheetText()), fileName: "results.pdf" } });
+    assert.equal(res.body.badgesUpdated, true);
+    const saved = name => JSON.parse(store.badges.all().find(r => r.name === name).badgesJson).map(b => b.id);
+    // A win earns Champion, which covers Podium; beating the seed time is a personal best.
+    assert.deepEqual([...saved("Doe, Jane")].sort(), ["champion", "pb", "relay", "splash"]);
+    assert.equal(saved("Doe, Jane").at(-1), "splash", "First Splash always comes last");
+    // A no-show in her event, but she swam the last leg of the relay.
+    assert.deepEqual([...saved("Loe, Liz")].sort(), ["anchor", "relay", "splash"]);
+    // Only Spotswood swimmers have badges.
+    assert.equal(store.badges.all().some(r => r.name === "Roe, Rachel"), false);
 });

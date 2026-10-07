@@ -1,17 +1,20 @@
 // Run from api/: npm test
-// /api/swimmerStats against in-memory Meets and Results tables.
+// /api/swimmerStats against in-memory Meets, Results and SwimmerBadges tables.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { FakeTable, call } = require("./fakes");
 
 const meets = new FakeTable();
 const results = new FakeTable();
+const badges = new FakeTable();
 // The Function destructures these getters when it loads, so swap them in first.
 Object.assign(require("../shared/meetsTable"), { getMeetsTable: () => meets });
 Object.assign(require("../shared/resultsTable"), { getResultsTable: () => results });
+Object.assign(require("../shared/badgeStore"), { getBadgesTable: () => badges });
 const swimmerStats = require("../swimmerStats/index.js");
 
 const { PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
+const { recomputeBadges } = require("../shared/badgeStore");
 
 function addMeet(id, date) {
     meets.upsertEntity({ partitionKey: MEET_PARTITION_KEY, rowKey: id, opponent: "Test Seahawks", shortName: "Test", homeAway: "home", date });
@@ -38,7 +41,14 @@ test("with no name, it lists Spotswood's swimmers only, sorted", async () => {
     assert.deepEqual(res.body, { swimmers: ["Doe, Jane", "O'Moe, Kim"] });
 });
 
+test("before badges have been worked out, a swimmer's season still loads, with none", async () => {
+    const res = await call(swimmerStats, { query: { name: "Doe, Jane" } });
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body.badges, []);
+});
+
 test("with a name, it returns that swimmer's season, leaving out an opposing swimmer's rows", async () => {
+    await recomputeBadges({ resultsTable: results, relayTable: new FakeTable(), meetsTable: meets, badgesTable: badges });
     const res = await call(swimmerStats, { query: { name: "Doe, Jane" } });
     assert.equal(res.status, 200);
     const season = res.body;
@@ -48,8 +58,12 @@ test("with a name, it returns that swimmer's season, leaving out an opposing swi
     const [first, second] = season.events[0].swims;
     assert.deepEqual([first.meetDate, second.meetDate], ["2026-06-10", "2026-06-17"]);
     assert.equal(second.change, -0.6);
-    assert.equal(second.personalBest, true);
-    assert.deepEqual(season.highlights.tiles.map(t => t.key), ["firstPlaces", "topThree", "personalBests", "meetsSwum"]);
+    // No seed time, so the first swim had nothing to beat.
+    assert.deepEqual([first.personalBest, second.personalBest], [false, true]);
+    // New ones (from the latest meet) first, then rarer; First Splash last.
+    assert.deepEqual(season.badges.map(b => [b.id, b.isNew]), [["pb", true], ["barrier", true], ["champion", true], ["splash", false]]);
+    // Only one strip stat applies (a personal best), so there's no strip.
+    assert.deepEqual(season.strip, []);
 });
 
 test("a name with an apostrophe works, and an unknown or opposing-only name is a 404", async () => {
