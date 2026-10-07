@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/site.css">
 <script src="/assets/site.js"></script>
+<script src="/assets/meets.js"></script>
 <style>
     /* Home page only. Cards, buttons, tiles, and dialogs come from /assets/site.css. */
     .hero { text-align: center; padding: 56px 0 44px; }
@@ -77,32 +78,6 @@
     .photo-pause:hover { background: rgba(16,36,15,.8); }
     @media (prefers-reduced-motion: reduce) { .photo-open img { transition: none; } }
 
-    /* Results popup */
-    .score-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 16px 18px; border-radius: 20px; background: var(--brand); color: #fff; }
-    .score-banner.loss { background: var(--loss); }
-    .banner-label { margin: 0 0 4px; font-size: 13px; font-weight: 600; opacity: .88; }
-    .banner-us { margin: 0; font-family: var(--font-head); font-size: 26px; font-weight: 700; line-height: 1.15; }
-    .banner-them { margin: 3px 0 0; font-size: 16px; opacity: .9; }
-    .banner-chip { flex-shrink: 0; padding: 7px 15px; border-radius: var(--radius-round); background: var(--gold); color: var(--gold-ink); font-size: 13px; font-weight: 700; }
-    .score-banner.loss .banner-chip { background: #E6EAE5; color: #2F3A33; }
-    .seed-card { display: flex; align-items: center; gap: 16px; margin-top: 12px; padding: 14px 16px; border-radius: 20px; }
-    .seed-ring { position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 70px; height: 70px; border-radius: 50%; background: conic-gradient(var(--brand) calc(var(--pct) * 3.6deg), var(--track) 0deg); }
-    .seed-ring::after { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: var(--soft); }
-    .seed-ring span { position: relative; z-index: 1; font-family: var(--font-head); font-size: 17px; font-weight: 700; }
-    .seed-card h3 { margin: 0 0 3px; font-size: 17px; }
-    .seed-card p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
-    .drop-card { margin-top: 12px; padding: 14px 16px; border-radius: 20px; }
-    .drop-eyebrow { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--gold-text); }
-    .drop-who { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-    .drop-avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; background: var(--gold); color: var(--gold-ink); font-size: 14px; font-weight: 700; }
-    .drop-name { flex: 1 1 130px; min-width: 0; }
-    .drop-times { margin-left: auto; text-align: right; }
-    .drop-swimmer { margin: 0; font-size: 16px; font-weight: 700; }
-    .drop-delta { margin: 0; font-size: 18px; font-weight: 700; color: var(--brand); }
-    .drop-detail { margin: 2px 0 0; font-size: 13px; color: var(--gold-text); }
-    .meet-foot { margin: 14px 2px 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
-    .view-all { margin-top: 16px; padding: 14px; font-size: 17px; }
-
     /* Full-screen photo viewer, dark like a phone's photo app. */
     dialog.photo-viewer { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: rgba(12,20,14,.94); color: #fff; overflow: hidden; }
     dialog.photo-viewer[open] { display: flex; flex-direction: column; }
@@ -120,9 +95,6 @@
         .hero h1 { font-size: 42px; }
         .home-grid { grid-template-columns: 1fr; }
         .photo-card { position: static; }
-    }
-    @media (max-width: 600px) {
-        .banner-us { font-size: 22px; }
     }
 </style>
 </head>
@@ -160,14 +132,6 @@
 </main>
 <site-footer></site-footer>
 
-<dialog class="dialog" id="meetDialog" aria-labelledby="meetDialogTitle">
-    <div class="dialog-grab" aria-hidden="true"></div>
-    <div class="dialog-head">
-        <div><h2 id="meetDialogTitle"></h2><p id="meetDialogWhen"></p></div>
-        <button type="button" class="dialog-close" data-close-dialog aria-label="Close meet results"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-    </div>
-    <div class="dialog-body" id="meetDialogBody"></div>
-</dialog>
 <dialog id="photoViewer" class="photo-viewer" aria-label="Photo">
     <button type="button" class="photo-viewer-close" data-close-dialog aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
     <div class="photo-viewer-stage"><img id="photoViewerImg" alt=""></div>
@@ -178,17 +142,7 @@
 </dialog>
 <script>
 /* ---------------- Helpers ---------------- */
-function escapeHtml(str) {
-    // Quotes too, not just <>& -- output also lands inside attributes like alt="…".
-    return (str == null ? '' : String(str))
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-// "2026-07-13" -> "July 13"
-function fmtDate(isoDate) {
-    return new Date(isoDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-}
+const { escapeHtml, fmtDate, hasScore, outcome, OUTCOME_CHIPS } = Meets;
 
 // "18:00" -> "6:00pm"
 function fmtClock(time) {
@@ -205,31 +159,6 @@ function easternToday() {
 
 function daysBetween(fromIsoDate, toIsoDate) {
     return Math.round((Date.parse(toIsoDate + 'T00:00:00Z') - Date.parse(fromIsoDate + 'T00:00:00Z')) / 86400000);
-}
-
-// Meet sheets list swimmers last name first: "Doe, Jr., John" -> "John Doe Jr.", initials "JD".
-function nameParts(name) {
-    const parts = String(name || '').split(',').map(p => p.trim()).filter(Boolean);
-    return parts.length < 2 ? { first: parts[0] || '', rest: [] } : { first: parts[parts.length - 1], rest: parts.slice(0, -1) };
-}
-function displayName(name) {
-    const { first, rest } = nameParts(name);
-    return [first, ...rest].join(' ');
-}
-function initials(name) {
-    const { first, rest } = nameParts(name);
-    return (([...first][0] || '') + ([...(rest[0] || '')][0] || '')).toUpperCase();
-}
-
-// Event names read "<gender> <age group> <distance> <stroke>" ("Girls 12 & Under
-// 100yd Freestyle"). Next to the swimmer's age, only the distance and stroke are needed.
-function shortEventName(eventName) {
-    const m = String(eventName || '').match(/^.+?\s+(\d+(?:yd|m)\s+.+)$/);
-    return m ? m[1] : eventName;
-}
-
-function plural(count, one, many) {
-    return `${count} ${count === 1 ? one : many}`;
 }
 
 const ICONS = {
@@ -253,18 +182,6 @@ const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 
 /* ---------------- Meets ---------------- */
 let meetsById = {};
-
-function hasScore(m) {
-    return m.teamScore != null && m.opponentScore != null;
-}
-
-// 'win', 'loss', 'tie', or null when the meet has no score.
-function outcome(m) {
-    if (!hasScore(m)) return null;
-    if (m.teamScore > m.opponentScore) return 'win';
-    return m.teamScore < m.opponentScore ? 'loss' : 'tie';
-}
-const OUTCOME_CHIPS = { win: 'WIN', loss: 'LOSS', tie: 'TIE' };
 
 async function loadMeets() {
     let meets;
@@ -443,7 +360,7 @@ function renderPreviousMeets(done) {
     const box = document.getElementById('previousMeet');
     box.innerHTML = resultCard(done[0]) + (done[1] ? miniRow(done[1]) : '');
     box.querySelectorAll('[data-meet-stats]').forEach(button => {
-        button.addEventListener('click', () => openMeetDialog(meetsById[button.dataset.meetStats], button));
+        button.addEventListener('click', () => Meets.openResults(meetsById[button.dataset.meetStats], button));
     });
 }
 
@@ -483,75 +400,6 @@ function miniRow(m) {
     return m.summary
         ? `<button type="button" class="mini" data-meet-stats="${escapeHtml(m.id)}">${text}<span class="sr-only">, see team stats</span>${icon('chevron')}</button>`
         : `<div class="mini">${text}</div>`;
-}
-
-/* ---------------- Results popup ---------------- */
-function openMeetDialog(m, opener) {
-    if (!m || !m.summary) return;
-    const s = m.summary;
-    document.getElementById('meetDialogTitle').textContent = m.title;
-    document.getElementById('meetDialogWhen').textContent = `${fmtDate(m.date)} · Final`;
-    const body = document.getElementById('meetDialogBody');
-    body.innerHTML = scoreBanner(m) + statTiles(s) + seedCard(s) + dropCard(s.biggestDrop) + `
-        <p class="meet-foot">Individual and relay results from the official meet sheet. Biggest drop is the largest percent improvement over seed among swimmers age 7 and up.</p>
-        <button type="button" class="btn primary block view-all" disabled>View all swimmer results</button>`;
-    SiteUI.openDialog(document.getElementById('meetDialog'), opener);
-    body.scrollTop = 0; // only once it's showing; a hidden box keeps its old scroll position
-}
-
-function scoreBanner(m) {
-    const result = outcome(m);
-    if (!result) return '';
-    const label = result === 'loss' ? `Final team score · lost by ${Math.abs(m.teamScore - m.opponentScore)}` : 'Final team score';
-    return `
-        <div class="score-banner${result === 'loss' ? ' loss' : ''}">
-            <div>
-                <p class="banner-label">${escapeHtml(label)}</p>
-                <p class="banner-us">Spotswood ${escapeHtml(m.teamScore)}</p>
-                <p class="banner-them">${escapeHtml(m.opponent)} ${escapeHtml(m.opponentScore)}</p>
-            </div>
-            <span class="banner-chip">${OUTCOME_CHIPS[result]}</span>
-        </div>`;
-}
-
-function statTiles(s) {
-    const tile = (label, value, caption) => `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value">${escapeHtml(value)}</p><p class="stat-caption">${caption}</p></div>`;
-    return `
-        <div class="stat-grid">
-            ${tile('1st places', s.firstPlaces, 'Individual events')}
-            ${tile('Relay wins', `${s.relayWins} of ${s.relayEvents}`, 'Relays won')}
-            ${tile('Top-3 finishes', s.topThree, 'Individual podiums')}
-            ${tile('First-time swims', s.firstTimeSwims, 'No seed time on file')}
-        </div>`;
-}
-
-function seedCard(s) {
-    if (!s.timedWithSeed) return '';
-    const pct = Math.round(s.fasterThanSeed / s.timedWithSeed * 100);
-    return `
-        <div class="inset seed-card">
-            <div class="seed-ring" style="--pct: ${pct}"><span>${pct}%</span></div>
-            <div><h3>Swims faster than seed</h3><p>${s.fasterThanSeed} of ${plural(s.timedWithSeed, 'timed swim', 'timed swims')} beat the swimmer's seed time.</p></div>
-        </div>`;
-}
-
-function dropCard(drop) {
-    if (!drop) return '';
-    return `
-        <div class="gold-card drop-card">
-            <p class="drop-eyebrow">Biggest drop of the meet</p>
-            <div class="drop-who">
-                <span class="drop-avatar" aria-hidden="true">${escapeHtml(initials(drop.name))}</span>
-                <div class="drop-name">
-                    <p class="drop-swimmer">${escapeHtml(displayName(drop.name))}</p>
-                    <p class="drop-detail">${escapeHtml(shortEventName(drop.eventName))}${drop.age != null ? ` · age ${escapeHtml(drop.age)}` : ''}</p>
-                </div>
-                <div class="drop-times">
-                    <p class="drop-delta">−${drop.seconds.toFixed(2)}s</p>
-                    <p class="drop-detail">${escapeHtml(drop.seedTime)} → ${escapeHtml(drop.officialTime)} · ${(drop.percent * 100).toFixed(1)}%</p>
-                </div>
-            </div>
-        </div>`;
 }
 
 /* ---------------- Swimmer dropdown ---------------- */

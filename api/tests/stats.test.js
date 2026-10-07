@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { parseMeetResultsText } = require("../shared/meetResultsParser");
-const { meetSummary, teamScore, swimmerEvents, mostImproved, swimmerTotals } = require("../shared/stats");
+const { meetSummary, teamScore, swimmerEvents, mostImproved, swimmerTotals, rankHighlights, swimmerSeason } = require("../shared/stats");
 const { SHEET } = require("./sampleSheet");
 
 test("meetSummary counts Spotswood's swims by the handoff's definitions", () => {
@@ -84,9 +84,69 @@ test("mostImproved is the biggest percent drop below seed, and needs 2%", () => 
 });
 
 test("swimmerTotals", () => {
-    assert.deepEqual(
-        (({ firstPlaces, topThree, personalBests, meetsSwum, eventsSwum }) => ({ firstPlaces, topThree, personalBests, meetsSwum, eventsSwum }))(swimmerTotals(season)),
+    const { mostImproved: best, ...totals } = swimmerTotals(season);
+    assert.equal(best.eventName, "50m Back");
+    assert.deepEqual(totals, {
         // Meets swum leaves out m6 (a no-show there); events swum counts the DQ but not the no-show.
-        { firstPlaces: 2, topThree: 4, personalBests: 2, meetsSwum: 5, eventsSwum: 6 }
-    );
+        firstPlaces: 2, topThree: 4, personalBests: 2, meetsSwum: 5, eventsSwum: 6,
+        // For the tiles' captions: "2 different events", "Latest Jul 8", "Jun 10 to Jul 8".
+        differentEvents: 2, latestPersonalBestDate: "2026-07-08", firstMeetDate: "2026-06-10", lastMeetDate: "2026-07-08"
+    });
+    assert.deepEqual(swimmerTotals([]), {
+        firstPlaces: 0, topThree: 0, personalBests: 0, meetsSwum: 0, eventsSwum: 0, mostImproved: null,
+        differentEvents: 0, latestPersonalBestDate: null, firstMeetDate: null, lastMeetDate: null
+    });
+});
+
+// The four examples in design/mockups/spotswood_stats_header_states.html.
+const totals = (overrides) => ({ mostImproved: null, firstPlaces: 0, topThree: 0, personalBests: 0, meetsSwum: 0, eventsSwum: 0, ...overrides });
+const tileKeys = ranked => ranked.tiles.map(t => t.key);
+
+test("highlights: plenty of podiums but no firsts yet", () => {
+    const ranked = rankHighlights(totals({ mostImproved: { seconds: 12.78, percent: 0.193 }, topThree: 3, personalBests: 5, meetsSwum: 6, eventsSwum: 17 }));
+    // 1st places is skipped at 0, so Meets swum fills the fourth tile and Events swum isn't needed.
+    assert.deepEqual(tileKeys(ranked), ["mostImproved", "topThree", "personalBests", "meetsSwum"]);
+    assert.deepEqual(ranked.tiles.map(t => t.gold), [true, false, false, false]);
+    assert.equal(ranked.gettingStarted, false);
+});
+
+test("highlights: lots of firsts, and every podium was a win", () => {
+    // A drop under 2% never becomes mostImproved, so it stays null here.
+    const ranked = rankHighlights(totals({ firstPlaces: 6, topThree: 6, personalBests: 3, meetsSwum: 2, eventsSwum: 6 }));
+    // Top-3 equals 1st places, so it would only repeat it.
+    assert.deepEqual(tileKeys(ranked), ["firstPlaces", "personalBests", "meetsSwum", "eventsSwum"]);
+    assert.equal(ranked.tiles[0].gold, true);
+});
+
+test("highlights: a swimmer's first meet gets one plain tile and the getting-started line", () => {
+    const ranked = rankHighlights(totals({ meetsSwum: 1, eventsSwum: 3 }));
+    assert.deepEqual(tileKeys(ranked), ["eventsSwum"]);
+    // Events swum isn't a celebration stat, so it's never gold.
+    assert.equal(ranked.tiles[0].gold, false);
+    assert.equal(ranked.gettingStarted, true);
+});
+
+test("highlights: 3 firsts and 5 podiums keeps Top-3, since it adds something", () => {
+    const ranked = rankHighlights(totals({ mostImproved: { seconds: 3.1, percent: 0.062 }, firstPlaces: 3, topThree: 5, personalBests: 4, meetsSwum: 5, eventsSwum: 14 }));
+    assert.deepEqual(tileKeys(ranked), ["mostImproved", "firstPlaces", "topThree", "personalBests"]);
+});
+
+test("highlights: two plain tiles get no gold and no getting-started line", () => {
+    const ranked = rankHighlights(totals({ meetsSwum: 2, eventsSwum: 4 }));
+    assert.deepEqual(tileKeys(ranked), ["meetsSwum", "eventsSwum"]);
+    assert.deepEqual(ranked.tiles.map(t => t.gold), [false, false]);
+    assert.equal(ranked.gettingStarted, false);
+    assert.deepEqual(rankHighlights(totals({})), { tiles: [], gettingStarted: true });
+});
+
+test("swimmerSeason: age and season from the latest meet, tiles, and each event's swims", () => {
+    const swims = season.map(s => ({ ...s, name: "Doe, Jane", age: s.meetDate < "2026-07-01" ? 11 : 12, officialTime: s.officialSeconds == null ? s.status : String(s.officialSeconds) }));
+    const result = swimmerSeason("Doe, Jane", swims);
+    assert.equal(result.name, "Doe, Jane");
+    assert.equal(result.age, 12);
+    assert.equal(result.season, "2026");
+    assert.deepEqual(tileKeys(result.highlights), ["mostImproved", "firstPlaces", "topThree", "personalBests"]);
+    assert.deepEqual(result.events.map(e => e.eventName), ["50m Free", "50m Back"]);
+    assert.deepEqual(Object.keys(result.events[0].swims[0]).sort(), ["change", "meetDate", "meetId", "officialSeconds", "officialTime", "personalBest", "place", "status"]);
+    assert.deepEqual(result.events[1].swims.map(s => s.status), ["OK", "NS"]);
 });

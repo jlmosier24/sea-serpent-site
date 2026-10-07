@@ -220,3 +220,30 @@ dialog.dialog::backdrop { background: rgba(12,28,14,.55); }
     .dialog-head h2 { font-size: 21px; }
     .dialog-body { padding: 16px 18px calc(22px + env(safe-area-inset-bottom)); }
 }
+
+/* ---------- Meet results popup (built by Meets.openResults in /assets/meets.js) ---------- */
+.score-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 16px 18px; border-radius: 20px; background: var(--brand); color: #fff; }
+.score-banner.loss { background: var(--loss); }
+.banner-label { margin: 0 0 4px; font-size: 13px; font-weight: 600; opacity: .88; }
+.banner-us { margin: 0; font-family: var(--font-head); font-size: 26px; font-weight: 700; line-height: 1.15; }
+.banner-them { margin: 3px 0 0; font-size: 16px; opacity: .9; }
+.banner-chip { flex-shrink: 0; padding: 7px 15px; border-radius: var(--radius-round); background: var(--gold); color: var(--gold-ink); font-size: 13px; font-weight: 700; }
+.score-banner.loss .banner-chip { background: #E6EAE5; color: #2F3A33; }
+.seed-card { display: flex; align-items: center; gap: 16px; margin-top: 12px; padding: 14px 16px; border-radius: 20px; }
+.seed-ring { position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 70px; height: 70px; border-radius: 50%; background: conic-gradient(var(--brand) calc(var(--pct) * 3.6deg), var(--track) 0deg); }
+.seed-ring::after { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: var(--soft); }
+.seed-ring span { position: relative; z-index: 1; font-family: var(--font-head); font-size: 17px; font-weight: 700; }
+.seed-card h3 { margin: 0 0 3px; font-size: 17px; }
+.seed-card p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.drop-card { margin-top: 12px; padding: 14px 16px; border-radius: 20px; }
+.drop-eyebrow { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--gold-text); }
+.drop-who { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.drop-avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; background: var(--gold); color: var(--gold-ink); font-size: 14px; font-weight: 700; }
+.drop-name { flex: 1 1 130px; min-width: 0; }
+.drop-times { margin-left: auto; text-align: right; }
+.drop-swimmer { margin: 0; font-size: 16px; font-weight: 700; }
+.drop-delta { margin: 0; font-size: 18px; font-weight: 700; color: var(--brand); }
+.drop-detail { margin: 2px 0 0; font-size: 13px; color: var(--gold-text); }
+.meet-foot { margin: 14px 2px 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.view-all { margin-top: 16px; padding: 14px; font-size: 17px; }
+@media (max-width: 600px) { .banner-us { font-size: 22px; } }

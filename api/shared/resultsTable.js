@@ -122,13 +122,13 @@ async function listMeetRelayEntities(table, meetId) {
     return rows;
 }
 
-// Every distinct Spotswood swimmer name seen in Results, for stats.html's
-// picker -- there's no separately-maintained roster table (see build plan).
+// Every distinct Spotswood swimmer name seen in Results, for the swimmer
+// pickers on the home and Stats pages -- there's no separately-maintained
+// roster table (see build plan).
 // Results now holds both teams' rows (see meetResultsParser.js), so this
 // filters by team; swimmer-stats tracking is Spotswood-only by design, even
 // though the opposing team's rows are in the same table for resultsByMeet.
-async function listSwimmerNames() {
-    const table = getResultsTable();
+async function listSwimmerNames(table) {
     const names = new Set();
     for await (const entity of table.listEntities()) {
         if (isSpotswoodTeam(entity.team)) names.add(entity.partitionKey);

@@ -129,21 +129,88 @@ function mostImproved(swims) {
     return best;
 }
 
-// The season totals behind a swimmer's header tiles.
+// The season totals behind a swimmer's header tiles, plus the dates and
+// counts their captions use.
 function swimmerTotals(swims) {
     const scored = swims.filter(isScored);
+    const eventSwims = swims.filter(s => s.status === "OK" || s.status === "DQ");
+    // A no-show never got in the water.
+    const swum = swims.filter(s => s.status !== "NS");
+    const meetDates = [...new Set(swum.map(s => s.meetDate).filter(Boolean))].sort();
+    const bests = swimmerEvents(swims).flatMap(e => e.swims.filter(s => s.personalBest));
+    const bestDates = bests.map(s => s.meetDate).filter(Boolean).sort();
     return {
         firstPlaces: scored.filter(s => s.place === 1).length,
         topThree: scored.filter(s => s.place != null && s.place <= 3).length,
-        personalBests: swimmerEvents(swims).reduce((n, e) => n + e.swims.filter(s => s.personalBest).length, 0),
-        // A no-show never got in the water.
-        meetsSwum: new Set(swims.filter(s => s.status !== "NS").map(s => s.meetId)).size,
-        eventsSwum: swims.filter(s => s.status === "OK" || s.status === "DQ").length,
-        mostImproved: mostImproved(swims)
+        personalBests: bests.length,
+        meetsSwum: new Set(swum.map(s => s.meetId)).size,
+        eventsSwum: eventSwims.length,
+        mostImproved: mostImproved(swims),
+        differentEvents: new Set(eventSwims.map(s => s.eventName)).size,
+        latestPersonalBestDate: bestDates.length ? bestDates[bestDates.length - 1] : null,
+        firstMeetDate: meetDates.length ? meetDates[0] : null,
+        lastMeetDate: meetDates.length ? meetDates[meetDates.length - 1] : null
+    };
+}
+
+// The swimmer page's header tiles in ranked order (design/HANDOFF.md,
+// "Swimmer header card: ranked highlights"). Only the first tile can be
+// gold, and only when it's a celebration stat.
+const HIGHLIGHTS = [
+    { key: "mostImproved", celebration: true, applies: t => t.mostImproved != null },
+    { key: "firstPlaces", celebration: true, applies: t => t.firstPlaces >= 1 },
+    // When every podium was a win, Top-3 would only repeat 1st places.
+    { key: "topThree", celebration: true, applies: (t, shown) => t.topThree >= 1 && !(shown.has("firstPlaces") && t.topThree === t.firstPlaces) },
+    { key: "personalBests", celebration: true, applies: t => t.personalBests >= 1 },
+    { key: "meetsSwum", celebration: false, applies: t => t.meetsSwum >= 2 },
+    { key: "eventsSwum", celebration: false, applies: t => t.eventsSwum >= 1 }
+];
+const MAX_HIGHLIGHTS = 4;
+
+// The first four tiles that apply, from swimmerTotals. With fewer than two,
+// the page adds a "just getting started" line instead of padding with zeros.
+function rankHighlights(totals) {
+    const tiles = [];
+    const shown = new Set();
+    for (const highlight of HIGHLIGHTS) {
+        if (tiles.length === MAX_HIGHLIGHTS) break;
+        if (!highlight.applies(totals, shown)) continue;
+        tiles.push({ key: highlight.key, gold: tiles.length === 0 && highlight.celebration });
+        shown.add(highlight.key);
+    }
+    return { tiles, gettingStarted: tiles.length < 2 };
+}
+
+// Everything the swimmer page shows, from one swimmer's swims (each with its
+// meet's date): their age and season, the header tiles, and each event's
+// swims in order.
+function swimmerSeason(name, swims) {
+    const latest = [...swims].sort(byMeetThenEvent).pop();
+    const totals = swimmerTotals(swims);
+    return {
+        name,
+        age: latest ? latest.age : null,
+        season: latest && latest.meetDate ? latest.meetDate.slice(0, 4) : "",
+        totals,
+        highlights: rankHighlights(totals),
+        events: swimmerEvents(swims).map(e => ({
+            eventName: e.eventName,
+            seasonBestSeconds: e.seasonBestSeconds,
+            swims: e.swims.map(s => ({
+                meetId: s.meetId,
+                meetDate: s.meetDate,
+                status: s.status,
+                place: s.place,
+                officialTime: s.officialTime,
+                officialSeconds: s.officialSeconds,
+                change: s.change,
+                personalBest: s.personalBest
+            }))
+        }))
     };
 }
 
 module.exports = {
-    meetSummary, teamScore, swimmerEvents, mostImproved, swimmerTotals, dropBelowSeed,
+    meetSummary, teamScore, swimmerEvents, mostImproved, swimmerTotals, rankHighlights, swimmerSeason, dropBelowSeed,
     BIGGEST_DROP_MIN_AGE, MOST_IMPROVED_MIN_PERCENT
 };

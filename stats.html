@@ -8,397 +8,329 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/site.js"></script>
+<script src="/assets/meets.js"></script>
 <style>
-    :root {
-        --deep: #17261A; --navy: #2D6B34; --teal: #2F8F3E; --teal-dark: #1F6B2B;
-        --coral: #C1442E; --gold: #F0B429; --gold-dark: #D19B1F; --foam: #F6F8E7; --paper: #FFFFFF; --sub: #5B6B57; --line: rgba(22,38,27,0.12);
+    /* Stats page only. Cards, tiles, and the meet results popup come from /assets/site.css. */
+    .stats-stack { display: flex; flex-direction: column; gap: 22px; padding-bottom: 80px; }
+    .stats-list { display: flex; flex-direction: column; gap: 22px; }
+    .picker-label { display: block; margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
+    .swimmer-select { padding: 16px 18px; font-size: 18px; border-radius: 16px; }
+    .loading, .empty { margin: 0; padding: 24px 0; color: var(--muted-on-page); text-align: center; }
+
+    /* The swimmer's green header card, at full page width. */
+    .swimmer-hero { border-radius: var(--radius-card); padding: 26px; }
+    .swimmer-hero::before { width: 260px; height: 260px; right: -80px; top: -110px; }
+    .swimmer-hero::after { width: 140px; height: 140px; right: 40px; top: -40px; }
+    .swimmer-head { display: flex; align-items: center; gap: 16px; }
+    .swimmer-avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 60px; height: 60px; border-radius: 50%; background: var(--gold); color: var(--gold-ink); font-size: 20px; font-weight: 700; }
+    .swimmer-head h2 { margin: 0; font-size: 30px; line-height: 1.15; }
+    .swimmer-head p { margin: 4px 0 0; font-size: 16px; opacity: .9; }
+    .swimmer-tiles { margin-top: 22px; }
+    .getting-started { grid-column: span 3; display: flex; align-items: center; margin: 0; padding: 8px 6px 8px 14px; font-size: 16px; line-height: 1.45; opacity: .92; }
+
+    /* One card per event */
+    .event-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+    .event-head h3 { margin: 0; font-size: 21px; }
+    .season-best { padding: 6px 14px; border-radius: var(--radius-round); background: var(--ok-tint); color: var(--ok-text); font-size: 14px; font-weight: 700; white-space: nowrap; }
+    .chart-box { margin-bottom: 16px; padding: 10px 8px 6px; border-radius: 20px; }
+    .chart-box svg { display: block; }
+    .chart-note { margin: 0 12px 6px; text-align: right; font-size: 12.5px; color: var(--muted); }
+    .chart-grid { stroke: var(--soft-border); stroke-dasharray: 3 5; }
+    .chart-line { fill: none; stroke: var(--brand); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-dot { fill: #fff; stroke: var(--brand); stroke-width: 3; }
+    .chart-best { fill: var(--gold); stroke: #fff; stroke-width: 2.5; }
+    .chart-best-halo { fill: var(--gold); opacity: .28; }
+    .chart-value { font-size: 14px; font-weight: 700; fill: var(--ink); }
+    .chart-date { font-size: 12.5px; fill: var(--muted); }
+
+    .swims { width: 100%; border-collapse: collapse; }
+    .swims th { padding: 8px 10px; border-bottom: 1px solid var(--card-border); text-align: left; font-size: 14px; font-weight: 600; color: var(--muted); }
+    .swims td { padding: 12px 10px; border-bottom: 1px solid var(--card-border); font-size: 16px; vertical-align: middle; }
+    .swims tr:last-child td { border-bottom: 0; }
+    .swims td:first-child { white-space: nowrap; }
+    .swims .r { text-align: right; }
+    .opponent-link { display: inline-flex; align-items: center; gap: 2px; padding: 0; border: 0; background: none; color: var(--brand); font-size: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+    .opponent-link:hover { text-decoration: underline; }
+    .opponent-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+    /* Times and changes have fixed widths so they line up down the table. */
+    .time-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .time { display: inline-block; min-width: 4.6em; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .change { display: inline-block; min-width: 4.8em; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .change.faster { color: var(--brand); }
+    .change.slower { color: var(--muted); font-weight: 500; }
+    .pb-tag { padding: 1px 7px; border: 1px solid var(--gold-border); border-radius: 10px; background: var(--gold-tint); color: var(--gold-text); font-size: 11px; font-weight: 700; }
+    .swim-status { color: var(--muted); font-weight: 600; }
+    .place { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; border-radius: 50%; font-weight: 600; }
+    .place.podium { background: var(--gold); color: var(--gold-ink); font-weight: 700; }
+
+    @media (max-width: 760px) {
+        .getting-started { grid-column: span 1; padding-left: 4px; font-size: 14px; }
     }
-    * { box-sizing: border-box; }
-    [hidden] { display: none !important; }
-    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-    body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #D7E8BB 0%, #EDF4DE 45%, #FFFFFF 100%) no-repeat; font-family: 'Inter', sans-serif; color: var(--deep); }
-    h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
-
-    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
-    .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
-    .brand-mark { height: 26px; width: auto; display: block; }
-    .brand-name { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
-    .nav-links { display: flex; gap: 28px; font-size: 0.88rem; font-weight: 600; }
-    .nav-links a { color: var(--deep); text-decoration: none; }
-    .nav-links a:hover, .nav-links a.active { color: var(--teal-dark); }
-    .nav-toggle { display: none; background: none; border: none; padding: 4px; color: var(--deep); cursor: pointer; }
-    @media (max-width: 720px) {
-        .nav-links { position: absolute; top: 68px; left: 0; right: 0; background: var(--paper); flex-direction: column; gap: 0; padding: 8px 24px 16px; box-shadow: 0 12px 24px rgba(7,44,63,0.1); display: none; }
-        .nav-links.open { display: flex; }
-        .nav-links a { padding: 10px 0; border-bottom: 1px solid var(--line); }
-        .nav-toggle { display: block; }
+    @media (max-width: 600px) {
+        .swimmer-hero { padding: 20px 16px; }
+        .swimmer-head h2 { font-size: 26px; }
+        .event-card { padding: 20px 14px; }
+        .swims th, .swims td { padding: 10px 6px; }
+        .swims td { font-size: 15px; }
+        .time-cell { gap: 4px 6px; }
+        .time { min-width: 3.9em; }
+        .change { min-width: 4.4em; }
     }
-
-    main { max-width: 880px; margin: 0 auto; padding: 24px 24px 80px; }
-    h1 { font-size: 2rem; margin: 8px 0 4px; }
-    .lede { color: var(--sub); margin: 0 0 28px; }
-
-    .picker { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
-    select { flex: 1; min-width: 220px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-family: inherit; font-size: 0.95rem; background: var(--paper); color: var(--deep); }
-
-    .highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 28px; }
-    .highlight-tile { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; font-family: inherit; text-align: center; width: 100%; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
-    .highlight-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(22,38,27,0.08); }
-    .highlight-tile .htop { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 10px; color: var(--teal); }
-    .highlight-tile .hlabel { font-size: 0.76rem; font-weight: 600; color: var(--sub); }
-    .highlight-tile .hvalue { font-size: 1.6rem; font-weight: 700; color: var(--deep); line-height: 1.1; }
-    .highlight-tile .hcaption { font-size: 0.76rem; color: var(--sub); margin-top: 3px; }
-
-    dialog#highlightModal { border: none; border-radius: 18px; padding: 0; width: min(480px, 90vw); max-height: 80vh; overflow: hidden; box-shadow: 0 24px 48px rgba(22,38,27,0.18); color: var(--deep); font-family: 'Inter', sans-serif; }
-    dialog#highlightModal::backdrop { background: rgba(22,38,27,0.45); backdrop-filter: blur(2px); }
-    dialog#highlightModal .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); }
-    dialog#highlightModal .modal-head h3 { margin: 0; font-size: 1.05rem; }
-    dialog#highlightModal .modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: var(--sub); cursor: pointer; padding: 2px 6px; border-radius: 8px; }
-    dialog#highlightModal .modal-close:hover { color: var(--deep); background: var(--foam); }
-    #modalBody { padding: 14px 20px 20px; overflow-y: auto; max-height: calc(80vh - 58px); }
-    #modalBody table { font-size: 0.85rem; }
-
-    .event-card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; margin-bottom: 18px; }
-    .event-card h3 { margin: 0 0 4px; font-size: 1.05rem; }
-    .event-card .best { color: var(--teal-dark); font-weight: 700; font-size: 0.85rem; margin-bottom: 12px; }
-    .chart-wrap { margin: 8px 0 14px; }
-    .chart-wrap svg { width: 100%; height: 110px; display: block; }
-
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-    th { color: var(--sub); font-weight: 600; }
-    .status-dq, .status-ns { color: var(--coral); font-weight: 600; }
-
-    .empty, .loading { color: var(--sub); text-align: center; padding: 40px 0; }
-    footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
 </style>
 </head>
 <body>
-<nav>
-    <a class="brand" href="/">
-        <img class="brand-mark" src="/assets/logo.png" alt="Spotswood Sea Serpents logo">
-        <span class="brand-name">Spotswood Sea Serpents</span>
-    </a>
-    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="document.querySelector('.nav-links').classList.toggle('open'); this.setAttribute('aria-expanded', document.querySelector('.nav-links').classList.contains('open'))">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/schedule.html">Schedule</a>
-        <a href="/gallery.html">Gallery</a>
-        <a href="/stats.html" class="active">Stats</a>
-    </div>
-</nav>
-<main>
-    <h1>Swimmer Stats</h1>
-    <p class="lede">Pick a swimmer to see their times and results across the season.</p>
+<site-header current="stats"></site-header>
+<main class="wrap narrow">
+    <section class="page-title">
+        <h1>Swimmer Stats</h1>
+        <p>Pick a swimmer to see their times and results across the season.</p>
+    </section>
 
-    <div class="picker">
-        <select id="swimmerSelect"><option value="">Loading swimmers…</option></select>
+    <div class="stats-stack">
+        <section class="card">
+            <label class="picker-label" for="swimmerSelect">Swimmer</label>
+            <select class="input swimmer-select" id="swimmerSelect"><option value="">Loading swimmers…</option></select>
+        </section>
+        <div class="stats-list" id="swimmerContent"></div>
+        <p class="sr-only" id="swimmerStatus" role="status"></p>
     </div>
-
-    <div id="highlights" class="highlights"></div>
-    <div id="content"></div>
 </main>
-<dialog id="highlightModal" closedby="any" aria-labelledby="modalTitle">
-    <div class="modal-head">
-        <h3 id="modalTitle"></h3>
-        <button type="button" class="modal-close" aria-label="Close" onclick="document.getElementById('highlightModal').close()">&times;</button>
-    </div>
-    <div id="modalBody"></div>
-</dialog>
-<footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
+<site-footer></site-footer>
 <script>
-// All dynamic values below land in innerHTML somewhere, so everything is
-// escaped on general principle (see gallery.html for the case where that
-// actually matters -- public, unauthenticated submissions).
-function escapeHtml(str) {
-    // Quotes too, not just <>& -- output also lands inside attributes like alt="…".
-    return (str == null ? '' : String(str))
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
+const { escapeHtml, fmtShortDate, fmtSeconds, displayName, initials, shortEventName, plural } = Meets;
 
-function fmtTime(seconds) {
-    if (seconds == null) return '--';
-    if (seconds >= 60) {
-        const m = Math.floor(seconds / 60);
-        const s = (seconds % 60).toFixed(2).padStart(5, '0');
-        return `${m}:${s}`;
-    }
-    return seconds.toFixed(2);
-}
+// For each opponent's short name, and the results popup its name opens.
+let meetsById = {};
+const meetsReady = fetch('/api/meets')
+    .then(res => (res.ok ? res.json() : []))
+    .catch(() => [])
+    .then(meets => { meetsById = Object.fromEntries(meets.map(m => [m.id, m])); });
 
-function fmtShortDate(dateStr) {
-    if (!dateStr) return '';
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-// Small hand-rolled line chart (no charting library -- the site's CSP only
-// allows 'self' scripts). Faster times plot higher, since for swimming
-// "up" reading as "improving" is the intuitive direction.
-function buildChart(points) {
-    const w = 560, h = 110, padX = 12, padY = 16;
-    const times = points.map(p => p.seconds);
-    const min = Math.min(...times), max = Math.max(...times);
-    const range = max - min || 1;
-    const coords = points.map((p, i) => {
-        const x = points.length > 1 ? padX + (i / (points.length - 1)) * (w - padX * 2) : w / 2;
-        const y = padY + ((p.seconds - min) / range) * (h - padY * 2); // slower (larger) -> lower on screen is handled below
-        return { x, y: h - y };
-    });
-    const path = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
-    const dots = coords.map((c, i) => `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="4" fill="var(--teal)"><title>${escapeHtml(fmtShortDate(points[i].date))}: ${escapeHtml(fmtTime(points[i].seconds))}</title></circle>`).join('');
-    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="var(--teal)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>${dots}</svg>`;
-}
-
-// One inner-SVG-markup string per highlight type, all drawn in the same
-// stroke weight/viewBox as the rest of the site's hand-rolled icons.
-const HIGHLIGHT_ICONS = {
-    trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
-    trophy: '<path d="M8 4h8v4a4 4 0 01-8 0V4z"/><path d="M8 5H6a2 2 0 000 4h1"/><path d="M16 5h2a2 2 0 010 4h-1"/><path d="M12 12v3M9 19h6M10 15h4v4h-4z"/>',
-    medal: '<circle cx="12" cy="15" r="5"/><path d="M9.5 11L7 3M14.5 11L17 3M9.5 3h5"/>',
-    stopwatch: '<circle cx="12" cy="13" r="8"/><path d="M12 13V9M10 2h4M12 2v2"/>',
-    list: '<circle cx="4.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/>',
-    calendar: '<path d="M8 2v3M16 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>'
+/* ---------------- Header card ---------------- */
+// The tiles the ranking can pick (api/shared/stats.js rankHighlights), each
+// with its label, number, and caption from the swimmer's season totals.
+const TILES = {
+    mostImproved: t => ({ label: 'Most improved', value: `−${t.mostImproved.seconds.toFixed(2)}s`, caption: shortEventName(t.mostImproved.eventName) }),
+    firstPlaces: t => ({ label: '1st places', value: t.firstPlaces, caption: `of ${plural(t.eventsSwum, 'swim', 'swims')}` }),
+    topThree: t => ({ label: 'Top-3 finishes', value: t.topThree, caption: `of ${plural(t.eventsSwum, 'swim', 'swims')}` }),
+    personalBests: t => ({ label: 'Personal bests', value: t.personalBests, caption: t.latestPersonalBestDate ? `Latest ${fmtShortDate(t.latestPersonalBestDate)}` : '' }),
+    meetsSwum: t => ({ label: 'Meets swum', value: t.meetsSwum, caption: t.firstMeetDate ? `${fmtShortDate(t.firstMeetDate)} to ${fmtShortDate(t.lastMeetDate)}` : '' }),
+    eventsSwum: t => ({ label: 'Events swum', value: t.eventsSwum, caption: t.differentEvents === 1 ? '1 event' : `${t.differentEvents} different events` })
 };
 
-function highlightIcon(type) {
-    return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${HIGHLIGHT_ICONS[type]}</svg>`;
+function tileHtml(tile, totals) {
+    const { label, value, caption } = TILES[tile.key](totals);
+    return `
+        <div class="stat-tile ${tile.gold ? 'gold' : 'on-dark'}">
+            <p class="stat-label">${label}</p>
+            <p class="stat-value">${escapeHtml(value)}</p>
+            ${caption ? `<p class="stat-caption">${escapeHtml(caption)}</p>` : ''}
+        </div>`;
 }
 
-// Picks the season's best 3-4 storylines for this swimmer out of several
-// candidate stats, rather than always showing the same fixed set -- a
-// swimmer with no 1st-place finishes shouldn't lead with a "0". Each
-// candidate also carries the underlying rows (modalRows/modalColumns) so
-// clicking its tile can open a modal listing exactly what's behind the number.
-function computeHighlights(results) {
-    const ok = results.filter(r => r.status === 'OK');
-    const firstPlaceRows = ok.filter(r => r.place === 1);
-    const top3Rows = ok.filter(r => r.place != null && r.place <= 3);
-    const eventsSwumRows = results.filter(r => r.status === 'OK' || r.status === 'DQ');
+function swimmerHeader(season) {
+    const { tiles, gettingStarted } = season.highlights;
+    const about = [season.age != null && `Age ${season.age}`, season.season && `${season.season} season`].filter(Boolean).join(' · ');
+    return `
+        <section class="hero-card swimmer-hero" aria-labelledby="swimmerName">
+            <div class="swimmer-head">
+                <span class="swimmer-avatar" aria-hidden="true">${escapeHtml(initials(season.name))}</span>
+                <div>
+                    <h2 id="swimmerName">${escapeHtml(displayName(season.name))}</h2>
+                    ${about ? `<p>${escapeHtml(about)}</p>` : ''}
+                </div>
+            </div>
+            <div class="stat-grid four swimmer-tiles">
+                ${tiles.map(tile => tileHtml(tile, season.totals)).join('')}
+                ${gettingStarted ? '<p class="getting-started">Just getting started. More highlights will show up as the season goes on.</p>' : ''}
+            </div>
+        </section>`;
+}
 
-    const meetsSeen = new Map();
-    for (const r of results) {
-        if (!meetsSeen.has(r.meetId)) meetsSeen.set(r.meetId, { meetDate: r.meetDate, meetTitle: r.meetTitle });
+/* ---------------- Event cards ---------------- */
+const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+const STATUS_TEXT = { DQ: 'DQ', NS: 'Did not swim', DNF: 'Did not finish' };
+
+function timedSwims(event) {
+    return event.swims.filter(s => s.status === 'OK' && s.officialSeconds != null);
+}
+
+function eventCard(event, index) {
+    return `
+        <section class="card event-card" aria-labelledby="event-${index}">
+            <div class="event-head">
+                <h3 id="event-${index}">${escapeHtml(event.eventName)}</h3>
+                ${event.seasonBestSeconds != null ? `<span class="season-best">Season best ${escapeHtml(fmtSeconds(event.seasonBestSeconds))}</span>` : ''}
+            </div>
+            ${timedSwims(event).length > 1 ? `<div class="inset chart-box" data-event="${index}" aria-hidden="true"></div>` : ''}
+            <table class="swims">
+                <thead><tr><th scope="col">Meet</th><th scope="col">Opponent</th><th scope="col">Time</th><th scope="col" class="r">Place</th></tr></thead>
+                <tbody>${event.swims.map(swimRow).join('')}</tbody>
+            </table>
+        </section>`;
+}
+
+function swimRow(swim) {
+    const meet = meetsById[swim.meetId];
+    const opponent = meet ? meet.shortName || meet.opponent : '';
+    // Only a meet with its numbers saved has a popup to open.
+    const opponentCell = meet && meet.summary
+        ? `<button type="button" class="opponent-link" data-meet="${escapeHtml(swim.meetId)}">${escapeHtml(opponent)}<span class="sr-only">, meet results</span>${CHEVRON}</button>`
+        : escapeHtml(opponent);
+    return `<tr><td>${escapeHtml(fmtShortDate(swim.meetDate))}</td><td>${opponentCell}</td><td>${timeCell(swim)}</td><td class="r">${placeCell(swim)}</td></tr>`;
+}
+
+// Time, then the change from the previous swim in this event, then a PB tag.
+// A DQ, no-show, or did-not-finish shows that instead; an exhibition swim
+// isn't scored, so it gets no change or PB.
+function timeCell(swim) {
+    if (swim.status === 'EXH') return `<div class="time-cell"><span class="time">${escapeHtml(swim.officialTime)}</span><span class="badge">Exhibition</span></div>`;
+    if (swim.status !== 'OK') return `<span class="swim-status">${escapeHtml(STATUS_TEXT[swim.status] || swim.status)}</span>`;
+    const pb = swim.personalBest ? '<span class="pb-tag"><span aria-hidden="true">PB</span><span class="sr-only">Personal best</span></span>' : '';
+    return `<div class="time-cell"><span class="time">${escapeHtml(swim.officialTime)}</span>${changeHtml(swim.change)}${pb}</div>`;
+}
+
+function changeHtml(change) {
+    if (!change) return '<span class="change"></span>'; // first swim in the event, or no change; still holds the column
+    const faster = change < 0;
+    const seconds = Math.abs(change).toFixed(2);
+    return `<span class="change ${faster ? 'faster' : 'slower'}"><span aria-hidden="true">${faster ? '▼' : '▲'} ${seconds}s</span><span class="sr-only">${seconds} seconds ${faster ? 'faster' : 'slower'}</span></span>`;
+}
+
+function placeCell(swim) {
+    if (swim.status !== 'OK' || swim.place == null) return '';
+    return `<span class="place${swim.place <= 3 ? ' podium' : ''}">${escapeHtml(swim.place)}</span>`;
+}
+
+/* ---------------- Charts ---------------- */
+// One event's times across the season. Lower on the chart is faster, and the
+// fastest swim is the gold dot. When the dots are close together, only the
+// first, last, and fastest get labels; the table below has every time.
+function chartSvg(swims, width) {
+    const H = 190, L = 40, R = 40, T = 40, B = 44;
+    const n = swims.length;
+    const values = swims.map(s => s.officialSeconds);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = (max - min) || 1;
+    const lo = min - range * 0.12;
+    const hi = max + range * 0.12;
+    const spacing = (width - L - R) / (n - 1);
+    const x = i => L + i * spacing;
+    const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+    const fastest = values.indexOf(min);
+    const labeled = i => spacing >= 60 || i === 0 || i === n - 1 || i === fastest;
+    const dated = i => spacing >= 46 || labeled(i);
+
+    let svg = `<svg width="${width}" height="${H}" viewBox="0 0 ${width} ${H}">`;
+    for (const f of [0, 0.5, 1]) {
+        const gy = T + f * (H - T - B);
+        svg += `<line class="chart-grid" x1="${L}" x2="${width - R}" y1="${gy}" y2="${gy}"/>`;
     }
-    const meetsRows = [...meetsSeen.values()];
-
-    // A personal best is a swim that beat every earlier swim in that same
-    // event this season -- the first swim in a new event doesn't count,
-    // since there's nothing yet for it to have beaten.
-    const byEvent = new Map();
-    for (const r of ok) {
-        if (r.officialSeconds == null) continue;
-        if (!byEvent.has(r.eventName)) byEvent.set(r.eventName, []);
-        byEvent.get(r.eventName).push(r);
-    }
-    const personalBestRows = [];
-    let mostImproved = null;
-    for (const [eventName, swims] of byEvent) {
-        const sorted = swims.slice().sort((a, b) => a.meetDate.localeCompare(b.meetDate));
-        let best = sorted[0].officialSeconds;
-        for (let i = 1; i < sorted.length; i++) {
-            if (sorted[i].officialSeconds < best) {
-                personalBestRows.push(sorted[i]);
-                best = sorted[i].officialSeconds;
-            }
-        }
-        if (sorted.length > 1) {
-            const drop = sorted[0].officialSeconds - sorted[sorted.length - 1].officialSeconds;
-            if (drop > 0.005 && (!mostImproved || drop > mostImproved.dropSeconds)) {
-                mostImproved = { eventName, dropSeconds: drop, rows: sorted };
-            }
-        }
-    }
-
-    const candidates = [];
-    if (mostImproved) {
-        candidates.push({
-            icon: 'trend', label: 'Most improved', value: `-${mostImproved.dropSeconds.toFixed(2)}s`, valueColor: 'var(--teal-dark)', caption: mostImproved.eventName,
-            modalTitle: mostImproved.eventName, modalColumns: ['date', 'meet', 'time'], modalRows: mostImproved.rows
-        });
-    }
-    if (firstPlaceRows.length > 0) candidates.push({ icon: 'trophy', label: 'First-place finishes', value: String(firstPlaceRows.length), modalTitle: 'First-place finishes', modalColumns: ['date', 'meet', 'event', 'time'], modalRows: firstPlaceRows });
-    if (top3Rows.length > 0) candidates.push({ icon: 'medal', label: 'Top-3 finishes', value: String(top3Rows.length), modalTitle: 'Top-3 finishes', modalColumns: ['date', 'meet', 'event', 'time', 'place'], modalRows: top3Rows });
-    if (personalBestRows.length > 0) candidates.push({ icon: 'stopwatch', label: 'Personal bests', value: String(personalBestRows.length), modalTitle: 'Personal bests', modalColumns: ['date', 'meet', 'event', 'time'], modalRows: personalBestRows });
-    candidates.push({ icon: 'list', label: 'Events swum', value: String(eventsSwumRows.length), modalTitle: 'Events swum', modalColumns: ['date', 'meet', 'event', 'time', 'place'], modalRows: eventsSwumRows });
-    candidates.push({ icon: 'calendar', label: 'Meets attended', value: String(meetsRows.length), modalTitle: 'Meets attended', modalColumns: ['date', 'meet'], modalRows: meetsRows });
-
-    return candidates.slice(0, 4);
-}
-
-let currentHighlights = [];
-
-// Event names are always "<gender> <age group> <distance><unit> <stroke>"
-// (e.g. "Girls 9-10 25m Backstroke") -- the gender/age-group prefix is
-// redundant once a specific swimmer is already selected, so this tile only
-// shows the distance+stroke. The distance+unit token (digits glued
-// directly to "m"/"yd", unlike the age group's own numbers) is a reliable
-// place to find where that prefix ends.
-function trimEventCaption(text) {
-    const m = text.match(/^.+?\s+(\d+(?:yd|m)\s+.+)$/);
-    return escapeHtml(m ? m[1] : text);
-}
-
-function renderHighlights(results) {
-    const box = document.getElementById('highlights');
-    currentHighlights = computeHighlights(results);
-    box.innerHTML = currentHighlights.map((h, i) => `
-        <button type="button" class="highlight-tile" onclick="openHighlightModal(${i})">
-            <div class="htop">${highlightIcon(h.icon)}<span class="hlabel">${escapeHtml(h.label)}</span></div>
-            <div class="hvalue" style="${h.valueColor ? `color:${h.valueColor}` : ''}">${escapeHtml(h.value)}</div>
-            ${h.caption ? `<div class="hcaption">${trimEventCaption(h.caption)}</div>` : ''}
-        </button>
-    `).join('');
-    equalizeHighlightHeights();
-}
-
-// Grid's own row-stretch only matches tiles within the same row, not
-// across every row -- this makes all tiles match each other regardless of
-// row, recomputed whenever a resize could change which tile is tallest
-// (e.g. the grid reflowing to fewer columns, or a caption wrapping
-// differently at a new width).
-function equalizeHighlightHeights() {
-    const tiles = document.querySelectorAll('.highlight-tile');
-    if (!tiles.length) return;
-    tiles.forEach(t => { t.style.minHeight = ''; });
-    const tallest = Math.max(...[...tiles].map(t => t.getBoundingClientRect().height));
-    tiles.forEach(t => { t.style.minHeight = `${tallest}px`; });
-}
-
-let equalizeHighlightsResizeTimer = null;
-window.addEventListener('resize', () => {
-    clearTimeout(equalizeHighlightsResizeTimer);
-    equalizeHighlightsResizeTimer = setTimeout(equalizeHighlightHeights, 150);
-});
-
-const MODAL_COLUMN_LABELS = { date: 'Meet', meet: 'Opponent', event: 'Event', time: 'Time', place: 'Place' };
-
-function modalCellValue(col, r) {
-    switch (col) {
-        case 'date': return escapeHtml(fmtShortDate(r.meetDate));
-        case 'meet': return escapeHtml(r.meetTitle);
-        case 'event': return escapeHtml(r.eventName);
-        case 'time': return escapeHtml(r.status && r.status !== 'OK' ? r.status : fmtTime(r.officialSeconds));
-        case 'place': return escapeHtml(r.place || '');
-        default: return '';
-    }
-}
-
-function openHighlightModal(index) {
-    const h = currentHighlights[index];
-    if (!h) return;
-    const rows = h.modalRows.slice().sort((a, b) => (a.meetDate || '').localeCompare(b.meetDate || ''));
-    document.getElementById('modalTitle').textContent = h.modalTitle;
-    document.getElementById('modalBody').innerHTML = `
-        <table>
-            <thead><tr>${h.modalColumns.map(c => `<th>${MODAL_COLUMN_LABELS[c]}</th>`).join('')}</tr></thead>
-            <tbody>${rows.map(r => `<tr>${h.modalColumns.map(c => `<td>${modalCellValue(c, r)}</td>`).join('')}</tr>`).join('')}</tbody>
-        </table>
-    `;
-    document.documentElement.style.overflow = 'hidden';
-    document.getElementById('highlightModal').showModal();
-}
-
-// closedby="any" (click-outside-to-close) isn't supported everywhere yet
-// (missing in Safari as of this writing) -- fall back to manually closing
-// on a genuine backdrop click. Esc-to-close needs no fallback; showModal()
-// has handled that natively for as long as <dialog> has existed.
-(function () {
-    const dialog = document.getElementById('highlightModal');
-    if ('closedBy' in HTMLDialogElement.prototype) return;
-    dialog.addEventListener('click', (event) => {
-        if (event.target !== dialog) return;
-        const rect = dialog.getBoundingClientRect();
-        const inside = rect.top <= event.clientY && event.clientY <= rect.top + rect.height && rect.left <= event.clientX && event.clientX <= rect.left + rect.width;
-        if (!inside) dialog.close();
+    svg += `<polyline class="chart-line" points="${swims.map((s, i) => `${x(i).toFixed(1)},${y(s.officialSeconds).toFixed(1)}`).join(' ')}"/>`;
+    swims.forEach((s, i) => {
+        const cx = x(i).toFixed(1);
+        const cy = y(s.officialSeconds);
+        svg += i === fastest
+            ? `<circle class="chart-best-halo" cx="${cx}" cy="${cy.toFixed(1)}" r="12"/><circle class="chart-best" cx="${cx}" cy="${cy.toFixed(1)}" r="8"/>`
+            : `<circle class="chart-dot" cx="${cx}" cy="${cy.toFixed(1)}" r="6"/>`;
+        if (labeled(i)) svg += `<text class="chart-value" x="${cx}" y="${(cy - 16).toFixed(1)}" text-anchor="middle">${escapeHtml(s.officialTime)}</text>`;
+        if (dated(i)) svg += `<text class="chart-date" x="${cx}" y="${H - 14}" text-anchor="middle">${escapeHtml(fmtShortDate(s.meetDate))}</text>`;
     });
-})();
+    return svg + '</svg>';
+}
 
-// The page behind a modal <dialog> isn't guaranteed to stop scrolling on
-// its own (varies by browser), so this locks it explicitly on open --
-// 'close' fires no matter how the dialog closed (button, backdrop, Esc),
-// so unlocking here covers every path from one place.
-document.getElementById('highlightModal').addEventListener('close', () => {
-    document.documentElement.style.overflow = '';
+let shownSeason = null;
+
+// Charts are drawn to the box's width, so they're redrawn when the window resizes.
+function drawCharts() {
+    if (!shownSeason) return;
+    document.querySelectorAll('.chart-box').forEach(box => {
+        const width = Math.max(220, Math.floor(box.clientWidth - 16));
+        box.innerHTML = chartSvg(timedSwims(shownSeason.events[box.dataset.event]), width) + '<p class="chart-note">Lower is faster</p>';
+    });
+}
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(drawCharts, 120);
 });
+
+/* ---------------- Loading a swimmer ---------------- */
+let loadCount = 0;
 
 async function loadSwimmer(name) {
-    const content = document.getElementById('content');
-    const highlights = document.getElementById('highlights');
-    if (!name) { content.innerHTML = ''; highlights.innerHTML = ''; return; }
-    content.innerHTML = '<p class="loading">Loading results…</p>';
-    highlights.innerHTML = '';
-
-    let results;
+    const load = ++loadCount;
+    const box = document.getElementById('swimmerContent');
+    const status = document.getElementById('swimmerStatus');
+    shownSeason = null;
+    document.title = name ? `${displayName(name)} | Stats | Spotswood Sea Serpents` : 'Stats | Spotswood Sea Serpents';
+    if (!name) {
+        box.innerHTML = '';
+        status.textContent = '';
+        return;
+    }
+    box.innerHTML = '<p class="loading">Loading results…</p>';
+    let season = null;
+    let problem = '';
     try {
-        const res = await fetch(`/api/swimmerStats?name=${encodeURIComponent(name)}`);
-        results = await res.json();
+        const [res] = await Promise.all([fetch(`/api/swimmerStats?name=${encodeURIComponent(name)}`), meetsReady]);
+        if (res.status === 404) problem = 'No results on record for this swimmer yet.';
+        else if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        else season = await res.json();
     } catch (e) {
-        content.innerHTML = '<p class="empty">Couldn\'t load results right now.</p>';
+        problem = 'Couldn\'t load results right now.';
+    }
+    if (load !== loadCount) return; // a newer pick has taken over
+    if (!season) {
+        box.innerHTML = `<p class="empty">${escapeHtml(problem)}</p>`;
+        status.textContent = problem;
         return;
     }
-
-    if (!results.length) {
-        content.innerHTML = '<p class="empty">No results on record for this swimmer yet.</p>';
-        return;
-    }
-
-    renderHighlights(results);
-
-    const byEvent = new Map();
-    for (const r of results) {
-        if (!byEvent.has(r.eventName)) byEvent.set(r.eventName, []);
-        byEvent.get(r.eventName).push(r);
-    }
-
-    content.innerHTML = [...byEvent.entries()].map(([eventName, rows]) => {
-        const timed = rows.filter(r => r.status === 'OK' && r.officialSeconds != null);
-        const best = timed.length ? Math.min(...timed.map(r => r.officialSeconds)) : null;
-        const chartPoints = timed.map(r => ({ date: r.meetDate, seconds: r.officialSeconds })).sort((a, b) => a.date.localeCompare(b.date));
-
-        const rowsHtml = rows.slice().sort((a, b) => (a.meetDate || '').localeCompare(b.meetDate || '')).map(r => `
-            <tr>
-                <td>${escapeHtml(fmtShortDate(r.meetDate))}</td>
-                <td>${escapeHtml(r.meetTitle)}</td>
-                <td class="${r.status !== 'OK' ? 'status-' + r.status.toLowerCase() : ''}">${r.status === 'OK' ? escapeHtml(fmtTime(r.officialSeconds)) : escapeHtml(r.status)}</td>
-                <td>${escapeHtml(r.place || '')}</td>
-            </tr>
-        `).join('');
-
-        return `
-            <div class="event-card">
-                <h3>${escapeHtml(eventName)}</h3>
-                ${best != null ? `<div class="best">Season best: ${escapeHtml(fmtTime(best))}</div>` : ''}
-                ${chartPoints.length > 1 ? `<div class="chart-wrap">${buildChart(chartPoints)}</div>` : ''}
-                <table>
-                    <thead><tr><th>Meet</th><th>Opponent</th><th>Time</th><th>Place</th></tr></thead>
-                    <tbody>${rowsHtml}</tbody>
-                </table>
-            </div>
-        `;
-    }).join('');
+    shownSeason = season;
+    box.innerHTML = swimmerHeader(season) + season.events.map(eventCard).join('');
+    drawCharts();
+    status.textContent = `Showing stats for ${displayName(season.name)}.`;
 }
 
+document.getElementById('swimmerContent').addEventListener('click', (event) => {
+    const link = event.target.closest('.opponent-link');
+    if (link) Meets.openResults(meetsById[link.dataset.meet], link);
+});
+
+/* ---------------- Swimmer dropdown ---------------- */
+// A pick loads on this page and goes into the address, so a swimmer's stats
+// can be bookmarked or shared (the home page's dropdown links here the same way).
+const select = document.getElementById('swimmerSelect');
+let pickTimer = null;
+select.addEventListener('change', () => {
+    // Arrow keys step through the names one at a time; load once they pause.
+    clearTimeout(pickTimer);
+    pickTimer = setTimeout(() => {
+        history.replaceState(null, '', select.value ? `?swimmer=${encodeURIComponent(select.value)}` : location.pathname);
+        loadSwimmer(select.value);
+    }, 150);
+});
+
 (async function () {
-    const select = document.getElementById('swimmerSelect');
     try {
         const res = await fetch('/api/swimmerStats');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const { swimmers } = await res.json();
         if (!swimmers.length) {
             select.innerHTML = '<option value="">No swimmers on record yet</option>';
             return;
         }
         select.innerHTML = '<option value="">Choose a swimmer…</option>' + swimmers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-        select.addEventListener('change', () => loadSwimmer(select.value));
-
-        const params = new URLSearchParams(location.search);
-        const preset = params.get('swimmer');
+        const preset = new URLSearchParams(location.search).get('swimmer');
         if (preset && swimmers.includes(preset)) {
             select.value = preset;
             loadSwimmer(preset);
+        } else if (preset) {
+            document.getElementById('swimmerContent').innerHTML = '<p class="empty">We couldn\'t find that swimmer. Pick one from the list above.</p>';
         }
     } catch (e) {
         select.innerHTML = '<option value="">Couldn\'t load swimmers</option>';

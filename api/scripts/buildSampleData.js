@@ -16,6 +16,7 @@ const { extractPdfText } = require("../shared/pdfText");
 const { parseMeetResultsText, isSpotswoodTeam } = require("../shared/meetResultsParser");
 const { slugify, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { toResultEntity, toResultDto, toRelayResultEntity, toRelayResultDto } = require("../shared/resultsTable");
+const { meetSummary, swimmerSeason } = require("../shared/stats");
 
 const OUT_DIR = path.join(__dirname, "..", "..", "sample-data");
 
@@ -47,7 +48,7 @@ async function main() {
     ensureDir(OUT_DIR);
 
     const meetDtos = [];
-    const spotswoodResultDtos = []; // Spotswood only -- enriched with meetDate/meetTitle, like swimmerStats returns
+    const spotswoodResultDtos = []; // Spotswood only, each with its meet's date, as swimmerStats reads them
     let totalUnparsed = 0;
 
     for (const m of MEETS) {
@@ -75,6 +76,9 @@ async function main() {
         }
         meetEntity.teamScore = teamScore;
         meetEntity.opponentScore = opponentScore;
+        // The numbers an import saves for the meet results popup.
+        meetEntity.resultsImported = true;
+        meetEntity.summaryJson = JSON.stringify(meetSummary(parsed.individual, parsed.relays));
         console.log(`  score: Spotswood ${teamScore} - ${m.opponent} ${opponentScore}`);
 
         const meetDto = toMeetDto(meetEntity);
@@ -90,7 +94,7 @@ async function main() {
         // Swimmer-stats fixtures stay Spotswood-only, matching
         // listSwimmerNames()/swimmerStats's real filtering.
         for (const dto of individualDtos) {
-            if (isSpotswoodTeam(dto.team)) spotswoodResultDtos.push({ ...dto, meetDate: meetDto.date, meetTitle: meetDto.title });
+            if (isSpotswoodTeam(dto.team)) spotswoodResultDtos.push({ ...dto, meetDate: meetDto.date });
         }
     }
 
@@ -103,11 +107,9 @@ async function main() {
     const swimmerNames = [...new Set(spotswoodResultDtos.map(r => r.name))].sort((a, b) => a.localeCompare(b));
     writeJson(path.join(OUT_DIR, "swimmer-names.json"), { swimmers: swimmerNames });
 
+    // Each swimmer's season, built the same way /api/swimmerStats?name= builds it.
     for (const name of swimmerNames) {
-        const rows = spotswoodResultDtos
-            .filter(r => r.name === name)
-            .sort((a, b) => a.meetDate.localeCompare(b.meetDate) || a.eventNumber - b.eventNumber);
-        writeJson(path.join(OUT_DIR, "swimmer", `${slugify(name)}.json`), rows);
+        writeJson(path.join(OUT_DIR, "swimmer", `${slugify(name)}.json`), swimmerSeason(name, spotswoodResultDtos.filter(r => r.name === name)));
     }
 
     console.log(`\n${meetDtos.length} meets, ${swimmerNames.length} Spotswood swimmers, ${spotswoodResultDtos.length} Spotswood individual results, ${totalUnparsed} unparsed lines across all meets.`);
