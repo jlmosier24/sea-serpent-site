@@ -132,8 +132,10 @@ site-header, site-footer { display: block; }
 .stat-caption { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
 .stat-tile.gold { background: var(--gold); border-color: transparent; color: var(--gold-ink); }
 .stat-tile.gold .stat-label, .stat-tile.gold .stat-caption { color: var(--gold-ink); opacity: .85; }
-.stat-tile.on-dark { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.24); color: #fff; }
-.stat-tile.on-dark .stat-label, .stat-tile.on-dark .stat-caption { color: #fff; opacity: .92; }
+/* A light wash and full-white text: at the hero card's lightest corner this is
+   4.9:1, where a stronger wash with faded text fell under 4.5:1. */
+.stat-tile.on-dark { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.24); color: #fff; }
+.stat-tile.on-dark .stat-label, .stat-tile.on-dark .stat-caption { color: #fff; }
 
 /* ---------- Chips, badges, pills ---------- */
 .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -142,6 +144,8 @@ site-header, site-footer { display: block; }
 .chip:hover { border-color: var(--brand); }
 .chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
 .chip-count { margin-left: 4px; font-weight: 500; opacity: .75; }
+/* Faded white on the selected chip's green needs a little more strength to stay readable. */
+.chip[aria-pressed="true"] .chip-count { opacity: .85; }
 .badge { display: inline-block; padding: 3px 11px; border-radius: var(--radius-round); background: #EEF1E8; color: var(--muted); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
 .badge.ok { background: var(--ok-tint); color: var(--ok-text); }
 .badge.gold { background: var(--gold); color: var(--gold-ink); }

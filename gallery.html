@@ -21,6 +21,7 @@
     .gallery-title .btn { padding: 12px 22px; font-size: 16px; }
     .photo-count { color: var(--muted); font-size: 15px; font-weight: 500; white-space: nowrap; }
     .gallery-card .chip-row { margin-bottom: 20px; }
+    .filter-note { margin: -6px 0 16px; color: var(--muted); font-size: 15px; }
     .loading, .empty { margin: 0; padding: 40px 10px; color: var(--muted); text-align: center; }
 
     .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
@@ -71,6 +72,7 @@
     <section class="card gallery-card" aria-labelledby="galleryHeading">
         <div class="card-head"><h2 id="galleryHeading">All photos</h2><span class="photo-count" id="photoCount" role="status"></span></div>
         <div class="chip-row" id="photoFilters" role="group" aria-label="Show photos from"></div>
+        <p class="filter-note" id="filterNote" hidden>No photos from that meet yet, so here are all of them.</p>
         <div class="photo-grid" id="photoGrid"><p class="loading">Loading photos…</p></div>
     </section>
 </main>
@@ -151,6 +153,9 @@ filtersBox.addEventListener('click', (event) => {
     if (!chip) return;
     filter = chip.dataset.filter;
     filtersBox.querySelectorAll('[data-filter]').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+    document.getElementById('filterNote').hidden = true;
+    // The address follows the filter, so a meet's photos can be linked to or bookmarked.
+    history.replaceState(null, '', filter === 'all' ? location.pathname : `?meet=${encodeURIComponent(filter)}`);
     renderGrid();
 });
 
@@ -164,6 +169,11 @@ async function loadPhotos() {
         const res = await fetch('/api/galleryPublic');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         photos = await res.json();
+        // A link for one meet (like the home page's "View photos") opens on that meet's photos.
+        const wanted = new URLSearchParams(location.search).get('meet');
+        const found = !!wanted && filterOptions().some(o => o.key === wanted);
+        if (found) filter = wanted;
+        document.getElementById('filterNote').hidden = !wanted || found;
         renderFilters();
         renderGrid();
     } catch (e) {
