@@ -35,6 +35,12 @@
     .upcoming { padding: 20px; }
     .upcoming h3 { font-size: 23px; margin: 18px 0 8px; }
     .upcoming-line { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 16px; font-weight: 500; color: var(--gold-text); }
+    .upcoming-line b { font-weight: 700; }
+    /* "Warm-up:" and "Meet start:" share a width, so the two times line up. */
+    .time-label { min-width: 5.2em; margin-right: -3px; }
+    /* The date pill and forecast chip stay side by side even on narrow phones. */
+    .upcoming .card-top { flex-wrap: nowrap; }
+    .upcoming .forecast { min-width: 0; }
     .forecast { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 10px; border: 1px solid var(--gold-border); border-radius: 20px; background: #fff; font-size: 14px; font-weight: 600; }
     .forecast svg { width: 20px; height: 20px; flex-shrink: 0; color: #D58B00; }
     .forecast svg.overcast { color: var(--muted); }
@@ -148,6 +154,7 @@ const ICONS = {
     chart: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
     camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     chevron: '<path d="M9 6l6 6-6 6"/>',
+    flag: '<path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/>',
     pause: '<path d="M9 6v12M15 6v12"/>',
     play: '<path d="M8 5.5v13l10-6.5z"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -196,12 +203,12 @@ function renderNextMeet(m) {
     const box = document.getElementById('nextMeet');
     box.innerHTML = `
         <div class="card-top">
-            <span class="pill">${escapeHtml(fmtDate(m.date))}${m.time ? ` · ${escapeHtml(fmtClock(m.time))}` : ''}</span>
+            <span class="pill">${escapeHtml(fmtDate(m.date))}</span>
             <span class="forecast" id="forecastChip" hidden></span>
         </div>
         <h3>${escapeHtml(m.title)}</h3>
         ${where ? `<p class="upcoming-line">${icon('pin')}${escapeHtml(where)}</p>` : ''}
-        ${m.warmUp ? `<p class="upcoming-line">${icon('clock')}Warm-up at ${escapeHtml(fmtClock(m.warmUp))}</p>` : ''}
+        ${meetTimes(m)}
         <p class="weather-note" id="weatherNote" hidden></p>
         <div class="btn-row">
             ${destination ? `<a class="btn primary" href="https://www.google.com/maps/dir/?api=1&amp;destination=${encodeURIComponent(destination)}" target="_blank" rel="noopener">${icon('pin')}Directions</a>` : ''}
@@ -210,6 +217,13 @@ function renderNextMeet(m) {
     box.querySelector('#addToCalendar').addEventListener('click', () => downloadCalendarFile(m));
     card.hidden = false;
     loadForecast(m);
+}
+
+// "Warm-up: 5:15pm" and "Meet start: 6:00pm", each row left out when its time isn't set.
+function meetTimes(m) {
+    const rows = [m.warmUp && ['clock', 'Warm-up:', m.warmUp], m.time && ['flag', 'Meet start:', m.time]].filter(Boolean);
+    if (!rows.length) return '<p class="upcoming-line">Times to be announced.</p>';
+    return rows.map(([name, label, time]) => `<p class="upcoming-line">${icon(name)}<span class="time-label">${label}</span><b>${escapeHtml(fmtClock(time))}</b></p>`).join('');
 }
 
 // The Weather Service forecasts about a week ahead.

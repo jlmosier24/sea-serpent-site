@@ -54,6 +54,8 @@
     .swims td:first-child { white-space: nowrap; }
     .swims .r { text-align: right; }
     .opponent-link { display: inline-flex; align-items: center; gap: 2px; padding: 0; border: 0; background: none; color: var(--brand); font-size: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+    /* A long one-word name breaks instead of pushing the table wider than a phone. */
+    .swims td:nth-child(2) { overflow-wrap: anywhere; }
     .opponent-link:hover { text-decoration: underline; }
     .opponent-link svg { width: 16px; height: 16px; flex-shrink: 0; }
     /* Times and changes have fixed widths so they line up down the table. */
