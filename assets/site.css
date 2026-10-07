@@ -247,3 +247,12 @@ dialog.dialog::backdrop { background: rgba(12,28,14,.55); }
 .meet-foot { margin: 14px 2px 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
 .view-all { margin-top: 16px; padding: 14px; font-size: 17px; }
 @media (max-width: 600px) { .banner-us { font-size: 22px; } }
+
+/* ---------- Photo viewer (built by Photos.open in /assets/photos.js) ---------- */
+.viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.viewer-top .pill { padding: 6px 14px; font-size: 14px; }
+.viewer-download { margin-left: auto; }
+.viewer-photo { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 18px; background: var(--soft); }
+.viewer-caption { margin: 10px 2px 0; font-size: 14px; color: var(--muted); }
+.viewer-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.viewer-nav .btn { padding: 9px 18px; font-size: 15px; }

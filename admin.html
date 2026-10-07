@@ -236,11 +236,11 @@
     <section class="stack" id="tab-gallery" role="tabpanel" aria-labelledby="tabBtn-gallery" hidden>
         <div class="card">
             <h2>Pending review</h2>
-            <table id="pendingTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
+            <table id="pendingTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Goes to</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
         </div>
         <div class="card">
             <h2>Approved</h2>
-            <table id="approvedTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Caption</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
+            <table id="approvedTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Goes to</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
         </div>
     </section>
 
@@ -756,6 +756,15 @@ $('photoViewer').addEventListener('click', (event) => {
     if (event.target === event.currentTarget || event.target.classList.contains('photo-viewer-stage')) event.currentTarget.close();
 });
 
+// Where a photo goes once approved, worked out from the day it was taken
+// (read from the photo on upload), plus the caption older uploads had.
+function photoPlace(p) {
+    const where = p.tag ? escapeHtml(p.tag.label) : 'No date, so only under All photos';
+    const taken = p.takenDate ? `<br><span class="muted">Taken ${escapeHtml(fmtDate(p.takenDate))}</span>` : '';
+    const caption = p.caption ? `<br><span class="muted">${escapeHtml(p.caption)}</span>` : '';
+    return where + taken + caption;
+}
+
 async function loadGallery() {
     const pendingBody = document.querySelector('#pendingTable tbody');
     const approvedBody = document.querySelector('#approvedTable tbody');
@@ -770,7 +779,7 @@ async function loadGallery() {
             <tr>
                 <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
                 <td>${escapeHtml(p.submittedBy || 'Anonymous')}<br><span class="muted">${escapeHtml(new Date(p.submittedAt).toLocaleDateString())}</span></td>
-                <td>${escapeHtml(p.caption || '')}</td>
+                <td>${photoPlace(p)}</td>
                 <td><div class="row-actions">
                     <button type="button" class="btn small primary" onclick="approvePhoto('${escapeHtml(p.id)}')">Approve</button>
                     <button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}')">Reject</button>
@@ -782,7 +791,7 @@ async function loadGallery() {
             <tr>
                 <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
                 <td>${escapeHtml(p.submittedBy || 'Anonymous')}</td>
-                <td>${escapeHtml(p.caption || '')}</td>
+                <td>${photoPlace(p)}</td>
                 <td><div class="row-actions"><button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}')">Remove</button></div></td>
             </tr>
         `).join('') : '<tr><td colspan="4" class="muted">Nothing approved yet.</td></tr>';

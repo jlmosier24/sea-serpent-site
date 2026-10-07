@@ -164,6 +164,13 @@ function sortByDate(meets) {
     return meets.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 }
 
+// Every meet, as DTOs.
+async function listMeets(table) {
+    const meets = [];
+    for await (const entity of table.listEntities({ queryOptions: { filter: `PartitionKey eq '${PARTITION_KEY}'` } })) meets.push(toMeetDto(entity));
+    return meets;
+}
+
 // Meet dates are local-calendar "YYYY-MM-DD" strings, but Azure Functions
 // run in UTC -- using UTC "now" would flip to tomorrow's date several hours
 // before midnight actually arrives locally, so "today" is anchored to
@@ -193,5 +200,5 @@ function slugify(title) {
 
 module.exports = {
     getMeetsTable, toMeetDto, buildMeetEntity, homePoolFill, autoShortName, meetTitle,
-    sortByDate, todayIsoDate, isPastMeet, slugify, PARTITION_KEY, NOTE_MAX_LENGTH
+    sortByDate, listMeets, todayIsoDate, isPastMeet, slugify, PARTITION_KEY, NOTE_MAX_LENGTH
 };

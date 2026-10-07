@@ -17,6 +17,11 @@ class FakeTable {
         if (!row) throw notFound();
         return { ...row };
     }
+    async createEntity(entity) {
+        const k = this.key(entity.partitionKey, entity.rowKey);
+        if (this.rows.has(k)) throw Object.assign(new Error("Already exists"), { statusCode: 409 });
+        this.rows.set(k, { ...entity });
+    }
     async upsertEntity(entity, mode = "Merge") {
         const k = this.key(entity.partitionKey, entity.rowKey);
         const prev = this.rows.get(k);
@@ -47,7 +52,9 @@ class FakeTable {
 
 class FakeContainer {
     constructor() { this.blobs = new Map(); }
-    getBlockBlobClient(name) { return { uploadData: async (data) => { this.blobs.set(name, data); } }; }
+    getBlockBlobClient(name) {
+        return { url: `https://fake.blob.core.windows.net/container/${name}`, uploadData: async (data) => { this.blobs.set(name, data); } };
+    }
     async *listBlobsFlat({ prefix = "" } = {}) {
         for (const name of [...this.blobs.keys()]) if (name.startsWith(prefix)) yield { name };
     }

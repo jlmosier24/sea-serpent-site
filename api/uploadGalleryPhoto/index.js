@@ -1,12 +1,8 @@
 const { getGalleryContainer } = require("../shared/galleryContainer");
-const { getGalleryTable, toGalleryDto, PARTITION_KEY } = require("../shared/galleryTable");
-
-const MAX_BYTES = 8 * 1024 * 1024; // 8MB
-const MAX_CAPTION_LEN = 300;
-const MAX_NAME_LEN = 100;
-
-// Raster formats only -- SVG is image/* too, but can carry script.
-const EXTENSIONS = new Map([["image/jpeg", "jpg"], ["image/png", "png"], ["image/webp", "webp"], ["image/gif", "gif"]]);
+const { getGalleryTable, toGalleryDto, photoTag, PARTITION_KEY } = require("../shared/galleryTable");
+const { getMeetsTable, listMeets } = require("../shared/meetsTable");
+const { readPhotoDate, stripJpegMetadata } = require("../shared/photoDate");
+const { fromBase64, MAX_ORIGINAL_BYTES, MAX_PHOTO_BYTES } = require("../shared/photoUpload");
 
 function generateId() {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -17,52 +13,46 @@ function generateId() {
 // gallery (see galleryPublic) until an admin approves it via
 // manageGalleryApprove; that approval gate is this endpoint's main defense
 // against abuse, on top of the size/type checks below.
+//
+// The body carries two things: the browser's resized JPEG, which is what's
+// stored (with any metadata stripped), and the original photo's bytes, read
+// here only for the day it was taken and then dropped.
 module.exports = async function (context, req) {
-    const { filename, contentType, dataBase64, caption, submittedBy } = req.body || {};
-
-    if (!EXTENSIONS.has(contentType)) {
-        context.res = { status: 400, body: "Photo must be a JPEG, PNG, WebP, or GIF." };
+    const body = req.body || {};
+    const photo = fromBase64(body.dataBase64, MAX_PHOTO_BYTES);
+    if (!photo) {
+        context.res = { status: 400, body: `Missing photo, or it's over ${MAX_PHOTO_BYTES / (1024 * 1024)}MB.` };
         return;
     }
-    if (!dataBase64) {
-        context.res = { status: 400, body: "Missing image data." };
+    const cleaned = stripJpegMetadata(photo);
+    if (!cleaned) {
+        context.res = { status: 400, body: "Photo must be a JPEG." };
         return;
     }
-
-    let buffer;
-    try {
-        buffer = Buffer.from(dataBase64, "base64");
-    } catch (e) {
-        context.res = { status: 400, body: "Could not decode image data." };
-        return;
-    }
-    if (buffer.length === 0 || buffer.length > MAX_BYTES) {
-        context.res = { status: 400, body: `Image must be under ${MAX_BYTES / (1024 * 1024)}MB.` };
-        return;
-    }
+    const original = fromBase64(body.originalBase64, MAX_ORIGINAL_BYTES);
+    const takenDate = original ? readPhotoDate(original) || "" : "";
 
     const id = generateId();
-    const blobName = `${id}.${EXTENSIONS.get(contentType)}`;
+    const blobName = `${id}.jpg`;
 
     try {
         const container = getGalleryContainer();
         const blockBlobClient = container.getBlockBlobClient(blobName);
-        await blockBlobClient.uploadData(buffer, { blobHTTPHeaders: { blobContentType: contentType } });
+        await blockBlobClient.uploadData(cleaned, { blobHTTPHeaders: { blobContentType: "image/jpeg" } });
 
-        const table = getGalleryTable();
         const entity = {
             partitionKey: PARTITION_KEY,
             rowKey: id,
             url: blockBlobClient.url,
             blobName,
-            caption: (caption || "").toString().trim().slice(0, MAX_CAPTION_LEN),
-            submittedBy: (submittedBy || "").toString().trim().slice(0, MAX_NAME_LEN),
             status: "pending",
-            submittedAt: new Date().toISOString()
+            submittedAt: new Date().toISOString(),
+            takenDate
         };
-        await table.createEntity(entity);
+        await getGalleryTable().createEntity(entity);
 
-        context.res = { status: 200, body: toGalleryDto(entity) };
+        const meets = takenDate ? await listMeets(getMeetsTable()) : [];
+        context.res = { status: 200, body: { ...toGalleryDto(entity), tag: photoTag(takenDate, meets) } };
     } catch (e) {
         context.log.error("Failed to upload gallery photo:", e);
         context.res = { status: 500, body: "Error: " + (e.message || e.code || JSON.stringify(e)) };

@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/assets/site.css">
 <script src="/assets/site.js"></script>
 <script src="/assets/meets.js"></script>
+<script src="/assets/photos.js"></script>
 <style>
     /* Home page only. Cards, buttons, tiles, and dialogs come from /assets/site.css. */
     .hero { text-align: center; padding: 56px 0 44px; }
@@ -78,19 +79,6 @@
     .photo-pause:hover { background: rgba(16,36,15,.8); }
     @media (prefers-reduced-motion: reduce) { .photo-open img { transition: none; } }
 
-    /* Full-screen photo viewer, dark like a phone's photo app. */
-    dialog.photo-viewer { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: rgba(12,20,14,.94); color: #fff; overflow: hidden; }
-    dialog.photo-viewer[open] { display: flex; flex-direction: column; }
-    dialog.photo-viewer::backdrop { background: transparent; }
-    .photo-viewer-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 64px 16px 8px; }
-    .photo-viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
-    .photo-viewer-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); }
-    .photo-viewer-bar p { margin: 0; font-size: 15px; color: rgba(255,255,255,.85); }
-    .photo-viewer-bar .btn { flex-shrink: 0; }
-    .photo-viewer-close { position: absolute; top: 12px; right: 12px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.15); color: #fff; cursor: pointer; }
-    .photo-viewer-close:hover { background: rgba(255,255,255,.25); }
-    .photo-viewer-close svg { width: 22px; height: 22px; }
-
     @media (max-width: 860px) {
         .hero h1 { font-size: 42px; }
         .home-grid { grid-template-columns: 1fr; }
@@ -132,14 +120,6 @@
 </main>
 <site-footer></site-footer>
 
-<dialog id="photoViewer" class="photo-viewer" aria-label="Photo">
-    <button type="button" class="photo-viewer-close" data-close-dialog aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-    <div class="photo-viewer-stage"><img id="photoViewerImg" alt=""></div>
-    <div class="photo-viewer-bar">
-        <p id="photoViewerCaption"></p>
-        <a id="photoViewerDownload" class="btn primary" hidden>Download</a>
-    </div>
-</dialog>
 <script>
 /* ---------------- Helpers ---------------- */
 const { escapeHtml, fmtDate, hasScore, outcome, OUTCOME_CHIPS } = Meets;
@@ -477,7 +457,7 @@ async function loadPhotos() {
             <button type="button" class="photo-open" aria-label="View this photo full size"><img id="slideshowImg" src="${escapeHtml(first.url)}" alt="${escapeHtml(first.caption || 'Team photo')}"></button>
             ${rotates ? `<button type="button" class="photo-pause" aria-label="Pause slideshow">${icon('pause')}</button>` : ''}
         </div>`;
-    box.querySelector('.photo-open').addEventListener('click', (event) => openPhotoViewer(slideshow.photos[slideshow.shown], event.currentTarget));
+    box.querySelector('.photo-open').addEventListener('click', (event) => Photos.open(slideshow.photos, slideshow.shown, event.currentTarget));
     if (rotates) startSlideshow(box.querySelector('.photo-frame'));
 }
 
@@ -522,23 +502,6 @@ function showNextPhoto() {
         slideshow.shown = index;
     });
 }
-
-// The slideshow crops each photo to fill the card; the viewer shows all of it.
-function openPhotoViewer(photo, opener) {
-    const img = document.getElementById('photoViewerImg');
-    img.src = photo.url;
-    img.alt = photo.caption || 'Team photo';
-    document.getElementById('photoViewerCaption').textContent = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(' ');
-    const download = document.getElementById('photoViewerDownload');
-    download.hidden = !photo.downloadUrl;
-    if (photo.downloadUrl) download.href = photo.downloadUrl;
-    else download.removeAttribute('href');
-    SiteUI.openDialog(document.getElementById('photoViewer'), opener);
-}
-// The viewer fills the screen, so there's no backdrop to tap; tapping the dark area around the photo closes it instead.
-document.getElementById('photoViewer').addEventListener('click', (event) => {
-    if (event.target === event.currentTarget || event.target.classList.contains('photo-viewer-stage')) event.currentTarget.close();
-});
 
 loadMeets();
 loadSwimmers();
