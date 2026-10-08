@@ -3,6 +3,7 @@
 // tables). Definitions follow design/HANDOFF.md, "Stat definitions"; the
 // pages show Spotswood swimmers only, so meet numbers count only theirs.
 const { isSpotswoodTeam } = require("./meetResultsParser");
+const { hasRealSeed } = require("./seeds");
 
 // Seeds for the youngest swimmers are often stale or placeholders, so the
 // meet's "Biggest drop" only looks at swimmers this age and up.
@@ -13,9 +14,10 @@ function isScored(swim) {
 }
 
 // How far a swim came in under its seed time, or null when it didn't (or
-// there's no seed or time to compare).
+// there's no seed or time to compare, or the seed was converted from the
+// other course; see seeds.js).
 function dropBelowSeed(swim) {
-    if (!isScored(swim) || swim.seedSeconds == null || swim.officialSeconds == null) return null;
+    if (!isScored(swim) || !hasRealSeed(swim) || swim.officialSeconds == null) return null;
     const seconds = swim.seedSeconds - swim.officialSeconds;
     if (seconds <= 0) return null;
     return { seconds, percent: seconds / swim.seedSeconds };
@@ -41,7 +43,8 @@ function meetSummary(individual, relays) {
     const swims = individual.filter(r => isSpotswoodTeam(r.team));
     const scored = swims.filter(isScored);
     const ourRelays = relays.filter(r => isSpotswoodTeam(r.team));
-    const timedWithSeed = scored.filter(r => r.seedSeconds != null && r.officialSeconds != null);
+    // A converted seed isn't a real time in this pool, so it's left out of both counts.
+    const timedWithSeed = scored.filter(r => hasRealSeed(r) && r.officialSeconds != null);
 
     let biggestDrop = null;
     for (const swim of scored) {

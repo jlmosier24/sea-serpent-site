@@ -7,6 +7,8 @@
 // swimmer's real numbers; milestones only decide when a badge is earned and
 // when it's New again.
 
+const { hasRealSeed } = require("./seeds");
+
 const RELAY_LEG_METERS = 25;
 const YARD_METERS = 0.9144;
 const BARRIERS = [60, 40, 30, 20]; // seconds: under 1:00, 40s, 30s, 20s
@@ -124,8 +126,9 @@ function swimmerBadges(swims, legs) {
                 if (!earned.pb) earned.pb = { meetId, detail: `${event}: ${earlier.time} → ${swim.officialTime}` };
             }
             // A barrier is broken the first time she's under it, so it's measured
-            // against her best coming in: an earlier swim or the seed, whichever is faster.
-            const comingIn = swim.seedSeconds != null && (!earlier || swim.seedSeconds < earlier.seconds)
+            // against her best coming in: an earlier swim or the seed, whichever is
+            // faster. A seed converted from the other course doesn't count (seeds.js).
+            const comingIn = hasRealSeed(swim) && (!earlier || swim.seedSeconds < earlier.seconds)
                 ? { seconds: swim.seedSeconds, time: swim.seedTime }
                 : earlier;
             const broken = comingIn ? BARRIERS.filter(b => comingIn.seconds >= b && swim.officialSeconds < b) : [];
@@ -134,7 +137,7 @@ function swimmerBadges(swims, legs) {
                 earned.barrier = { meetId, sub: barrier === 60 ? "Under 1:00" : `Under ${barrier}s`, detail: `${event}: ${comingIn.time} → ${swim.officialTime}` };
             }
             if (!earlier || swim.officialSeconds < earlier.seconds) best.set(swim.eventName, { seconds: swim.officialSeconds, time: swim.officialTime });
-            if (swim.seedSeconds != null && swim.officialSeconds < swim.seedSeconds) totals.timeDropped += swim.seedSeconds - swim.officialSeconds;
+            if (hasRealSeed(swim) && swim.officialSeconds < swim.seedSeconds) totals.timeDropped += swim.seedSeconds - swim.officialSeconds;
             totals.points += swim.points || 0;
             totals.individualMeters += eventMeters(swim.eventName);
             const style = stroke(swim.eventName);

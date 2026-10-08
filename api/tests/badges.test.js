@@ -258,6 +258,15 @@ test("Time Dropper: time dropped below seed times adds up to 10 s, and is New ag
     assert.equal(result.totals.timeDropped, 30.5);
 });
 
+test("Time Dropper and Barrier Breaker leave out a seed converted from the other course", () => {
+    const converted = { ...swim("m1", 1, "Girls 9-10 50m Freestyle", { place: 4, seed: "1:05.00", time: "50.00" }), seedConverted: true };
+    const real = swim("m1", 2, "Girls 9-10 50m Backstroke", { place: 4, seed: "48.00", time: "47.00" });
+    const result = swimmerBadges([converted, real], []);
+    // Only the real seed's 1.00 s counts, and under 1:00 against a converted seed isn't a barrier broken.
+    assert.equal(result.totals.timeDropped, 1);
+    assert.equal(badge(result, "barrier"), undefined);
+});
+
 test("New: earned, counted up, or past a milestone at the swimmer's latest meet", () => {
     const result = swimmerBadges([
         swim("m1", 1, "Boys 13-14 50m Freestyle", { place: 1, seed: "30.50", time: "29.80", points: 6 }),

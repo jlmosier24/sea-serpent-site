@@ -38,13 +38,14 @@ const TEAM_SCORES = [
     "Total 1036"
 ];
 
-function sheetText({ date = "Jul 13, 2026", individual = INDIVIDUAL, relays = RELAYS, teamScores = true } = {}) {
+// course: "m" for a meters pool, "yd" for a yards one.
+function sheetText({ date = "Jul 13, 2026", individual = INDIVIDUAL, relays = RELAYS, teamScores = true, course = "m" } = {}) {
     return [
         HEADER(date),
-        "#1 Girls 8 & Under 25m Freestyle Girls 8 & Under",
+        `#1 Girls 8 & Under 25${course} Freestyle Girls 8 & Under`,
         "Pl Name Age Team Seed Official Pts",
         ...individual,
-        "#5 Girls 8 & Under 100m Freestyle Relay Girls 8 & Under",
+        `#5 Girls 8 & Under 100${course} Freestyle Relay Girls 8 & Under`,
         "Pl Team Relay Seed Official Pts",
         ...relays,
         ...(teamScores ? TEAM_SCORES : [])

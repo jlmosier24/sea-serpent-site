@@ -31,6 +31,17 @@ test("biggest drop leaves out swimmers under 7, whose seeds are often placeholde
     assert.equal(meetSummary(rows.slice(0, 1), []).biggestDrop, null);
 });
 
+test("a seed converted from the other course is left out of the seed comparisons", () => {
+    const rows = [
+        // Ten seconds under a converted seed: not a real drop, so it counts nowhere.
+        { name: "A", team: "Spotswood", age: 9, status: "OK", place: 1, seedSeconds: 40, seedConverted: true, officialSeconds: 30, eventName: "e" },
+        { name: "B", team: "Spotswood", age: 9, status: "OK", place: 2, seedSeconds: 40, officialSeconds: 38, eventName: "e" }
+    ];
+    const s = meetSummary(rows, []);
+    assert.deepEqual([s.fasterThanSeed, s.timedWithSeed], [1, 1]);
+    assert.equal(s.biggestDrop.name, "B");
+});
+
 test("ties for first count as wins; only A and B relays can win", () => {
     const rows = [
         { name: "A", team: "Spotswood", status: "OK", place: 1 },

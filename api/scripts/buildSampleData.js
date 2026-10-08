@@ -18,6 +18,7 @@ const { slugify, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../sh
 const { toResultEntity, toResultDto, toRelayResultEntity, toRelayResultDto } = require("../shared/resultsTable");
 const { meetSummary, swimmerSeason } = require("../shared/stats");
 const { teamBadges } = require("../shared/badges");
+const { markConvertedSeeds } = require("../shared/seeds");
 
 const OUT_DIR = path.join(__dirname, "..", "..", "sample-data");
 
@@ -51,6 +52,7 @@ async function main() {
     const meetDtos = [];
     const spotswoodResultDtos = []; // Spotswood only, each with its meet's date, as swimmerStats reads them
     const spotswoodRelayDtos = []; // the same for relays, which badges count
+    const earlierResults = []; // both teams' rows from meets already read, for converted seeds
     let totalUnparsed = 0;
 
     for (const m of MEETS) {
@@ -66,6 +68,9 @@ async function main() {
         const buffer = fs.readFileSync(path.join(DOWNLOADS, m.file));
         const text = await extractPdfText(buffer);
         const parsed = parseMeetResultsText(text);
+        // Mirrors importMeetResultsCommit: seeds converted from the other course
+        // are recognised against earlier meets (MEETS is in date order).
+        const individual = markConvertedSeeds(parsed.individual, earlierResults);
         totalUnparsed += parsed.unparsedLines.length;
         console.log(`${m.date} ${m.opponent}: ${parsed.individual.length} individual, ${parsed.relays.length} relay (both teams), ${parsed.unparsedLines.length} unparsed`);
 
@@ -80,7 +85,7 @@ async function main() {
         meetEntity.opponentScore = opponentScore;
         // The numbers an import saves for the meet results popup.
         meetEntity.resultsImported = true;
-        meetEntity.summaryJson = JSON.stringify(meetSummary(parsed.individual, parsed.relays));
+        meetEntity.summaryJson = JSON.stringify(meetSummary(individual, parsed.relays));
         console.log(`  score: Spotswood ${teamScore} - ${m.opponent} ${opponentScore}`);
 
         const meetDto = toMeetDto(meetEntity);
@@ -88,8 +93,9 @@ async function main() {
 
         // Both teams -- mirrors importMeetResultsCommit storing everything
         // as-is, which is what makes resultsByMeet's complete view possible.
-        const individualDtos = parsed.individual.map(row => toResultDto(toResultEntity(row, meetId)));
+        const individualDtos = individual.map(row => toResultDto(toResultEntity(row, meetId)));
         const relayDtos = parsed.relays.map(row => toRelayResultDto(toRelayResultEntity(row, meetId)));
+        earlierResults.push(...individualDtos);
 
         writeJson(path.join(OUT_DIR, "meet", `${meetId}.json`), { individual: individualDtos, relays: relayDtos });
 

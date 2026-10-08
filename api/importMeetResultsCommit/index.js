@@ -1,11 +1,12 @@
 const { getResultsPdfContainer, sheetBlobName } = require("../shared/resultsPdfContainer");
 const {
-    getResultsTable, getRelayResultsTable, toResultEntity, toRelayResultEntity,
+    getResultsTable, getRelayResultsTable, toResultEntity, toResultDto, toRelayResultEntity,
     listMeetResultEntities, listMeetRelayEntities
 } = require("../shared/resultsTable");
-const { getMeetsTable, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
+const { getMeetsTable, toMeetDto, listMeets, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { readResultsSheet } = require("../shared/resultsSheet");
 const { meetSummary, teamScore } = require("../shared/stats");
+const { markConvertedSeeds } = require("../shared/seeds");
 const { forEachInBatches } = require("../shared/batches");
 const { getBadgesTable, recomputeBadges } = require("../shared/badgeStore");
 
@@ -16,6 +17,18 @@ function fmtDate(iso) {
 }
 function entityKey(entity) {
     return `${entity.partitionKey}\u0000${entity.rowKey}`;
+}
+
+// Every stored individual result from meets before `date`, both teams'. A
+// seed converted from the other course is recognised against the swimmer's
+// own times at earlier meets (shared/seeds.js).
+async function resultsBefore(resultsTable, meetsTable, date) {
+    const earlierMeets = new Set((await listMeets(meetsTable)).filter(m => m.date < date).map(m => m.id));
+    const rows = [];
+    for await (const entity of resultsTable.listEntities()) {
+        if (earlierMeets.has(entity.meetId)) rows.push(toResultDto(entity));
+    }
+    return rows;
 }
 
 // Saves `entities`, then deletes whatever else is stored for the meet. A
@@ -78,21 +91,23 @@ module.exports = async function (context, req) {
         }
 
         const replaced = toMeetDto(meetEntity).resultsImported;
+        const resultsTable = getResultsTable();
+        const relayTable = getRelayResultsTable();
+        const individual = markConvertedSeeds(parsed.individual, await resultsBefore(resultsTable, meetsTable, meetEntity.date));
+
         await getResultsPdfContainer().getBlockBlobClient(sheetBlobName(meetId)).uploadData(buffer, {
             blobHTTPHeaders: { blobContentType: "application/pdf" }
         });
 
-        const resultsTable = getResultsTable();
-        const relayTable = getRelayResultsTable();
         const removed =
-            await replaceMeetRows(resultsTable, parsed.individual.map(row => toResultEntity(row, meetId)), await listMeetResultEntities(resultsTable, meetId)) +
+            await replaceMeetRows(resultsTable, individual.map(row => toResultEntity(row, meetId)), await listMeetResultEntities(resultsTable, meetId)) +
             await replaceMeetRows(relayTable, parsed.relays.map(row => toRelayResultEntity(row, meetId)), await listMeetRelayEntities(relayTable, meetId));
 
         // A score the admin typed in is never replaced by an import. The
         // meet's numbers are saved with it for the home page's results popup.
         const scoreKept = meetEntity.scoreSource === "manual";
         const score = teamScore(parsed);
-        const summary = meetSummary(parsed.individual, parsed.relays);
+        const summary = meetSummary(individual, parsed.relays);
         const update = {
             partitionKey: MEET_PARTITION_KEY,
             rowKey: meetId,

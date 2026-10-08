@@ -32,6 +32,8 @@ function toResultEntity(row, meetId) {
         seedTime: row.seedTime || "",
         officialTime: row.officialTime || "",
         seedSeconds: row.seedSeconds,
+        // Set at import when the seed was converted from the other course (seeds.js).
+        seedConverted: !!row.seedConverted,
         officialSeconds: row.officialSeconds,
         points: row.points || 0,
         dqReason: row.dqReason || ""
@@ -51,6 +53,7 @@ function toResultDto(entity) {
         seedTime: entity.seedTime,
         officialTime: entity.officialTime,
         seedSeconds: entity.seedSeconds,
+        seedConverted: !!entity.seedConverted,
         officialSeconds: entity.officialSeconds,
         points: entity.points,
         dqReason: entity.dqReason

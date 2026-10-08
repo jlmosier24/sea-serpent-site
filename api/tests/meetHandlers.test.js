@@ -228,6 +228,21 @@ test("the public meet list leaves out the import details", async () => {
     for (const key of ["scoreSource", "lastImportFile", "lastImportAt"]) assert.equal(key in meet, false, key);
 });
 
+test("an import recognises seeds converted from the swimmer's own yards time at an earlier meet", async () => {
+    resetStore();
+    await addMeet("yards", { date: "2026-07-06" });
+    await addMeet("m");
+    // The week before, Doe, Jane swam the 25-yard race in 22.61: x 1.11 = 25.10, her seed at "m".
+    const yards = asUpload(sheetText({ date: "Jul 6, 2026", course: "yd", individual: ["1 Doe, Jane 8 Spotswood NT 22.61 6"], relays: [], teamScores: false }));
+    assert.equal((await call(commitResults, { body: { meetId: "yards", dataBase64: yards, fileName: "yards.pdf" } })).status, 200);
+    await call(commitResults, { body: { meetId: "m", dataBase64: asUpload(sheetText()), fileName: "results.pdf" } });
+
+    assert.deepEqual(store.results.all().filter(r => r.meetId === "m" && r.seedConverted).map(r => r.partitionKey), ["Doe, Jane"]);
+    // Hers was the only swim with a seed to compare, so the meet has none now.
+    const { summary } = (await call(publicMeets)).body.find(m => m.id === "m");
+    assert.deepEqual([summary.fasterThanSeed, summary.timedWithSeed, summary.biggestDrop], [0, 0, null]);
+});
+
 test("an import saves the meet's numbers for the home page, and editing the meet keeps them", async () => {
     resetStore();
     await addMeet("m");
