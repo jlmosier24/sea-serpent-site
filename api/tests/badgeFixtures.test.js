@@ -1,5 +1,6 @@
 // Run from api/: npm test
-// Cross-checks badges against update 2's two example swimmers: the three
+// Cross-checks badges against update 2's two example swimmers (the stat strip
+// it also describes was later dropped at the user's choice): the three
 // real results sheets (design/fixtures) are stored the way an import stores
 // them, everyone's badges are worked out, and /api/swimmerStats is asked for
 // each swimmer, as the Stats page would. The sheets and the expected values
@@ -32,7 +33,7 @@ const DESIGN = path.join(__dirname, "..", "..", "design");
 const EXPECTED = path.join(DESIGN, "update-2", "expected-badges.json");
 const skip = !(fs.existsSync(EXPECTED) && fs.existsSync(path.join(DESIGN, "fixtures"))) && "the design handoff's fixtures aren't on this computer";
 
-test("update 2's example swimmers get the badges, pills, New tags and stat strip it expects", { skip }, async () => {
+test("update 2's example swimmers get the badges, pills, New tags and totals it expects", { skip }, async () => {
     const expected = JSON.parse(fs.readFileSync(EXPECTED, "utf8"));
     for (const { meetId, file } of expected.sheets) {
         const parsed = parseMeetResultsText(await extractPdfText(fs.readFileSync(path.join(DESIGN, "fixtures", file))));
@@ -60,6 +61,5 @@ test("update 2's example swimmers get the badges, pills, New tags and stat strip
 
         const saved = JSON.parse((await badges.getEntity(BADGE_PARTITION_KEY, encodeURIComponent(swimmer.name))).totalsJson);
         for (const [key, value] of Object.entries(swimmer.totals)) assert.equal(saved[key], value, `${label}: ${key}`);
-        assert.deepEqual(season.strip, swimmer.strip, label);
     }
 });

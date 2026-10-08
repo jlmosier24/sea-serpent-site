@@ -7,8 +7,6 @@ const { isSpotswoodTeam } = require("./meetResultsParser");
 // Seeds for the youngest swimmers are often stale or placeholders, so the
 // meet's "Biggest drop" only looks at swimmers this age and up.
 const BIGGEST_DROP_MIN_AGE = 7;
-// "Most improved" needs at least this much of a drop below seed to show.
-const MOST_IMPROVED_MIN_PERCENT = 0.02;
 
 function isScored(swim) {
     return swim.status === "OK";
@@ -120,57 +118,22 @@ function swimmerEvents(swims) {
     return events;
 }
 
-// The swimmer's biggest percent drop below a seed time, at least 2%, or null.
-function mostImproved(swims) {
-    let best = null;
-    for (const swim of swims) {
-        const drop = dropBelowSeed(swim);
-        if (drop && drop.percent >= MOST_IMPROVED_MIN_PERCENT && (!best || drop.percent > best.percent)) best = describeDrop(swim, drop);
-    }
-    return best;
-}
-
-// The season totals behind the swimmer header's stat strip.
-function swimmerTotals(swims) {
-    const scored = swims.filter(isScored);
-    return {
-        personalBests: swimmerEvents(swims).reduce((n, e) => n + e.swims.filter(s => s.personalBest).length, 0),
-        // Tied places split their points, so a total can end in .5.
-        points: Math.round(scored.reduce((n, s) => n + (s.points || 0), 0) * 10) / 10,
-        // A no-show never got in the water.
-        meetsSwum: new Set(swims.filter(s => s.status !== "NS").map(s => s.meetId)).size,
-        mostImproved: mostImproved(swims)
-    };
-}
-
-// The slim strip under the swimmer's badges (design/update-2/UPDATE.md,
-// section 2): the first three of these that apply. With fewer than two the
-// strip is left out, and the page shows a friendly line instead.
-function statStrip(totals, relayLegs) {
-    const items = [
-        totals.mostImproved && { key: "mostImproved", seconds: totals.mostImproved.seconds, eventName: totals.mostImproved.eventName, meetDate: totals.mostImproved.meetDate },
-        totals.points > 0 && { key: "points", value: totals.points },
-        totals.personalBests > 0 && { key: "personalBests", value: totals.personalBests },
-        relayLegs > 0 && { key: "relayLegs", value: relayLegs }
-    ].filter(Boolean).slice(0, 3);
-    return items.length >= 2 ? items : [];
-}
-
 // Everything the swimmer page shows, from one swimmer's swims (each with its
 // meet's date) and their saved badges (shared/badgeStore.js): their age and
-// season, badges, stat strip, and each event's swims in order.
+// season, how many meets they've swum (for the first-meet welcome), badges,
+// and each event's swims in order.
 function swimmerSeason(name, swims, earned = {}) {
     const latest = [...swims].sort(byMeetThenEvent).pop();
-    const totals = swimmerTotals(swims);
     const badgeTotals = earned.totals || {};
+    // A no-show never got in the water; a DQ did.
+    const meetsWithSwims = new Set(swims.filter(s => s.status !== "NS").map(s => s.meetId)).size;
     return {
         name,
         age: latest ? latest.age : null,
         season: latest && latest.meetDate ? latest.meetDate.slice(0, 4) : "",
         // Relays count as meets swum too, so a meet with only a relay leg still counts.
-        meetsSwum: Math.max(totals.meetsSwum, badgeTotals.meetsSwum || 0),
+        meetsSwum: Math.max(meetsWithSwims, badgeTotals.meetsSwum || 0),
         badges: earned.badges || [],
-        strip: statStrip(totals, badgeTotals.relayLegs || 0),
         events: swimmerEvents(swims).map(e => ({
             eventName: e.eventName,
             seasonBestSeconds: e.seasonBestSeconds,
@@ -189,6 +152,5 @@ function swimmerSeason(name, swims, earned = {}) {
 }
 
 module.exports = {
-    meetSummary, teamScore, swimmerEvents, mostImproved, swimmerTotals, statStrip, swimmerSeason, dropBelowSeed,
-    BIGGEST_DROP_MIN_AGE, MOST_IMPROVED_MIN_PERCENT
+    meetSummary, teamScore, swimmerEvents, swimmerSeason, dropBelowSeed, BIGGEST_DROP_MIN_AGE
 };

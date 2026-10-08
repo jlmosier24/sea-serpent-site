@@ -48,14 +48,9 @@
     .show-all { display: none; }
     .badge-area[data-more="all"] .show-all { display: flex; width: fit-content; margin: 14px auto 0; }
 
-    /* The slim stat strip under the badges, or a friendly line when it's empty.
-       Full-white text, and only a light wash behind it: faded text, or a
-       stronger wash, falls under 4.5:1 at the card's lightest corner. */
-    .stat-strip { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 16px 0 0; padding: 12px 6px 0; border-top: 1px solid rgba(255,255,255,.22); list-style: none; }
-    .stat-strip li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
-    .strip-value { font-family: var(--font-head); font-size: 22px; font-weight: 700; line-height: 1; }
-    .strip-label { font-size: 14px; }
-    .strip-label small { font-size: 12.5px; }
+    /* A welcome under the badges for a swimmer's first meet. Full-white text,
+       and only a light wash behind it: faded text, or a stronger wash, falls
+       under 4.5:1 at the card's lightest corner. */
     .friendly-line { margin: 20px 0 0; padding: 16px 18px; border: 1px solid rgba(255,255,255,.24); border-radius: var(--radius-tile); background: rgba(255,255,255,.08); font-size: 16px; line-height: 1.45; }
 
     /* The badge dialog, a little narrower than the site's others (the mockup's 440px). */
@@ -175,7 +170,7 @@
     </div>
 </dialog>
 <script>
-const { escapeHtml, fmtDate, fmtSeconds, displayName, initials, shortEventName, plural } = Meets;
+const { escapeHtml, fmtDate, fmtSeconds, displayName, initials, plural } = Meets;
 
 // For each opponent's short name, and the results popup its name opens.
 let meetsById = {};
@@ -197,7 +192,7 @@ function swimmerHeader(season) {
                 </div>
             </div>
             ${badgesHtml(season.badges || [])}
-            ${stripHtml(season)}
+            ${firstMeetWelcome(season)}
         </section>`;
 }
 
@@ -292,36 +287,12 @@ function openBadge(badge, opener) {
     dialog.querySelector('.dialog-body').scrollTop = 0;
 }
 
-/* ---------------- Stat strip ---------------- */
-// Up to three of these, in the order the server picked (api/shared/stats.js statStrip).
-const STRIP = {
-    mostImproved: item => ({
-        value: `−${item.seconds.toFixed(2)}s`,
-        spoken: `${item.seconds.toFixed(2)} seconds faster`,
-        label: 'Most improved',
-        more: [shortEventName(item.eventName), item.meetDate && fmtDate(item.meetDate)].filter(Boolean).join(' · ')
-    }),
-    points: item => ({ value: item.value, label: 'Points for the team' }),
-    personalBests: item => ({ value: item.value, label: 'Personal bests' }),
-    relayLegs: item => ({ value: item.value, label: 'Relay legs' })
-};
-
-function stripHtml(season) {
-    const strip = season.strip || [];
-    if (!strip.length) return `<p class="friendly-line">${escapeHtml(friendlyLine(season))}</p>`;
-    return `<ul class="stat-strip">${strip.map(item => {
-        const { value, spoken, label, more } = STRIP[item.key](item);
-        const shown = spoken ? `<span aria-hidden="true">${escapeHtml(value)}</span><span class="sr-only">${escapeHtml(spoken)}</span>` : escapeHtml(value);
-        return `<li><span class="strip-value">${shown}</span><span class="strip-label">${label}${more ? ` <small>· ${escapeHtml(more)}</small>` : ''}</span></li>`;
-    }).join('')}</ul>`;
-}
-
-// When fewer than two strip stats apply yet.
-function friendlyLine(season) {
+/* ---------------- First-meet welcome ---------------- */
+// Under the badges after a swimmer's first meet, when there isn't much else yet.
+function firstMeetWelcome(season) {
+    if (season.meetsSwum !== 1) return '';
     const first = String(season.name).split(',').pop().trim() || displayName(season.name);
-    return season.meetsSwum === 1
-        ? `${first}’s first meet is in the books! Stats like personal bests and time dropped start showing up after the next meet.`
-        : 'Stats like personal bests and points for the team show up here as the season goes on.';
+    return `<p class="friendly-line">${escapeHtml(`${first}’s first meet is in the books! Stats like personal bests and time dropped start showing up after the next meet.`)}</p>`;
 }
 
 /* ---------------- Event cards ---------------- */

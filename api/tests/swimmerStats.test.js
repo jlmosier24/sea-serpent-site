@@ -58,12 +58,11 @@ test("with a name, it returns that swimmer's season, leaving out an opposing swi
     const [first, second] = season.events[0].swims;
     assert.deepEqual([first.meetDate, second.meetDate], ["2026-06-10", "2026-06-17"]);
     assert.equal(second.change, -0.6);
-    // No seed time, so the first swim had nothing to beat.
+    // A first swim is never a personal best; the second beat it.
     assert.deepEqual([first.personalBest, second.personalBest], [false, true]);
     // New ones (from the latest meet) first, then rarer; First Splash last.
     assert.deepEqual(season.badges.map(b => [b.id, b.isNew]), [["pb", true], ["barrier", true], ["champion", true], ["splash", false]]);
-    // Only one strip stat applies (a personal best), so there's no strip.
-    assert.deepEqual(season.strip, []);
+    assert.equal(season.meetsSwum, 2);
 });
 
 test("a name with an apostrophe works, and an unknown or opposing-only name is a 404", async () => {

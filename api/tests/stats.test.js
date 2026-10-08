@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { parseMeetResultsText } = require("../shared/meetResultsParser");
-const { meetSummary, teamScore, swimmerEvents, mostImproved, swimmerTotals, statStrip, swimmerSeason } = require("../shared/stats");
+const { meetSummary, teamScore, swimmerEvents, swimmerSeason } = require("../shared/stats");
 const { SHEET } = require("./sampleSheet");
 
 test("meetSummary counts Spotswood's swims by the handoff's definitions", () => {
@@ -85,63 +85,23 @@ test("swimmerEvents: a first swim is never a personal best, and seed times don't
     assert.deepEqual(event.swims.map(s => s.personalBest), [false, true]);
 });
 
-test("mostImproved is the biggest percent drop below seed, and needs 2%", () => {
-    const best = mostImproved(season);
-    assert.equal(best.eventName, "50m Back");
-    assert.equal(best.seconds, 2);
-    assert.equal(best.percent, 0.05);
-    // 30.0 -> 29.5 is under 2% (1.7%), so on its own it doesn't count.
-    assert.equal(mostImproved([season[1]]), null);
-});
-
-test("swimmerTotals", () => {
-    const { mostImproved: best, ...totals } = swimmerTotals(season);
-    assert.equal(best.eventName, "50m Back");
-    assert.equal(best.meetDate, "2026-07-08");
-    // Meets swum leaves out m6, a no-show there; the DQ swim still got in the water.
-    assert.deepEqual(totals, { personalBests: 2, points: 20.5, meetsSwum: 5 });
-    assert.deepEqual(swimmerTotals([]), { personalBests: 0, points: 0, meetsSwum: 0, mostImproved: null });
-});
-
-// The stat strip's examples in design/update-2/UPDATE.md, section 2.
-const drop = { seconds: 12.78, eventName: "50m Butterfly", meetDate: "2026-07-13" };
-const stripKeys = items => items.map(i => i.key);
-
-test("statStrip: the first three that apply, in order", () => {
-    const strip = statStrip({ mostImproved: { ...drop, percent: 0.193 }, points: 7, personalBests: 5 }, 5);
-    assert.deepEqual(strip, [
-        { key: "mostImproved", seconds: 12.78, eventName: "50m Butterfly", meetDate: "2026-07-13" },
-        { key: "points", value: 7 },
-        { key: "personalBests", value: 5 }
-    ]);
-});
-
-test("statStrip: without a most improved, relay legs fills the third spot", () => {
-    assert.deepEqual(stripKeys(statStrip({ mostImproved: null, points: 36, personalBests: 3 }, 6)), ["points", "personalBests", "relayLegs"]);
-    assert.deepEqual(stripKeys(statStrip({ mostImproved: null, points: 0, personalBests: 2 }, 1)), ["personalBests", "relayLegs"]);
-});
-
-test("statStrip: fewer than two that apply is no strip at all", () => {
-    assert.deepEqual(statStrip({ mostImproved: null, points: 6, personalBests: 0 }, 0), []);
-    assert.deepEqual(statStrip({ mostImproved: null, points: 0, personalBests: 0 }, 0), []);
-});
-
-test("swimmerSeason: age and season from the latest meet, saved badges, the strip, and each event's swims", () => {
+test("swimmerSeason: age and season from the latest meet, meets swum, saved badges, and each event's swims", () => {
     const swims = season.map(s => ({ ...s, name: "Doe, Jane", age: s.meetDate < "2026-07-01" ? 11 : 12, officialTime: s.officialSeconds == null ? s.status : String(s.officialSeconds) }));
     const badges = [{ id: "champion", name: "Champion", isNew: true }];
     // The saved totals also count a meet where they only swam a relay.
     const result = swimmerSeason("Doe, Jane", swims, { badges, totals: { relayLegs: 2, meetsSwum: 6 } });
+    assert.deepEqual(Object.keys(result).sort(), ["age", "badges", "events", "meetsSwum", "name", "season"]);
     assert.equal(result.name, "Doe, Jane");
     assert.equal(result.age, 12);
     assert.equal(result.season, "2026");
     assert.equal(result.meetsSwum, 6);
     assert.deepEqual(result.badges, badges);
-    assert.deepEqual(stripKeys(result.strip), ["mostImproved", "points", "personalBests"]);
     assert.deepEqual(result.events.map(e => e.eventName), ["50m Free", "50m Back"]);
     assert.deepEqual(Object.keys(result.events[0].swims[0]).sort(), ["change", "meetDate", "meetId", "officialSeconds", "officialTime", "personalBest", "place", "status"]);
     assert.deepEqual(result.events[1].swims.map(s => s.status), ["OK", "NS"]);
 
-    // Before any badges have been worked out.
+    // Before any badges have been worked out. Meets swum leaves out m6, a
+    // no-show there; the DQ swim at m4 still got in the water.
     const bare = swimmerSeason("Doe, Jane", swims);
     assert.deepEqual(bare.badges, []);
     assert.equal(bare.meetsSwum, 5);

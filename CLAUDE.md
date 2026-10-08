@@ -25,13 +25,13 @@ Website for the Spotswood Sea Serpents summer swim team: homepage with meet card
 ## Content rules
 - "vs." means home and "at" means away. Titles use the short name ("vs. Massad"); score rows use the full name ("Curtis Park Seahawks 511").
 - Dates: the full month and day everywhere, like "July 22" and "July 13 · Final". Times: "6:00pm".
-- Stat labels: "1st places", "Relay wins" ("7 of 16"), "Top-3 finishes", "First-time swims", "Personal bests", "Most improved", "Points for the team", "Relay legs".
+- Stat labels: "1st places", "Relay wins" ("7 of 16"), "Top-3 finishes", "First-time swims", "Personal bests", "Most improved".
 
 ## Data rules
 - Times are stored as seconds. 50yd and 50m are different events.
 - Results sheets are saved for both teams, so a meet's full results can be shown. Stats, swimmer pages, and the swimmer list are Spotswood only. A tie for first counts as a win. Exhibition is not scored.
 - Team scores are added up from the sheet's points on import. The admin can type a score in, and an import never overwrites a typed-in score.
-- Most improved: the biggest percent drop below seed time across a swimmer's swims, at least 2%, shown in seconds with the event. Personal best: faster than the swimmer's previous best in that event, meaning their earlier swims on the site. A first swim in an event is not a PB, even when it beats the seed time (the user's choice, 2026-10-07). Barrier Breaker, Time Dropper and Most improved still measure against seed times.
+- Most improved: the biggest percent drop below seed time across a swimmer's swims, at least 2%, shown in seconds with the event. (Not shown anywhere since 2026-10-07, when the user dropped the swimmer page's stat strip because the badges covered most of it.) Personal best: faster than the swimmer's previous best in that event, meaning their earlier swims on the site. A first swim in an event is not a PB, even when it beats the seed time (the user's choice, 2026-10-07). Barrier Breaker and Time Dropper still measure against seed times.
 - Badges follow design/update-2/UPDATE.md, section 3. Every Spotswood swimmer's badges are worked out again after each import or meet delete, since rarity compares teammates, and saved in the SwimmerBadges table. Only legal, timed swims count; each relay leg is 25 m (yards converted).
 - Opponent names come from the admin meet record, not the PDF.
 - Re-importing a meet replaces its results.

@@ -5,7 +5,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { timeToSeconds } = require("../shared/meetResultsParser");
 const { swimmerBadges, badgeRarity, rankBadges, eventMeters } = require("../shared/badges");
-const { swimmerTotals } = require("../shared/stats");
+const { swimmerEvents } = require("../shared/stats");
 
 const DATES = { m1: "2026-06-10", m2: "2026-06-17", m3: "2026-06-24", m4: "2026-07-01", m5: "2026-07-08", m6: "2026-07-13" };
 
@@ -53,8 +53,8 @@ test("Personal Best: faster than an earlier swim in the event; a first swim neve
     // The badge tells the story of the first one.
     assert.deepEqual([pb.detail, pb.meetId, pb.pill, pb.isNew], ["50m Freestyle: 41.48 → 40.55", "m2", null, false]);
     assert.equal(result.totals.personalBests, 2);
-    // The Stats page's swim tables mark the same swims.
-    assert.equal(swimmerTotals(swims).personalBests, 2);
+    // The Stats page's swim tables tag the same swims.
+    assert.equal(swimmerEvents(swims).flatMap(e => e.swims).filter(s => s.personalBest).length, 2);
 });
 
 test("PB Streak: personal bests at meets in a row; a relay-only meet doesn't break the run, a meet without one does", () => {
