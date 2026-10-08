@@ -21,7 +21,8 @@ function entityKey(entity) {
 
 // Every stored individual result from meets before `date`, both teams'. A
 // seed converted from the other course is recognised against the swimmer's
-// own times at earlier meets (shared/seeds.js).
+// own times at earlier meets (shared/seeds.js), and the meet's personal bests
+// are counted against them.
 async function resultsBefore(resultsTable, meetsTable, date) {
     const earlierMeets = new Set((await listMeets(meetsTable)).filter(m => m.date < date).map(m => m.id));
     const rows = [];
@@ -93,7 +94,8 @@ module.exports = async function (context, req) {
         const replaced = toMeetDto(meetEntity).resultsImported;
         const resultsTable = getResultsTable();
         const relayTable = getRelayResultsTable();
-        const individual = markConvertedSeeds(parsed.individual, await resultsBefore(resultsTable, meetsTable, meetEntity.date));
+        const earlier = await resultsBefore(resultsTable, meetsTable, meetEntity.date);
+        const individual = markConvertedSeeds(parsed.individual, earlier);
 
         await getResultsPdfContainer().getBlockBlobClient(sheetBlobName(meetId)).uploadData(buffer, {
             blobHTTPHeaders: { blobContentType: "application/pdf" }
@@ -107,7 +109,7 @@ module.exports = async function (context, req) {
         // meet's numbers are saved with it for the home page's results popup.
         const scoreKept = meetEntity.scoreSource === "manual";
         const score = teamScore(parsed);
-        const summary = meetSummary(individual, parsed.relays);
+        const summary = meetSummary(individual, parsed.relays, earlier);
         const update = {
             partitionKey: MEET_PARTITION_KEY,
             rowKey: meetId,

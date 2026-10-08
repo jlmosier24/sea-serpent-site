@@ -59,5 +59,11 @@ for (const expected of EXPECTED) {
             { eventName: drop.eventName, seedTime: drop.seedTime, officialTime: drop.officialTime, seconds: drop.seconds, percent: Math.round(drop.percent * 1000) / 10 },
             expected.drop
         );
+
+        // The popup's Points by card: each tab adds up to the team's final score.
+        for (const [tab, rows] of Object.entries(summary.pointsBy)) {
+            const total = Math.round(rows.reduce((n, r) => n + r.individual + r.relay, 0) * 100) / 100;
+            assert.equal(total, expected.score.us, `Points by ${tab}`);
+        }
     });
 }

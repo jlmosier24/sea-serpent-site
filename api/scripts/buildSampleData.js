@@ -85,7 +85,7 @@ async function main() {
         meetEntity.opponentScore = opponentScore;
         // The numbers an import saves for the meet results popup.
         meetEntity.resultsImported = true;
-        meetEntity.summaryJson = JSON.stringify(meetSummary(individual, parsed.relays));
+        meetEntity.summaryJson = JSON.stringify(meetSummary(individual, parsed.relays, earlierResults));
         console.log(`  score: Spotswood ${teamScore} - ${m.opponent} ${opponentScore}`);
 
         const meetDto = toMeetDto(meetEntity);

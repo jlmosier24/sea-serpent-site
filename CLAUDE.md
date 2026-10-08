@@ -25,7 +25,7 @@ Website for the Spotswood Sea Serpents summer swim team: homepage with meet card
 ## Content rules
 - "vs." means home and "at" means away. Titles use the short name ("vs. Massad"); score rows use the full name ("Curtis Park Seahawks 511").
 - Dates: the full month and day everywhere, like "July 22" and "July 13 · Final". Times: "6:00pm".
-- Stat labels: "1st places", "Relay wins" ("7 of 16"), "Top-3 finishes", "First-time swims", "Personal bests", "Most improved".
+- Stat labels in the meet popup (update 4): "Top-3 finishes" ("26 were 1st"), "Personal bests" ("by 74 swimmers"), "Point scorers" ("of 109 swimmers"), "Time dropped" ("2:56", "off best times"), and "7 relay wins" in the score banner.
 
 ## Data rules
 - Times are stored as seconds. 50yd and 50m are different events.
@@ -33,6 +33,8 @@ Website for the Spotswood Sea Serpents summer swim team: homepage with meet card
 - Team scores are added up from the sheet's points on import. The admin can type a score in, and an import never overwrites a typed-in score.
 - Most improved: the biggest percent drop below seed time across a swimmer's swims, at least 2%, shown in seconds with the event. (Not shown anywhere since 2026-10-07, when the user dropped the swimmer page's stat strip because the badges covered most of it.) Personal best: faster than the swimmer's previous best in that event, meaning their earlier swims on the site. A first swim in an event is not a PB, even when it beats the seed time (the user's choice, 2026-10-07). Barrier Breaker and Time Dropper still measure against seed times.
 - Badges follow design/update-2/UPDATE.md, section 3. Every Spotswood swimmer's badges are worked out again after each import or meet delete, since rarity compares teammates, and saved in the SwimmerBadges table. Only legal, timed swims count; each relay leg is 25 m (yards converted).
+- Converted seeds (update 4, rule A): a seed equal to the swimmer's own earlier time in the other course x 1.11 was converted between yards and meters; the importer flags it, and it's left out of every comparison with the seed.
+- The meet popup's Personal bests tile counts PBs the site's way (against earlier swims), not "faster than seed". Point scorers and Youngest scorers use individual points only. The Points by card uses the sheet's points column, and every tab adds up to the team score.
 - Opponent names come from the admin meet record, not the PDF.
 - Re-importing a meet replaces its results.
 - Photos: nothing goes live before review. A photo's meet comes from the date it was taken, read on the server without exposing the photo's GPS location.

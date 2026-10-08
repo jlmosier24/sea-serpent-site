@@ -322,7 +322,8 @@
     }
 
     // Opens a meet's popup from the numbers saved at import (meet.summary, from
-    // /api/meets). A meet without them has nothing to show, so it doesn't open.
+    // /api/meets; api/shared/stats.js meetSummary). A meet without them has
+    // nothing to show, so it doesn't open.
     function openResults(meet, opener) {
         if (!meet || !meet.summary) return;
         const s = meet.summary;
@@ -330,15 +331,16 @@
         dialog.querySelector("#meetDialogTitle").textContent = meet.title;
         dialog.querySelector("#meetDialogWhen").textContent = `${fmtDate(meet.date)} · Final`;
         const body = dialog.querySelector("#meetDialogBody");
-        body.innerHTML = scoreBanner(meet) + statTiles(s) + seedCard(s) + dropCard(s.biggestDrop) + `
-            <p class="meet-foot">Individual and relay results from the official meet sheet. Biggest drop is the largest percent improvement over seed among swimmers age 7 and up.</p>
+        body.innerHTML = scoreBanner(meet, s) + statTiles(s) + seedCard(s) + pointsCard(s) + highlightsCard(s) + `
+            <p class="meet-foot">Individual and relay results from the official meet sheet. Biggest drop is the largest percent improvement over seed among swimmers age 7 and up. Triple winners won every individual event they entered (at least three). Biggest climb is the most places gained over seed ranking in an event. Photo finish is the closest individual race won against the other team. Youngest scorers are the youngest swimmers to score points, listed by points.</p>
             <button type="button" class="btn primary block view-all">View all swimmer results</button>`;
         body.querySelector(".view-all").addEventListener("click", (event) => openAllResults(meet, event.currentTarget));
+        setUpPointsCard(body, s);
         SiteUI.openDialog(dialog, opener);
         body.scrollTop = 0; // only once it's showing; a hidden box keeps its old scroll position
     }
 
-    function scoreBanner(meet) {
+    function scoreBanner(meet, s) {
         const result = outcome(meet);
         if (!result) return "";
         const label = result === "loss" ? `Final team score · lost by ${Math.abs(meet.teamScore - meet.opponentScore)}` : "Final team score";
@@ -348,19 +350,29 @@
                     <p class="banner-label">${escapeHtml(label)}</p>
                     <p class="banner-us">Spotswood ${escapeHtml(meet.teamScore)}</p>
                     <p class="banner-them">${escapeHtml(meet.opponent)} ${escapeHtml(meet.opponentScore)}</p>
+                    <p class="banner-relays">${plural(s.relayWins, "relay win", "relay wins")}</p>
                 </div>
                 <span class="banner-chip">${OUTCOME_CHIPS[result]}</span>
             </div>`;
     }
 
+    // 176.29 -> "2:56" once it's over a minute; 42.5 -> "42.5s".
+    function fmtDropped(seconds) {
+        if (seconds < 60) return `${Math.round(seconds * 10) / 10}s`;
+        const whole = Math.round(seconds);
+        return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+    }
+
     function statTiles(s) {
-        const tile = (label, value, caption) => `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value">${escapeHtml(value)}</p><p class="stat-caption">${caption}</p></div>`;
+        const tile = (label, value, caption) => `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value">${escapeHtml(value)}</p><p class="stat-caption">${escapeHtml(caption)}</p></div>`;
+        // A personal best beats an earlier swim in the event, so a meet with none to beat (the first one) says so.
+        const bestsCaption = s.comparableSwims ? `by ${plural(s.personalBestSwimmers, "swimmer", "swimmers")}` : "No earlier swims to beat";
         return `
             <div class="stat-grid">
-                ${tile("1st places", s.firstPlaces, "Individual events")}
-                ${tile("Relay wins", `${s.relayWins} of ${s.relayEvents}`, "Relays won")}
-                ${tile("Top-3 finishes", s.topThree, "Individual podiums")}
-                ${tile("First-time swims", s.firstTimeSwims, "No seed time on file")}
+                ${tile("Top-3 finishes", s.topThree, `${s.firstPlaces} ${s.firstPlaces === 1 ? "was" : "were"} 1st`)}
+                ${tile("Personal bests", s.personalBests || 0, bestsCaption)}
+                ${tile("Point scorers", s.pointScorers || 0, `of ${plural(s.swimmersRaced || 0, "swimmer", "swimmers")}`)}
+                ${tile("Time dropped", fmtDropped(s.timeDropped || 0), "off best times")}
             </div>`;
     }
 
@@ -374,23 +386,151 @@
             </div>`;
     }
 
-    function dropCard(drop) {
-        if (!drop) return "";
+    /* ---------- Points by card ---------- */
+    // Spotswood's points split three ways, one tab each; every tab adds up to
+    // the team score. The biggest age group or stroke gets the gold bar; the
+    // relay rows mix ages and strokes, so they don't compete for it.
+    const POINTS_TABS = [["ageGroup", "Age group"], ["stroke", "Stroke"], ["place", "Place"]];
+    const NOT_GOLD = new Set(["Mixed relays", "Relays"]);
+    const fmtPoints = points => String(Math.round(points * 100) / 100);
+
+    function pointsCard(s) {
+        if (!s.pointsBy) return "";
         return `
-            <div class="gold-card drop-card">
-                <p class="drop-eyebrow">Biggest drop of the meet</p>
-                <div class="drop-who">
-                    <span class="drop-avatar" aria-hidden="true">${escapeHtml(initials(drop.name))}</span>
-                    <div class="drop-name">
-                        <p class="drop-swimmer">${escapeHtml(displayName(drop.name))}</p>
-                        <p class="drop-detail">${escapeHtml(shortEventName(drop.eventName))}${drop.age != null ? ` · age ${escapeHtml(drop.age)}` : ""}</p>
-                    </div>
-                    <div class="drop-times">
-                        <p class="drop-delta">−${drop.seconds.toFixed(2)}s</p>
-                        <p class="drop-detail">${escapeHtml(drop.seedTime)} → ${escapeHtml(drop.officialTime)} · ${(drop.percent * 100).toFixed(1)}%</p>
-                    </div>
+            <section class="inset points-card" aria-labelledby="pointsTitle">
+                <h3 id="pointsTitle">Points by</h3>
+                <div class="points-tabs" role="tablist" aria-labelledby="pointsTitle">
+                    ${POINTS_TABS.map(([key, label], i) => `<button type="button" role="tab" id="pointsTab-${key}" data-tab="${key}" aria-controls="pointsPanel" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${label}</button>`).join("")}
                 </div>
-            </div>`;
+                <div class="points-panel" id="pointsPanel" role="tabpanel" aria-labelledby="pointsTab-ageGroup">
+                    <ul class="points-bars"></ul>
+                    <div class="points-tip" aria-hidden="true" hidden></div>
+                </div>
+            </section>`;
+    }
+
+    function pointsRows(rows, tab) {
+        const total = rows.reduce((n, r) => n + r.individual + r.relay, 0);
+        const pointsOf = r => r.individual + r.relay;
+        const most = Math.max(0, ...rows.map(pointsOf));
+        const gold = Math.max(0, ...rows.filter(r => !NOT_GOLD.has(r.label)).map(pointsOf));
+        return rows.map(r => {
+            const points = pointsOf(r);
+            const pct = total ? Math.round(points / total * 100) : 0;
+            const top = gold > 0 && points === gold && !NOT_GOLD.has(r.label);
+            // The stroke tab's rows are all individual, or all relay, so they don't need the split.
+            const split = tab === "stroke" ? "" : `Individual ${fmtPoints(r.individual)} · relay ${fmtPoints(r.relay)}`;
+            const pointWord = points === 1 ? "point" : "points";
+            const sum = `${fmtPoints(points)} ${pointWord} · ${pct}% of team`;
+            // "11-12: 132 points, 25% of team points. Individual 100, relay 32. Most points."
+            const label = `${r.label}: ${fmtPoints(points)} ${pointWord}, ${pct}% of team points.`
+                + (split ? ` Individual ${fmtPoints(r.individual)}, relay ${fmtPoints(r.relay)}.` : "")
+                + (top ? " Most points." : "");
+            return `
+                <li><button type="button" class="points-row${top ? " top" : ""}" aria-label="${escapeHtml(label)}" data-name="${escapeHtml(r.label)}" data-split="${escapeHtml(split)}" data-sum="${escapeHtml(sum)}">
+                    <span class="points-label">${escapeHtml(r.label)}</span>
+                    <span class="points-track"><span class="points-bar" style="--w: ${most ? points / most : 0}"></span><span class="points-value">${fmtPoints(points)}</span><span class="points-pct">${pct}%</span></span>
+                </button></li>`;
+        }).join("");
+    }
+
+    // Tabs follow the usual keyboard pattern (arrow keys, Home, End); each row
+    // shows a tooltip on hover, focus, or tap.
+    function setUpPointsCard(body, s) {
+        const card = body.querySelector(".points-card");
+        if (!card) return;
+        const tablist = card.querySelector('[role="tablist"]');
+        const tabs = [...tablist.querySelectorAll('[role="tab"]')];
+        const panel = card.querySelector('[role="tabpanel"]');
+        const list = panel.querySelector(".points-bars");
+        const tip = panel.querySelector(".points-tip");
+
+        function hideTip() { tip.hidden = true; }
+        function showTip(row) {
+            const name = document.createElement("b");
+            name.textContent = row.dataset.name;
+            const lines = [name];
+            if (row.dataset.split) lines.push(Object.assign(document.createElement("span"), { textContent: row.dataset.split }));
+            lines.push(Object.assign(document.createElement("span"), { textContent: row.dataset.sum }));
+            tip.replaceChildren(...lines);
+            tip.hidden = false;
+            const bar = row.querySelector(".points-bar");
+            const left = bar.offsetLeft + Math.min(bar.offsetWidth, 120);
+            tip.style.left = `${Math.max(0, Math.min(left, panel.clientWidth - tip.offsetWidth))}px`;
+            tip.style.top = `${row.offsetTop - tip.offsetHeight - 6}px`;
+        }
+        function select(tab, focus) {
+            tabs.forEach(t => {
+                const on = t === tab;
+                t.setAttribute("aria-selected", String(on));
+                t.tabIndex = on ? 0 : -1;
+            });
+            panel.setAttribute("aria-labelledby", tab.id);
+            list.innerHTML = pointsRows(s.pointsBy[tab.dataset.tab], tab.dataset.tab);
+            hideTip();
+            if (focus) tab.focus();
+        }
+
+        tablist.addEventListener("click", (event) => {
+            const tab = event.target.closest('[role="tab"]');
+            if (tab) select(tab);
+        });
+        tablist.addEventListener("keydown", (event) => {
+            const i = tabs.indexOf(document.activeElement);
+            const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[event.key];
+            if (i < 0 || next === undefined) return;
+            event.preventDefault();
+            select(tabs[(next + tabs.length) % tabs.length], true);
+        });
+        list.addEventListener("pointerover", (event) => {
+            const row = event.target.closest(".points-row");
+            if (row) showTip(row);
+        });
+        list.addEventListener("pointerleave", hideTip);
+        list.addEventListener("focusin", (event) => {
+            const row = event.target.closest(".points-row");
+            if (row) showTip(row);
+        });
+        list.addEventListener("focusout", hideTip);
+        list.addEventListener("click", (event) => {
+            const row = event.target.closest(".points-row");
+            if (row) showTip(row);
+        });
+        select(tabs[0]);
+    }
+
+    /* ---------- Meet highlights card ---------- */
+    // Each section shows only when something qualifies, with every tie listed.
+    const ORDINAL_SUFFIX = n => (n % 100 >= 11 && n % 100 <= 13 ? "th" : { 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th");
+    const ordinal = n => `${n}${ORDINAL_SUFFIX(n)}`;
+
+    function highlightsCard(s) {
+        const h = s.highlights || {};
+        const section = (one, many, items) => {
+            if (!items || !items.length) return "";
+            const title = items.length > 1 && many ? `${many} <span class="hl-count">${items.length}</span>` : one;
+            return `<div class="hl"><h4 class="hl-title">${title}</h4><ul class="hl-list">${items.join("")}</ul></div>`;
+        };
+        const item = (name, detail, right) => `
+            <li><div><p class="hl-name">${escapeHtml(displayName(name))}</p><p class="hl-detail">${escapeHtml(detail)}</p></div><div class="hl-right">${right}</div></li>`;
+        const value = text => `<span class="hl-value">${escapeHtml(text)}</span>`;
+        const pts = points => `${fmtPoints(points)} ${points === 1 ? "pt" : "pts"}`;
+        const eventAge = r => `${shortEventName(r.eventName)} · age ${r.age}`;
+        const drop = s.biggestDrop;
+        const sections = [
+            section("Biggest drop", null, drop && [item(drop.name, eventAge(drop), value(`−${drop.seconds.toFixed(2)}s`))]),
+            section("Triple winner", "Triple winners", (h.tripleWinners || []).map(t => item(t.name, `Age ${t.age}`, value(pts(t.points))))),
+            section("Biggest climb", "Biggest climbs", (h.biggestClimb || []).map(c => item(c.name, eventAge(c), `
+                <span class="climb"><span aria-hidden="true">${ordinal(c.seedRank)}<small>Seed</small></span><span class="climb-arrow" aria-hidden="true">→</span><span aria-hidden="true">${ordinal(c.place)}<small>Finish</small></span><span class="sr-only">seeded ${ordinal(c.seedRank)}, finished ${ordinal(c.place)}</span></span>`))),
+            section("Photo finish", "Photo finishes", (h.photoFinishes || []).map(p => item(p.name, eventAge(p), `${value(`${p.margin.toFixed(2)}s`)}<small>margin</small>`))),
+            section("Youngest scorer", "Youngest scorers", (h.youngestScorers || []).map(y => item(y.name, `Age ${y.age}`, value(pts(y.points)))))
+        ].filter(Boolean);
+        if (!sections.length) return "";
+        return `
+            <section class="gold-card highlights-card" aria-labelledby="highlightsTitle">
+                <h3 id="highlightsTitle">Meet highlights</h3>
+                ${sections.join("")}
+            </section>`;
     }
 
     /* ---------- Full results list ---------- */

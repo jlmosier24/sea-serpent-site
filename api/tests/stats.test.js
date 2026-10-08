@@ -42,6 +42,110 @@ test("a seed converted from the other course is left out of the seed comparisons
     assert.equal(s.biggestDrop.name, "B");
 });
 
+test("meet tiles: personal bests against earlier meets, point scorers, and time dropped below real seeds", () => {
+    const swim = (name, eventNumber, eventName, officialSeconds, extra = {}) =>
+        ({ name, team: "Spotswood", age: 10, eventNumber, eventName, status: "OK", place: 4, officialSeconds, points: 0, seedSeconds: null, ...extra });
+    const earlier = [
+        swim("Doe, Jane", 1, "Girls 9-10 50m Freestyle", 40),
+        swim("Doe, Jane", 2, "Girls 9-10 50m Backstroke", 45),
+        swim("Poe, Pam", 1, "Girls 9-10 50m Freestyle", 41)
+    ];
+    const individual = [
+        swim("Doe, Jane", 1, "Girls 9-10 50m Freestyle", 39.5, { points: 2, seedSeconds: 41 }),        // a PB, and 1.5 below its seed
+        swim("Doe, Jane", 2, "Girls 9-10 50m Backstroke", 46, { seedSeconds: 50, seedConverted: true }), // slower, and a converted seed
+        swim("Poe, Pam", 1, "Girls 9-10 50m Freestyle", 40.5, { points: 1, seedSeconds: 40 }),         // a PB, though over its seed
+        swim("Koe, Kim", 3, "Girls 9-10 25m Butterfly", 20, { seedSeconds: 22 }),                      // a first swim, 2.0 below its seed
+        swim("Loe, Liz", 3, "Girls 9-10 25m Butterfly", null, { status: "NS" })                        // didn't race
+    ];
+    const s = meetSummary(individual, [], earlier);
+    assert.deepEqual([s.personalBests, s.personalBestSwimmers, s.comparableSwims], [2, 2, 3]);
+    assert.deepEqual([s.pointScorers, s.swimmersRaced], [2, 3]);
+    assert.equal(s.timeDropped, 3.5, "the converted seed's drop doesn't count");
+    // A first meet has nothing earlier to compare with.
+    assert.deepEqual(((({ personalBests, comparableSwims }) => [personalBests, comparableSwims])(meetSummary(individual, []))), [0, 0]);
+});
+
+test("pointsBy: every tab adds up to the team's points, split by age group, stroke and place", () => {
+    const swim = (age, eventNumber, eventName, place, points, team = "Spotswood") => ({ name: `S${eventNumber}`, team, age, eventNumber, eventName, status: "OK", place, points });
+    const individual = [
+        swim(6, 1, "Girls 8 & Under 25m Freestyle", 1, 6),
+        swim(10, 2, "Boys 9-10 50m Backstroke", 2, 4),
+        swim(13, 3, "Girls 13-14 100m IM", 2, 3.5), // tied for 2nd
+        swim(17, 4, "Boys 15-18 50m Butterfly", 5, 1),
+        swim(12, 5, "Girls 11-12 50m Breaststroke", 6, 0),
+        swim(12, 5, "Girls 11-12 50m Breaststroke", 1, 6, "Test Seahawks") // the other team's points aren't ours
+    ];
+    const relay = (eventNumber, eventName, place, points) => ({ team: "Spotswood", relayLetter: "A", status: "OK", eventNumber, eventName, place, points });
+    const relays = [
+        relay(10, "Girls 8 & Under 100m Freestyle Relay", 1, 8),
+        relay(11, "Boys 12 & Under 100m Medley Relay", 2, 4),    // spans age groups: Mixed relays
+        relay(12, "Men 15-18 100m Freestyle Relay", 3, 2),
+        relay(13, "Girls 18 & Under 125m Freestyle Relay", 1, 8) // Mixed relays too
+    ];
+    const { pointsBy } = meetSummary(individual, relays);
+    const total = rows => rows.reduce((n, r) => n + r.individual + r.relay, 0);
+    // 14.5 individual and 22 relay points, whichever way they're split.
+    for (const tab of ["ageGroup", "stroke", "place"]) assert.equal(total(pointsBy[tab]), 36.5, tab);
+    assert.deepEqual(pointsBy.ageGroup, [
+        { label: "8 & under", individual: 6, relay: 8 },
+        { label: "9-10", individual: 4, relay: 0 },
+        { label: "11-12", individual: 0, relay: 0 },
+        { label: "13-14", individual: 3.5, relay: 0 },
+        { label: "15-18", individual: 1, relay: 2 },
+        { label: "Mixed relays", individual: 0, relay: 12 }
+    ]);
+    const points = rows => rows.map(r => [r.label, r.individual + r.relay]);
+    assert.deepEqual(points(pointsBy.stroke), [["Freestyle", 6], ["Backstroke", 4], ["Breaststroke", 0], ["Butterfly", 1], ["IM", 3.5], ["Relays", 22]]);
+    assert.deepEqual(points(pointsBy.place), [["1st", 22], ["2nd", 11.5], ["3rd", 2], ["4th", 0], ["5th", 1]]);
+});
+
+test("meet highlights: triple winners and youngest scorers", () => {
+    const swim = (name, age, eventNumber, place, points, status = "OK") =>
+        ({ name, team: "Spotswood", age, eventNumber, eventName: "Girls 11-12 50m Freestyle", status, place, points, officialSeconds: 30 });
+    const individual = [
+        swim("Doe, Jane", 11, 1, 1, 6), swim("Doe, Jane", 11, 2, 1, 6), swim("Doe, Jane", 11, 3, 1, 6),
+        swim("Poe, Sam", 9, 1, 1, 6), swim("Poe, Sam", 9, 2, 1, 6),                                         // two wins isn't three
+        swim("Koe, Kim", 12, 1, 1, 6), swim("Koe, Kim", 12, 2, 1, 6), swim("Koe, Kim", 12, 3, null, 0, "DQ"), // a DQ in the third
+        swim("Loe, Liz", 6, 4, 3, 3), swim("Moe, Mia", 6, 5, 2, 4),
+        swim("Zoe, Zed", 5, 6, 7, 0) // younger, but didn't score
+    ];
+    const { highlights } = meetSummary(individual, []);
+    assert.deepEqual(highlights.tripleWinners, [{ name: "Doe, Jane", age: 11, points: 18 }]);
+    assert.deepEqual(highlights.youngestScorers, [{ name: "Moe, Mia", age: 6, points: 4 }, { name: "Loe, Liz", age: 6, points: 3 }]);
+});
+
+test("meet highlights: biggest climb from the seed order, with NT and converted seeds left out and ties shown", () => {
+    const swim = (name, team, eventNumber, place, seedSeconds, extra = {}) =>
+        ({ name, team, age: 9, eventNumber, eventName: "Boys 9-10 25m Freestyle", status: "OK", place, officialSeconds: 20 + place, seedSeconds, points: 0, ...extra });
+    const individual = [
+        // Event 1's real seeds rank 20, 21, 22, 23; an NT and a converted seed aren't in the order.
+        swim("Fast, Al", "Test Seahawks", 1, 1, 20),
+        swim("Doe, Jim", "Spotswood", 1, 2, 23), // seeded 4th, finished 2nd: up 2
+        swim("Roe, Ray", "Test Seahawks", 1, 3, 21),
+        swim("Poe, Pat", "Spotswood", 1, 4, null),
+        swim("Koe, Ken", "Spotswood", 1, 5, 19, { seedConverted: true }),
+        swim("Moe, Mo", "Test Seahawks", 1, 6, 22),
+        // Event 2: seeded 3rd, won it, also up 2.
+        swim("Loe, Lou", "Spotswood", 2, 1, 32),
+        swim("Them, Tom", "Test Seahawks", 2, 2, 30),
+        swim("Them, Tim", "Test Seahawks", 2, 3, 31)
+    ];
+    assert.deepEqual(meetSummary(individual, []).highlights.biggestClimb.map(c => [c.name, c.seedRank, c.place]), [["Doe, Jim", 4, 2], ["Loe, Lou", 3, 1]]);
+});
+
+test("meet highlights: photo finishes are Spotswood wins over the other team's swimmer in 2nd", () => {
+    const swim = (name, team, eventNumber, place, officialSeconds) =>
+        ({ name, team, age: 12, eventNumber, eventName: "Girls 11-12 50m Freestyle", status: "OK", place, officialSeconds, points: 0, seedSeconds: null });
+    const individual = [
+        swim("Doe, Jane", "Spotswood", 1, 1, 30.00), swim("Roe, Rita", "Test Seahawks", 1, 2, 30.07), // won by 0.07
+        swim("Poe, Pam", "Spotswood", 2, 1, 31.00), swim("Koe, Kay", "Spotswood", 2, 2, 31.01),       // a Spotswood 1-2
+        swim("Moe, Meg", "Spotswood", 3, 1, 29.00), swim("Toe, Tia", "Test Seahawks", 3, 2, 29.07),   // also 0.07: both shown
+        swim("Loe, Lia", "Spotswood", 4, 1, 28.00), swim("Fay, Fi", "Test Seahawks", 4, 1, 28.00),    // a tie for first wasn't won
+        swim("Hoe, Hal", "Test Seahawks", 5, 1, 27.00), swim("Yoe, Yan", "Spotswood", 5, 2, 27.01)    // their win
+    ];
+    assert.deepEqual(meetSummary(individual, []).highlights.photoFinishes.map(p => [p.name, p.margin]), [["Doe, Jane", 0.07], ["Moe, Meg", 0.07]]);
+});
+
 test("ties for first count as wins; only A and B relays can win", () => {
     const rows = [
         { name: "A", team: "Spotswood", status: "OK", place: 1 },
