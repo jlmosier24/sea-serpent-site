@@ -1,38 +1,46 @@
-// Badges (design/update-2/UPDATE.md, section 3), worked out from one
-// swimmer's season: their individual swims, and the relays they swam a leg of.
+// Badges (design/update-2/UPDATE.md, section 3, as changed by update 4,
+// sections C to E), worked out from one swimmer's season: their individual
+// swims, and the relays they swam a leg of.
 //
 // Only legal, timed swims count: DQs, no-shows, and scratches never earn or
-// remove anything. A badge is New when it was earned, went up a count, or
-// passed a milestone at the swimmer's latest meet. Counts and totals are the
-// swimmer's real numbers; milestones only decide when a badge is earned and
-// when it's New again.
+// remove anything. Meet Attendance is the one exception: it counts every meet
+// the swimmer swam in, DQs included. A badge that counts something lists every
+// instance, and its pill is that list's count or total. A badge is New at the
+// meet where it was first earned, and at any later meet that changes its pill.
 
 const { hasRealSeed } = require("./seeds");
 
 const RELAY_LEG_METERS = 25;
 const YARD_METERS = 0.9144;
 const BARRIERS = [60, 40, 30, 20]; // seconds: under 1:00, 40s, 30s, 20s
-const DISTANCE_LEVELS = [500, 1000, 2500]; // meters
-const POINTS_LEVELS = [10, 25, 50, 100];
-const DROP_LEVELS = [10, 30, 60]; // seconds dropped below seed times
+// What the badges that add something up need before they're earned.
+const DISTANCE_METERS = 500;
+const SCORER_POINTS = 10;
+const DROPPER_SECONDS = 10; // dropped below seed times
+const ATTENDANCE_MEETS = 2; // the first meet is First Splash's
 
-// Catalog order also breaks ties when two badges are equally rare.
+// Each badge's name and description, and for a badge that counts something,
+// the label over its list (the others say how they were earned instead).
 const BADGE_INFO = {
     splash: { name: "First Splash", description: "Swam in a first meet with the Sea Serpents." },
-    pb: { name: "Personal Best", description: "Swam faster than any earlier time in an event." },
-    streak: { name: "PB Streak", description: "Set a personal best at meet after meet." },
+    pb: { name: "Personal Best", description: "Swam faster than any earlier time in an event.", listLabel: "Personal bests" },
+    streak: { name: "PB Streak", description: "Set a personal best at meet after meet.", listLabel: "Meets" },
     barrier: { name: "Barrier Breaker", description: "Broke a big round-number barrier for the first time." },
-    distance: { name: "Distance Dynamo", description: "Raced a lot of meters this season." },
-    podium: { name: "Podium", description: "Finished in the top three." },
-    champion: { name: "Champion", description: "Won an event." },
-    scorer: { name: "Point Scorer", description: "Scored points for the team." },
-    triple: { name: "Triple Winner", description: "Won every individual event at a meet." },
-    relay: { name: "Relay Ready", description: "Swam legs of relays for the team." },
-    anchor: { name: "Anchor", description: "Swam the final leg of a relay." },
+    distance: { name: "Distance Dynamo", description: "Raced a lot of meters this season.", listLabel: "Meters by meet" },
+    podium: { name: "Podium", description: "Finished in the top three.", listLabel: "Finishes" },
+    champion: { name: "Champion", description: "Won an event.", listLabel: "Wins" },
+    scorer: { name: "Point Scorer", description: "Scored points for the team.", listLabel: "Points by meet" },
+    triple: { name: "Triple Winner", description: "Won every individual event at a meet.", listLabel: "Meets" },
+    relay: { name: "Relay Ready", description: "Swam legs of relays for the team.", listLabel: "Relays" },
+    anchor: { name: "Anchor", description: "Swam the final leg of a relay.", listLabel: "Relays" },
     rounded: { name: "Well-Rounded", description: "Swam all four strokes." },
-    dropper: { name: "Time Dropper", description: "Total time dropped across the season." }
+    attendance: { name: "Meet Attendance", description: "Showed up and swam at meets.", listLabel: "Meets" },
+    dropper: { name: "Time Dropper", description: "Total time dropped across the season.", listLabel: "Drops" }
 };
-const BADGE_ORDER = Object.keys(BADGE_INFO);
+
+// Display order (update 4, section E): New ones first, then this fixed
+// ranking, rarest first, with First Splash always last.
+const BADGE_RANK = ["triple", "champion", "barrier", "podium", "scorer", "dropper", "streak", "anchor", "distance", "relay", "rounded", "pb", "attendance", "splash"];
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 function longDate(isoDate) {
@@ -44,6 +52,29 @@ function longDate(isoDate) {
 function shortEventName(eventName) {
     const m = /^.+?\s+(\d+(?:yd|m)\s+.+)$/.exec(eventName || "");
     return m ? m[1] : eventName;
+}
+
+const SHORT_STROKES = { Freestyle: "Free", Backstroke: "Back", Breaststroke: "Breast", Butterfly: "Fly" };
+// A meet's events in short, a repeated distance written once:
+// "50m Freestyle", "50m Butterfly", "100m IM" -> "50m Free, Fly, 100m IM"
+function eventList(eventNames) {
+    let lastDistance = null;
+    return eventNames.map(eventName => {
+        const m = /^(\d+(?:yd|m))\s+(.+)$/.exec(shortEventName(eventName));
+        if (!m) return eventName;
+        const stroke = SHORT_STROKES[m[2]] || m[2];
+        const text = m[1] === lastDistance ? stroke : `${m[1]} ${stroke}`;
+        lastDistance = m[1];
+        return text;
+    }).join(", ");
+}
+
+// "Girls 12 & Under 100m Medley Relay" -> "100m Medley Relay · 12 & under"
+function relayTitle(eventName) {
+    const m = /^(.*?)\s*(\d+(?:yd|m)\s+.+)$/.exec(eventName || "");
+    if (!m) return eventName;
+    const group = m[1].replace(/^(Girls|Boys|Women|Men|Mixed)\s*/i, "").replace(/\bUnder\b/, "under");
+    return group ? `${m[2]} · ${group}` : m[2];
 }
 
 // An event's length as written ("100yd" -> 100, in yards), or null.
@@ -76,196 +107,226 @@ const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
 const commas = n => Math.round(n).toLocaleString("en-US");
 // Tied places split their points, so a total can end in .5 (or .33 for three).
 const tenths = n => (Math.round(n * 10) / 10).toLocaleString("en-US");
-const seconds = n => `${(Math.round(n * 100) / 100).toFixed(2)}`;
-// The highest level passed going from `before` to `after`, or null.
-const levelPassed = (levels, before, after) => [...levels].reverse().find(level => before < level && after >= level) || null;
-const nextLevel = (levels, total) => levels.find(level => level > total) || null;
+const round2 = n => Math.round(n * 100) / 100;
+const seconds = n => round2(n).toFixed(2);
 
 const scored = swim => swim.status === "OK" && swim.officialSeconds != null;
 // Exhibition swims are legal and timed, just not scored.
 const legalRelay = leg => leg.status === "OK" || leg.status === "EXH";
 const byEvent = (a, b) => a.eventNumber - b.eventNumber;
 
+// What a list row shows: a title, a small line under it, and a value on the
+// right. A row with no small line of its own (Meet Attendance's) keeps its
+// meet instead, and the Stats page shows the meet's title there ("at Curtis
+// Park"), so a renamed opponent reads right without working badges out again.
+function listRow({ meetId, title, sub, value }) {
+    const row = { title };
+    if (sub != null) row.sub = sub;
+    else row.meetId = meetId;
+    if (value) row.value = value;
+    return row;
+}
+
 // swims: the swimmer's individual rows (meetId, meetDate, eventNumber,
-// eventName, status, place, seedTime, seedSeconds, officialTime,
-// officialSeconds, points). legs: one per relay they're listed on (meetId,
-// meetDate, eventNumber, eventName, status, leg as 1-4, and listed: how many
-// swimmers the sheet lists). Returns { badges, totals }.
+// eventName, status, place, seedTime, seedSeconds, seedConverted,
+// officialTime, officialSeconds, points). legs: one per relay they're listed
+// on (meetId, meetDate, eventNumber, eventName, status, leg as 1-4, and
+// listed: how many swimmers the sheet lists). Returns { badges, totals },
+// badges in display order.
 function swimmerBadges(swims, legs) {
     const meetDates = new Map();
     for (const row of [...swims, ...legs]) meetDates.set(row.meetId, row.meetDate || "");
     const meets = [...meetDates.keys()].sort((a, b) => meetDates.get(a).localeCompare(meetDates.get(b)) || a.localeCompare(b));
 
-    const best = new Map(); // event name -> her fastest earlier swim in it ({ seconds, time })
-    const earned = {};      // badge id -> { meetId, ...details }
-    const totals = { personalBests: 0, points: 0, relayLegs: 0, meters: 0, individualMeters: 0, relayMeters: 0, timeDropped: 0, podiums: 0, wins: 0, triples: 0, anchors: 0 };
+    const best = new Map(); // event name -> their fastest earlier swim in it ({ seconds, time })
     const strokes = new Set();
-    const relayLegsByMeet = [];
-    let streak = 0;
-    let longestStreak = 0;
+    // Every instance of each counting badge, oldest first ({ meetId, title,
+    // sub, value }, and the amount added for the ones that add up). The badges
+    // without a list keep only where and how they were earned, in `once`.
+    const lists = Object.fromEntries(Object.keys(BADGE_INFO).filter(id => BADGE_INFO[id].listLabel).map(id => [id, []]));
+    const once = {};
+    let run = []; // the meets in a row with a personal best, so far
+    let individualMeters = 0;
+    let relayMeters = 0;
     let latestMeet = null;
 
     for (const meetId of meets) {
+        const date = longDate(meetDates.get(meetId));
         const meetSwims = swims.filter(s => s.meetId === meetId).sort(byEvent);
-        const meetLegs = legs.filter(l => l.meetId === meetId && legalRelay(l)).sort(byEvent);
-        const swamHere = meetSwims.some(scored) || meetLegs.length > 0;
-        if (!swamHere) continue;
+        const meetLegs = legs.filter(l => l.meetId === meetId).sort(byEvent);
+        // Any swim or relay leg but a no-show means they swam at the meet, a DQ too.
+        const swumHere = [...meetSwims, ...meetLegs].filter(row => row.status !== "NS").length;
+        if (!swumHere) continue;
         latestMeet = meetId;
-        const before = { ...totals };
-        if (!earned.splash) earned.splash = { meetId, detail: "First meet of the season" };
+        lists.attendance.push({ meetId, title: date, value: plural(swumHere, "swim", "swims") });
 
-        let pbHere = false;
-        for (const swim of meetSwims.filter(scored)) {
+        const timed = meetSwims.filter(scored);
+        const relays = meetLegs.filter(legalRelay);
+        if (!once.splash && (timed.length || relays.length)) once.splash = { meetId, detail: "First meet of the season" };
+
+        const pbEvents = [];
+        let points = 0;
+        let firsts = 0;
+        let scoringSwims = 0;
+        let swimMeters = 0;
+        for (const swim of timed) {
             const event = shortEventName(swim.eventName);
             const earlier = best.get(swim.eventName);
             // A personal best beats an earlier swim in the event; a first swim
             // never is one, even when it beats the seed time.
             if (earlier && swim.officialSeconds < earlier.seconds) {
-                totals.personalBests++;
-                pbHere = true;
-                if (!earned.pb) earned.pb = { meetId, detail: `${event}: ${earlier.time} → ${swim.officialTime}` };
+                pbEvents.push(swim.eventName);
+                lists.pb.push({ meetId, title: event, sub: `${date} · ${earlier.time} → ${swim.officialTime}`, value: `−${seconds(earlier.seconds - swim.officialSeconds)}s` });
             }
-            // A barrier is broken the first time she's under it, so it's measured
-            // against her best coming in: an earlier swim or the seed, whichever is
-            // faster. A seed converted from the other course doesn't count (seeds.js).
+            // A barrier is broken the first time they're under it, so it's
+            // measured against their best coming in: an earlier swim or the
+            // seed, whichever is faster. A seed converted from the other course
+            // doesn't count (seeds.js).
             const comingIn = hasRealSeed(swim) && (!earlier || swim.seedSeconds < earlier.seconds)
                 ? { seconds: swim.seedSeconds, time: swim.seedTime }
                 : earlier;
             const broken = comingIn ? BARRIERS.filter(b => comingIn.seconds >= b && swim.officialSeconds < b) : [];
             if (broken.length) {
                 const barrier = Math.min(...broken);
-                earned.barrier = { meetId, sub: barrier === 60 ? "Under 1:00" : `Under ${barrier}s`, detail: `${event}: ${comingIn.time} → ${swim.officialTime}` };
+                once.barrier = { meetId, sub: barrier === 60 ? "Under 1:00" : `Under ${barrier}s`, detail: `${event}: ${comingIn.time} → ${swim.officialTime}` };
             }
             if (!earlier || swim.officialSeconds < earlier.seconds) best.set(swim.eventName, { seconds: swim.officialSeconds, time: swim.officialTime });
-            if (hasRealSeed(swim) && swim.officialSeconds < swim.seedSeconds) totals.timeDropped += swim.seedSeconds - swim.officialSeconds;
-            totals.points += swim.points || 0;
-            totals.individualMeters += eventMeters(swim.eventName);
+            if (hasRealSeed(swim) && swim.officialSeconds < swim.seedSeconds) {
+                const dropped = round2(swim.seedSeconds - swim.officialSeconds);
+                lists.dropper.push({ meetId, title: event, sub: date, value: `−${seconds(dropped)}s`, amount: dropped });
+            }
+            points += swim.points || 0;
+            if (swim.points > 0) scoringSwims++;
+            swimMeters += eventMeters(swim.eventName);
             const style = stroke(swim.eventName);
             if (style) strokes.add(style);
             if (swim.place != null && swim.place <= 3) {
-                totals.podiums++;
-                earned.podium = { meetId, latest: `${ORDINALS[swim.place]} · ${event} (${swim.officialTime})` };
+                const finish = { meetId, title: event, sub: `${date} · ${swim.officialTime}`, value: ORDINALS[swim.place] };
+                lists.podium.push(finish);
+                if (swim.place === 1) {
+                    firsts++;
+                    lists.champion.push(finish);
+                }
             }
-            if (swim.place === 1) {
-                totals.wins++;
-                earned.champion = { meetId, latest: `${event} (${swim.officialTime})` };
-            }
+        }
+        if (points > 0) {
+            lists.scorer.push({
+                meetId,
+                title: date,
+                sub: firsts ? plural(firsts, "first place", "first places") : `Scored in ${plural(scoringSwims, "event", "events")}`,
+                value: `${tenths(points)} ${points === 1 ? "pt" : "pts"}`,
+                amount: points
+            });
         }
 
         // Triple Winner: exactly three individual events entered here, and 1st in all three.
         if (meetSwims.length === 3 && meetSwims.every(s => scored(s) && s.place === 1)) {
-            totals.triples++;
-            earned.triple = { meetId };
+            lists.triple.push({ meetId, title: date, sub: eventList(meetSwims.map(s => s.eventName)), value: "3 of 3" });
         }
 
-        if (meetLegs.length) {
-            totals.relayLegs += meetLegs.length;
-            relayLegsByMeet.push({ date: meetDates.get(meetId), count: meetLegs.length });
-            earned.relay = { meetId };
-            for (const leg of meetLegs) {
-                totals.relayMeters += legMeters(leg.eventName);
-                // The final leg of a complete lineup (four 25-length legs on a 100 relay).
-                // A 125 relay lists only four of its five swimmers, so its 4th isn't the anchor.
-                const distance = eventDistance(leg.eventName);
-                if (leg.leg === leg.listed && distance && distance.length === leg.listed * 25) {
-                    totals.anchors++;
-                    earned.anchor = { meetId, latest: leg.eventName };
-                }
-            }
-        }
-        totals.meters = totals.individualMeters + totals.relayMeters;
-
-        if (pbHere) {
-            streak++;
-            if (streak > longestStreak) {
-                longestStreak = streak;
-                if (streak >= 2) earned.streak = { meetId };
-            }
-        } else if (meetSwims.some(scored)) {
-            streak = 0; // a meet with individual swims and no personal best ends the run
+        let legMetersHere = 0;
+        for (const leg of relays) {
+            legMetersHere += legMeters(leg.eventName);
+            const row = { meetId, title: relayTitle(leg.eventName), sub: date };
+            lists.relay.push(row);
+            // The final leg of a complete lineup (four 25-length legs on a 100 relay).
+            // A 125 relay lists only four of its five swimmers, so its 4th isn't the anchor.
+            const distance = eventDistance(leg.eventName);
+            if (leg.leg === leg.listed && distance && distance.length === leg.listed * 25) lists.anchor.push(row);
         }
 
-        if (!earned.rounded && strokes.size === 4) earned.rounded = { meetId, detail: "Swam freestyle, backstroke, breaststroke and butterfly" };
-        if (levelPassed(DISTANCE_LEVELS, before.meters, totals.meters)) earned.distance = { meetId };
-        if (levelPassed(POINTS_LEVELS, before.points, totals.points)) earned.scorer = { meetId };
-        if (levelPassed(DROP_LEVELS, before.timeDropped, totals.timeDropped)) earned.dropper = { meetId };
+        // Rounded meet by meet, so the rows add up to the pill exactly.
+        const individual = Math.round(swimMeters);
+        const relay = Math.round(legMetersHere);
+        if (individual + relay > 0) {
+            individualMeters += individual;
+            relayMeters += relay;
+            const parts = [individual && `${commas(individual)} m individual`, relay && `${commas(relay)} m relays`];
+            lists.distance.push({ meetId, title: date, sub: parts.filter(Boolean).join(" · "), value: `${commas(individual + relay)} m`, amount: individual + relay });
+        }
+
+        if (pbEvents.length) {
+            run.push({ meetId, title: date, sub: eventList(pbEvents), value: plural(pbEvents.length, "PB", "PBs") });
+            // PB Streak lists the first of its longest runs; one only as long doesn't replace it.
+            if (run.length > lists.streak.length) lists.streak = [...run];
+        } else if (timed.length) {
+            run = []; // a meet with individual swims and no personal best ends the run
+        }
+
+        if (!once.rounded && strokes.size === 4) once.rounded = { meetId, detail: "Swam freestyle, backstroke, breaststroke and butterfly" };
     }
 
-    totals.timeDropped = Math.round(totals.timeDropped * 100) / 100;
-    totals.points = Math.round(totals.points * 10) / 10;
-    for (const key of ["meters", "individualMeters", "relayMeters"]) totals[key] = Math.round(totals[key]);
+    const sum = list => list.reduce((total, row) => total + row.amount, 0);
+    const timeDropped = round2(sum(lists.dropper));
+    const points = Math.round(sum(lists.scorer) * 10) / 10;
+    const meters = sum(lists.distance);
+    const count = list => (list.length > 1 ? `×${list.length}` : null); // a count of 1 needs no pill
+    // Whether each counting badge is earned, and its pill.
+    const counting = {
+        pb: [lists.pb.length > 0, count(lists.pb)],
+        streak: [lists.streak.length >= 2, `×${lists.streak.length}`],
+        distance: [meters >= DISTANCE_METERS, `${commas(meters)} m`],
+        // Champion covers every podium a winner has, so Podium only shows without it.
+        podium: [lists.podium.length > 0 && !lists.champion.length, count(lists.podium)],
+        champion: [lists.champion.length > 0, count(lists.champion)],
+        scorer: [points >= SCORER_POINTS, `${tenths(points)} pts`],
+        triple: [lists.triple.length > 0, count(lists.triple)],
+        relay: [lists.relay.length > 0, count(lists.relay)],
+        anchor: [lists.anchor.length > 0, count(lists.anchor)],
+        attendance: [lists.attendance.length >= ATTENDANCE_MEETS, count(lists.attendance)],
+        dropper: [timeDropped >= DROPPER_SECONDS, `${seconds(timeDropped)}s`]
+    };
 
-    // The pill shows a real count or total; a count of 1 needs no pill.
-    const count = n => (n > 1 ? `×${n}` : null);
-    const pills = {
-        streak: `×${longestStreak}`,
-        distance: `${commas(totals.meters)} m`,
-        podium: count(totals.podiums),
-        champion: count(totals.wins),
-        scorer: `${tenths(totals.points)} pts`,
-        triple: count(totals.triples),
-        relay: count(totals.relayLegs),
-        anchor: count(totals.anchors),
-        dropper: `${seconds(totals.timeDropped)}s`
-    };
-    // " Next level at 1,000 m, 275 m to go." (nothing once the top level is passed)
-    const toGo = (levels, total, unit, leftUnit, format = commas) => {
-        const next = nextLevel(levels, total);
-        return next ? ` Next level at ${commas(next)}${unit}, ${format(next - total)}${leftUnit} to go.` : "";
-    };
-    const withLatest = (count, total, latest) => (count > 1 ? `${total}. Latest: ${latest}` : latest);
-    const details = {
-        streak: `Personal bests at ${longestStreak} meets in a row`,
-        distance: `${commas(totals.meters)} meters raced: ${commas(totals.individualMeters)} m in individual events and ${commas(totals.relayMeters)} m on ${plural(totals.relayLegs, "relay leg", "relay legs")}. DQ swims don't count.${toGo(DISTANCE_LEVELS, totals.meters, " m", " m")}`,
-        podium: earned.podium && withLatest(totals.podiums, plural(totals.podiums, "top-3 finish", "top-3 finishes"), earned.podium.latest),
-        champion: earned.champion && (totals.wins > 1 ? `${totals.wins} wins. Latest: ${earned.champion.latest}` : `Won ${earned.champion.latest}`),
-        scorer: `${tenths(totals.points)} team points so far.${toGo(POINTS_LEVELS, totals.points, " points", "", tenths)}`,
-        triple: `Won all 3 individual events at ${plural(totals.triples, "meet", "meets")}`,
-        relay: totals.relayLegs === 1
-            ? "Swam a relay leg"
-            : `Swam ${totals.relayLegs} relay legs: ${relayLegsByMeet.map(m => `${m.count} on ${longDate(m.date)}`).join(", ")}`,
-        anchor: earned.anchor && (totals.anchors > 1 ? `Anchored ${totals.anchors} relays. Latest: ${earned.anchor.latest}` : `Anchored the ${earned.anchor.latest}`),
-        dropper: `Total time dropped: ${seconds(totals.timeDropped)} s.${toGo(DROP_LEVELS, totals.timeDropped, " s", " s", seconds)}`
-    };
-    // Champion covers every podium a winner has, so Podium only shows without it.
-    if (earned.champion) delete earned.podium;
-
-    const badges = BADGE_ORDER.filter(id => earned[id]).map(id => ({
+    const badge = (id, meetId, fields) => ({
         id,
         name: BADGE_INFO[id].name,
         description: BADGE_INFO[id].description,
-        pill: pills[id] || null,
-        sub: earned[id].sub || null,
-        detail: earned[id].detail || details[id] || "",
-        meetId: earned[id].meetId,
-        meetDate: meetDates.get(earned[id].meetId) || "",
-        isNew: earned[id].meetId === latestMeet
-    }));
-    return { badges, totals: { ...totals, meetsSwum: meets.filter(m => swims.some(s => s.meetId === m && scored(s)) || legs.some(l => l.meetId === m && legalRelay(l))).length } };
-}
-
-// How many swimmers hold each badge, for "rarer first".
-function badgeRarity(allBadges) {
-    const holders = {};
-    for (const badges of allBadges) for (const b of badges) holders[b.id] = (holders[b.id] || 0) + 1;
-    return holders;
-}
-
-// New badges first; then the rarest (fewest teammates hold it), with First
-// Splash always last; ties in catalog order.
-function rankBadges(badges, rarity = {}) {
-    const rank = b => [b.isNew ? 0 : 1, b.id === "splash" ? 1 : 0, rarity[b.id] || 0, BADGE_ORDER.indexOf(b.id)];
-    return [...badges].sort((a, b) => {
-        const [x, y] = [rank(a), rank(b)];
-        for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i];
-        return 0;
+        ...fields,
+        meetId,
+        meetDate: meetDates.get(meetId) || "",
+        isNew: meetId === latestMeet
     });
+    const badges = [];
+    for (const id of BADGE_RANK) {
+        if (once[id]) {
+            badges.push(badge(id, once[id].meetId, { pill: null, sub: once[id].sub || null, detail: once[id].detail }));
+        } else if (counting[id] && counting[id][0]) {
+            const rows = lists[id];
+            // Its pill last changed at its newest row's meet, or it was earned there.
+            badges.push(badge(id, rows[rows.length - 1].meetId, {
+                pill: counting[id][1],
+                sub: null,
+                list: { label: BADGE_INFO[id].listLabel, rows: [...rows].reverse().map(listRow) }
+            }));
+        }
+    }
+
+    const totals = {
+        personalBests: lists.pb.length,
+        points,
+        meters,
+        individualMeters,
+        relayMeters,
+        timeDropped,
+        podiums: lists.podium.length,
+        wins: lists.champion.length,
+        triples: lists.triple.length,
+        relayLegs: lists.relay.length,
+        anchors: lists.anchor.length,
+        meetsSwum: lists.attendance.length
+    };
+    return { badges: rankBadges(badges), totals };
 }
 
-// The whole team's badges at once, since rarity compares teammates. swims are
-// Spotswood's individual rows and relays its relay rows (with swimmers listed
-// in leg order), each with its meet's meetDate. Returns one { name, badges,
-// totals } per swimmer, badges in display order.
+// New ones first, then the fixed ranking.
+function rankBadges(badges) {
+    const rank = b => BADGE_RANK.indexOf(b.id);
+    return [...badges].sort((a, b) => Number(b.isNew) - Number(a.isNew) || rank(a) - rank(b));
+}
+
+// The whole team's badges. swims are Spotswood's individual rows and relays
+// its relay rows (with swimmers listed in leg order), each with its meet's
+// meetDate. Returns one { name, badges, totals } per swimmer.
 function teamBadges(swims, relays) {
     const swimsByName = new Map();
     const legsByName = new Map();
@@ -287,9 +348,7 @@ function teamBadges(swims, relays) {
         }));
     }
     const names = [...new Set([...swimsByName.keys(), ...legsByName.keys()])];
-    const everyone = names.map(name => ({ name, ...swimmerBadges(swimsByName.get(name) || [], legsByName.get(name) || []) }));
-    const rarity = badgeRarity(everyone.map(e => e.badges));
-    return everyone.map(e => ({ ...e, badges: rankBadges(e.badges, rarity) }));
+    return names.map(name => ({ name, ...swimmerBadges(swimsByName.get(name) || [], legsByName.get(name) || []) }));
 }
 
-module.exports = { swimmerBadges, badgeRarity, rankBadges, teamBadges, eventMeters, BADGE_INFO };
+module.exports = { swimmerBadges, rankBadges, teamBadges, eventMeters, BADGE_INFO, BADGE_RANK };

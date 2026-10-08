@@ -60,8 +60,8 @@ test("with a name, it returns that swimmer's season, leaving out an opposing swi
     assert.equal(second.change, -0.6);
     // A first swim is never a personal best; the second beat it.
     assert.deepEqual([first.personalBest, second.personalBest], [false, true]);
-    // New ones (from the latest meet) first, then rarer; First Splash last.
-    assert.deepEqual(season.badges.map(b => [b.id, b.isNew]), [["pb", true], ["barrier", true], ["champion", true], ["splash", false]]);
+    // New ones (from the latest meet) first, then the fixed ranking; First Splash last.
+    assert.deepEqual(season.badges.map(b => [b.id, b.isNew]), [["champion", true], ["barrier", true], ["pb", true], ["attendance", true], ["splash", false]]);
     assert.equal(season.meetsSwum, 2);
 });
 

@@ -29,11 +29,16 @@
     .swimmer-head h2 { margin: 0; font-size: 30px; line-height: 1.15; }
     .swimmer-head p { margin: 4px 0 0; font-size: 16px; opacity: .9; }
 
-    /* Badges (design/update-2/UPDATE.md, section 2): white tiles on the green
-       card, New ones first. Wider screens show 10 and phones 6, until "Show all". */
+    /* Badges (design/update-2/UPDATE.md, section 2, and update 4): white tiles
+       on the green card, New ones first. Wider screens show 10 and phones 6,
+       until "Show all". */
     .badges-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-top: 22px; }
+    .badges-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
     .badges-head h3 { margin: 0; font-size: 20px; }
     .badges-count { font-size: 14px; font-weight: 600; }
+    /* "How badges work": a link-style button in white, which holds 4.5:1 on the card. */
+    .rules-link { display: inline-flex; align-items: center; gap: 5px; padding: 2px 0; border: 0; background: none; color: #fff; font: inherit; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+    .rules-link svg { width: 16px; height: 16px; flex-shrink: 0; }
     .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
     .badge-grid:not(.expanded) > .badge-tile:nth-child(n+11) { display: none; }
     .badge-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 16px 8px 12px; border: 1px solid #fff; border-radius: 20px; background: #fff; color: var(--ink); font: inherit; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
@@ -68,7 +73,26 @@
     .earned-label { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
     .earned-value { margin: 0; font-size: 16px; font-weight: 600; }
     .earned-value + .earned-label { margin-top: 12px; }
+    /* A counting badge's list: every instance, newest first. The dialog scrolls when it's long. */
+    .badge-list { margin: 4px 0 0; padding: 0; list-style: none; }
+    .badge-list li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px dashed var(--soft-border); }
+    .badge-list li:first-child { padding-top: 4px; border-top: 0; }
+    .badge-row { flex: 1; min-width: 0; }
+    .badge-row-title { display: block; font-size: 15px; font-weight: 600; line-height: 1.25; }
+    .badge-row-sub { display: block; margin-top: 1px; font-size: 13px; color: var(--muted); }
+    .badge-row-value { font-size: 15px; font-weight: 700; color: var(--brand); white-space: nowrap; }
     .badge-done { margin-top: 16px; padding: 14px; font-size: 17px; }
+
+    /* "How badges work": one row per badge, from the update 4 badge mockup's rules table. */
+    .rules-intro { margin: 0 0 8px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+    .rules-list { margin: 0; padding: 0; list-style: none; }
+    .rules-list li { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--card-border); }
+    .rules-list li:first-child { border-top: 0; }
+    .rule-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; border: 1.5px solid var(--gold); border-radius: 50%; background: var(--gold-tint); color: var(--gold-text); }
+    .rule-icon svg { width: 18px; height: 18px; }
+    .rule-name { margin: 0; font-size: 15px; font-weight: 700; }
+    .rule-text { margin: 2px 0 0; font-size: 15px; line-height: 1.45; }
+    .rule-pill { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
 
     /* One card per event */
     .event-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
@@ -160,12 +184,20 @@
             <h2 id="badgeDialogTitle"></h2>
             <p id="badgeDialogAbout"></p>
         </div>
-        <div class="inset badge-earned">
-            <p class="earned-label">How it was earned</p>
-            <p class="earned-value" id="badgeDialogHow"></p>
-            <p class="earned-label">Earned at</p>
-            <p class="earned-value" id="badgeDialogWhere"></p>
-        </div>
+        <div class="inset badge-earned" id="badgeDialogEarned"></div>
+        <button type="button" class="btn primary block badge-done" data-close-dialog>Done</button>
+    </div>
+</dialog>
+
+<dialog class="dialog" id="badgeRulesDialog" aria-labelledby="badgeRulesTitle" aria-describedby="badgeRulesIntro">
+    <div class="dialog-grab" aria-hidden="true"></div>
+    <div class="dialog-head">
+        <h2 id="badgeRulesTitle">How badges work</h2>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="dialog-body">
+        <p class="rules-intro" id="badgeRulesIntro">Badges are checked every time results are imported. Only legal swims count; DQs, no-shows and scratches never earn or remove anything (Meet Attendance still counts a meet where a swim ended in a DQ). The pill on a badge always shows the swimmer’s real total or count. A badge is marked New at the meet where it is first earned, and again at any later meet that changes its pill.</p>
+        <ul class="rules-list" id="badgeRulesList"></ul>
         <button type="button" class="btn primary block badge-done" data-close-dialog>Done</button>
     </div>
 </dialog>
@@ -198,9 +230,10 @@ function swimmerHeader(season) {
 
 /* ---------------- Badges ---------------- */
 // Worked out on the server after each import (api/shared/badges.js) and sent
-// in display order: New ones first, then the rarest, First Splash last.
-// The icons are the badge mockup's (design/update-2).
+// in display order: New ones first, then a fixed ranking, First Splash last.
+// The icons are the badge mockups' (design/update-2 and update-4).
 const BADGE_ICONS = {
+    attendance: '<path d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/>',
     splash: '<path d="M2 17c2 0 2-1.5 4-1.5S8 17 10 17s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5M2 21c2 0 2-1.5 4-1.5S8 21 10 21s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5M12 3v7M8.5 6.5 12 10l3.5-3.5"/>',
     pb: '<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>',
     streak: '<path d="M3 18l5-5 4 3 8-9M15 7h5v5"/>',
@@ -217,37 +250,42 @@ const BADGE_ICONS = {
 };
 const BADGES_SHOWN = { wide: 10, phone: 6 }; // matches the nth-child rules in the styles above
 
+const badgeIcon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${BADGE_ICONS[id] || ''}</svg>`;
+
 // The gold disc: the icon, and the swimmer's count or total in a green pill.
 function badgeDisc(badge) {
-    const icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${BADGE_ICONS[badge.id] || ''}</svg>`;
-    return icon + (badge.pill ? `<span class="badge-pill">${escapeHtml(badge.pill)}</span>` : '');
+    return badgeIcon(badge.id) + (badge.pill ? `<span class="badge-pill">${escapeHtml(badge.pill)}</span>` : '');
 }
 
-// The pill and sub-label as they'd be read aloud: "×5" is "5 times", "Under 1:00" is "under 1 minute".
+// The pill and sub-label as they'd be read aloud: "×5" is "5 wins" or "5 times", "Under 1:00" is "under 1 minute".
+const COUNT_WORDS = { streak: 'meets in a row', pb: 'personal bests', podium: 'top-3 finishes', champion: 'wins', triple: 'meets', relay: 'relays', anchor: 'relays anchored', attendance: 'meets' };
 function spokenPill(badge) {
     if (!badge.pill) return '';
     const count = badge.pill.replace(/^×/, '');
-    if (badge.id === 'streak') return `${count} meets in a row`;
-    if (badge.id === 'relay') return `${count} relay legs`;
-    if (count !== badge.pill) return `${count} times`;
+    if (count !== badge.pill) return `${count} ${COUNT_WORDS[badge.id] || 'times'}`;
     return badge.pill.replace(/ pts$/, ' points').replace(/ m$/, ' meters').replace(/(\d)s$/, '$1 seconds');
 }
 function spokenSub(sub) {
     return (sub || '').replace('1:00', '1 minute').replace(/(\d)s$/, '$1 seconds');
 }
 
+// No date under the name (update 4): only Barrier Breaker keeps a second line,
+// the barrier it broke. Screen readers still hear the date.
 function badgeTile(badge, index) {
     const date = badge.meetDate ? fmtDate(badge.meetDate) : '';
-    const label = [badge.name, spokenPill(badge), spokenSub(badge.sub), date && `earned ${date}`, badge.isNew && 'new'].filter(Boolean).join(', ');
-    const when = badge.sub || date;
+    // A badge with a list last changed then; the others were earned then.
+    const when = date && `${badge.list ? 'latest' : 'earned'} ${date}`;
+    const label = [badge.name, spokenPill(badge), spokenSub(badge.sub), when, badge.isNew && 'new'].filter(Boolean).join(', ');
     return `
         <button type="button" class="badge-tile" data-badge="${index}" aria-label="${escapeHtml(label)}">
             ${badge.isNew ? '<span class="badge-new">New</span>' : ''}
             <span class="badge-disc">${badgeDisc(badge)}</span>
             <span class="badge-name">${escapeHtml(badge.name)}</span>
-            ${when ? `<span class="badge-when">${escapeHtml(when)}</span>` : ''}
+            ${badge.sub ? `<span class="badge-when">${escapeHtml(badge.sub)}</span>` : ''}
         </button>`;
 }
+
+const INFO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>';
 
 function badgesHtml(badges) {
     if (!badges.length) return '';
@@ -256,7 +294,10 @@ function badgesHtml(badges) {
     const more = badges.length > BADGES_SHOWN.wide ? 'all' : badges.length > BADGES_SHOWN.phone ? 'phone' : '';
     return `
         <div class="badges-head">
-            <h3>Badges</h3>
+            <div class="badges-title">
+                <h3>Badges</h3>
+                <button type="button" class="rules-link" data-open-dialog="badgeRulesDialog">${INFO_ICON}How badges work</button>
+            </div>
             <span class="badges-count">${plural(badges.length, 'badge', 'badges')}${fresh ? ` · ${fresh} new` : ''}</span>
         </div>
         <div class="badge-area"${more ? ` data-more="${more}"` : ''}>
@@ -274,18 +315,71 @@ function showAllBadges(button) {
     if (hidden.length) hidden[0].focus();
 }
 
+// One row of a counting badge's list. A row without its own small line
+// (Meet Attendance's) shows its meet's title, like "at Curtis Park".
+function badgeRow(row) {
+    const meet = row.sub == null ? meetsById[row.meetId] : null;
+    const sub = row.sub != null ? row.sub : meet ? meet.title : '';
+    return `
+        <li>
+            <span class="badge-row"><span class="badge-row-title">${escapeHtml(row.title)}</span>${sub ? `<span class="badge-row-sub">${escapeHtml(sub)}</span>` : ''}</span>
+            ${row.value ? `<span class="badge-row-value">${escapeHtml(row.value)}</span>` : ''}
+        </li>`;
+}
+
+// A badge that counts something lists every instance; the others say how and
+// where they were earned.
 function openBadge(badge, opener) {
-    const meet = meetsById[badge.meetId];
     document.getElementById('badgeDialogDisc').innerHTML = badgeDisc(badge);
     document.getElementById('badgeDialogTitle').textContent = badge.name;
     document.getElementById('badgeDialogAbout').textContent = badge.description;
-    document.getElementById('badgeDialogHow').textContent = badge.detail;
-    // "July 13 · at Curtis Park"
-    document.getElementById('badgeDialogWhere').textContent = [badge.meetDate && fmtDate(badge.meetDate), meet && meet.title].filter(Boolean).join(' · ');
+    const earned = document.getElementById('badgeDialogEarned');
+    if (badge.list) {
+        earned.innerHTML = `
+            <p class="earned-label" id="badgeListLabel">${escapeHtml(badge.list.label)}</p>
+            <ul class="badge-list" aria-labelledby="badgeListLabel">${badge.list.rows.map(badgeRow).join('')}</ul>`;
+    } else {
+        const meet = meetsById[badge.meetId];
+        // "July 13 · at Curtis Park"
+        const where = [badge.meetDate && fmtDate(badge.meetDate), meet && meet.title].filter(Boolean).join(' · ');
+        earned.innerHTML = `
+            <p class="earned-label">How it was earned</p>
+            <p class="earned-value">${escapeHtml(badge.detail || '')}</p>
+            <p class="earned-label">Earned</p>
+            <p class="earned-value">${escapeHtml(where)}</p>`;
+    }
     const dialog = document.getElementById('badgeDialog');
     SiteUI.openDialog(dialog, opener);
     dialog.querySelector('.dialog-body').scrollTop = 0;
 }
+
+// "How badges work", from the update 4 badge mockup's rules table: the badge,
+// when it's earned, and what its pill shows.
+const BADGE_RULES = [
+    ['splash', 'First Splash', 'Swam in a meet.', ''],
+    ['pb', 'Personal Best', 'A swim faster than the previous best in that event. The first timed swim in an event never counts.', 'Pill: count'],
+    ['streak', 'PB Streak', 'Personal bests at 2 or more meets in a row (meets the swimmer swam in).', 'Pill: meets in a row'],
+    ['barrier', 'Barrier Breaker', 'First time under 1:00, 40s, 30s or 20s in an event.', 'Under its name: the barrier broken, like Under 1:00'],
+    ['distance', 'Distance Dynamo', 'Total meters raced reaches 500. Each relay leg counts 25 m, and yards are converted to meters.', 'Pill: total meters'],
+    ['podium', 'Podium', '1st, 2nd or 3rd in an individual event. Hidden once Champion is earned.', 'Pill: count'],
+    ['champion', 'Champion', '1st place in an individual event (ties count).', 'Pill: count'],
+    ['scorer', 'Point Scorer', 'Team points scored in individual events reach 10 (1st = 6, 2nd = 4, 3rd = 3 and so on).', 'Pill: total points'],
+    ['triple', 'Triple Winner', '1st place in all 3 individual events entered at one meet (needs 3 events).', 'Pill: count'],
+    ['relay', 'Relay Ready', 'Swam a leg of a relay. The count adds each relay swum.', 'Pill: count'],
+    ['anchor', 'Anchor', 'Swam the final leg of a relay (the 4th leg of a 100m relay).', 'Pill: count'],
+    ['rounded', 'Well-Rounded', 'Legal swims in freestyle, backstroke, breaststroke and butterfly.', ''],
+    ['attendance', 'Meet Attendance', 'Swam at 2 or more meets. Counts every meet the swimmer swam in, including relay-only meets and swims that ended in a DQ. Scratches and no-shows do not count.', 'Pill: count'],
+    ['dropper', 'Time Dropper', 'All improvements over seed times add up to 10 s. Seed times converted from yards don’t count.', 'Pill: total time dropped']
+];
+document.getElementById('badgeRulesList').innerHTML = BADGE_RULES.map(([id, name, rule, pill]) => `
+    <li>
+        <span class="rule-icon">${badgeIcon(id)}</span>
+        <div>
+            <p class="rule-name">${escapeHtml(name)}</p>
+            <p class="rule-text">${escapeHtml(rule)}</p>
+            ${pill ? `<p class="rule-pill">${escapeHtml(pill)}</p>` : ''}
+        </div>
+    </li>`).join('');
 
 /* ---------------- First-meet welcome ---------------- */
 // Under the badges after a swimmer's first meet, when there isn't much else yet.

@@ -6,9 +6,9 @@ const { teamBadges } = require("./badges");
 const { forEachInBatches } = require("./batches");
 
 // Every Spotswood swimmer's badges, worked out from all stored results each
-// time results are imported or a meet is deleted (badges compare a swimmer
-// with their teammates, so one import can change anyone's), then saved so
-// the Stats page can read one swimmer's without scanning every result.
+// time results are imported or a meet is deleted (a meet can change the
+// badges of anyone who swam in it or after it), then saved so the Stats page
+// can read one swimmer's without scanning every result.
 const PARTITION_KEY = "swimmer";
 
 function getBadgesTable() {

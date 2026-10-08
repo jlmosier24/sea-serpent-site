@@ -9,8 +9,8 @@ const { getBadgesTable, readSwimmerBadges } = require("../shared/badgeStore");
 // - No ?name= : { swimmers: [...] }, every Spotswood swimmer's name
 //   ("Last, First"), for the swimmer pickers.
 // - ?name=... : that swimmer's season for the Stats page (shared/stats.js
-//   swimmerSeason): their badges (saved by shared/badgeStore.js), the stat
-//   strip, and each event's swims with their changes and personal bests.
+//   swimmerSeason): their badges (saved by shared/badgeStore.js) and each
+//   event's swims with their changes and personal bests.
 module.exports = async function (context, req) {
     const name = (req.query.name || "").trim();
 
