@@ -315,8 +315,9 @@ test("an import works out everyone's badges and saves them in display order", as
     const res = await call(commitResults, { body: { meetId: "m", dataBase64: asUpload(sheetText()), fileName: "results.pdf" } });
     assert.equal(res.body.badgesUpdated, true);
     const saved = name => JSON.parse(store.badges.all().find(r => r.name === name).badgesJson).map(b => b.id);
-    // A win earns Champion, which covers Podium; beating the seed time is a personal best.
-    assert.deepEqual([...saved("Doe, Jane")].sort(), ["champion", "pb", "relay", "splash"]);
+    // A win earns Champion, which covers Podium. Her only swim is a first swim,
+    // so it isn't a personal best, though it beat her seed time.
+    assert.deepEqual([...saved("Doe, Jane")].sort(), ["champion", "relay", "splash"]);
     assert.equal(saved("Doe, Jane").at(-1), "splash", "First Splash always comes last");
     // A no-show in her event, but she swam the last leg of the relay.
     assert.deepEqual([...saved("Loe, Liz")].sort(), ["anchor", "relay", "splash"]);

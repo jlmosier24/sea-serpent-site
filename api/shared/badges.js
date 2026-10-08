@@ -94,7 +94,7 @@ function swimmerBadges(swims, legs) {
     for (const row of [...swims, ...legs]) meetDates.set(row.meetId, row.meetDate || "");
     const meets = [...meetDates.keys()].sort((a, b) => meetDates.get(a).localeCompare(meetDates.get(b)) || a.localeCompare(b));
 
-    const best = new Map(); // event name -> fastest time so far, seed times included
+    const best = new Map(); // event name -> her fastest earlier swim in it ({ seconds, time })
     const earned = {};      // badge id -> { meetId, ...details }
     const totals = { personalBests: 0, points: 0, relayLegs: 0, meters: 0, individualMeters: 0, relayMeters: 0, timeDropped: 0, podiums: 0, wins: 0, triples: 0, anchors: 0 };
     const strokes = new Set();
@@ -114,20 +114,26 @@ function swimmerBadges(swims, legs) {
 
         let pbHere = false;
         for (const swim of meetSwims.filter(scored)) {
-            const previous = Math.min(best.has(swim.eventName) ? best.get(swim.eventName).seconds : Infinity, swim.seedSeconds != null ? swim.seedSeconds : Infinity);
-            const previousTime = best.has(swim.eventName) && best.get(swim.eventName).seconds <= (swim.seedSeconds ?? Infinity) ? best.get(swim.eventName).time : swim.seedTime;
             const event = shortEventName(swim.eventName);
-            if (previous !== Infinity && swim.officialSeconds < previous) {
+            const earlier = best.get(swim.eventName);
+            // A personal best beats an earlier swim in the event; a first swim
+            // never is one, even when it beats the seed time.
+            if (earlier && swim.officialSeconds < earlier.seconds) {
                 totals.personalBests++;
                 pbHere = true;
-                if (!earned.pb) earned.pb = { meetId, detail: `${event}: ${previousTime} → ${swim.officialTime}` };
-                const broken = BARRIERS.filter(b => previous >= b && swim.officialSeconds < b);
-                if (broken.length) {
-                    const barrier = Math.min(...broken);
-                    earned.barrier = { meetId, sub: barrier === 60 ? "Under 1:00" : `Under ${barrier}s`, detail: `${event}: ${previousTime} → ${swim.officialTime}` };
-                }
+                if (!earned.pb) earned.pb = { meetId, detail: `${event}: ${earlier.time} → ${swim.officialTime}` };
             }
-            if (!best.has(swim.eventName) || swim.officialSeconds < best.get(swim.eventName).seconds) best.set(swim.eventName, { seconds: swim.officialSeconds, time: swim.officialTime });
+            // A barrier is broken the first time she's under it, so it's measured
+            // against her best coming in: an earlier swim or the seed, whichever is faster.
+            const comingIn = swim.seedSeconds != null && (!earlier || swim.seedSeconds < earlier.seconds)
+                ? { seconds: swim.seedSeconds, time: swim.seedTime }
+                : earlier;
+            const broken = comingIn ? BARRIERS.filter(b => comingIn.seconds >= b && swim.officialSeconds < b) : [];
+            if (broken.length) {
+                const barrier = Math.min(...broken);
+                earned.barrier = { meetId, sub: barrier === 60 ? "Under 1:00" : `Under ${barrier}s`, detail: `${event}: ${comingIn.time} → ${swim.officialTime}` };
+            }
+            if (!earlier || swim.officialSeconds < earlier.seconds) best.set(swim.eventName, { seconds: swim.officialSeconds, time: swim.officialTime });
             if (swim.seedSeconds != null && swim.officialSeconds < swim.seedSeconds) totals.timeDropped += swim.seedSeconds - swim.officialSeconds;
             totals.points += swim.points || 0;
             totals.individualMeters += eventMeters(swim.eventName);

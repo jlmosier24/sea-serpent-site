@@ -69,22 +69,20 @@ test("swimmerEvents: change from the previous swim, personal bests, season best"
     const [free, back] = swimmerEvents(season);
     assert.equal(free.eventName, "50m Free");
     assert.deepEqual(free.swims.map(s => s.change), [null, -0.5, 0.3, null, -0.8]);
-    // A personal best beats the seed time and every earlier swim, so a first
-    // swim under its seed is one; a slower swim and a DQ aren't.
-    assert.deepEqual(free.swims.map(s => s.personalBest), [true, true, false, false, true]);
-    assert.deepEqual(back.swims.map(s => s.personalBest), [true, false]);
+    // A personal best beats every earlier swim in the event; a first swim, a
+    // slower swim, and a DQ aren't.
+    assert.deepEqual(free.swims.map(s => s.personalBest), [false, true, false, false, true]);
+    assert.deepEqual(back.swims.map(s => s.personalBest), [false, false]);
     assert.equal(free.seasonBestSeconds, 29);
     assert.equal(back.seasonBestSeconds, 38);
 });
 
-test("swimmerEvents: a personal best needs a time to beat, and beats the seed too", () => {
+test("swimmerEvents: a first swim is never a personal best, and seed times don't count", () => {
     const swim = (meetId, meetDate, seedSeconds, officialSeconds) => ({ meetId, meetDate, eventNumber: 3, eventName: "25m Free", status: "OK", seedSeconds, officialSeconds });
-    // No seed and no earlier swim: nothing to beat. Then faster than that first swim.
-    const [noSeed] = swimmerEvents([swim("m1", "2026-06-10", null, 20), swim("m2", "2026-06-17", null, 19.5)]);
-    assert.deepEqual(noSeed.swims.map(s => s.personalBest), [false, true]);
-    // Faster than the last swim but not the seed (a best from before) isn't one.
-    const [seeded] = swimmerEvents([swim("m1", "2026-06-10", 18, 20), swim("m2", "2026-06-17", 18, 19)]);
-    assert.deepEqual(seeded.swims.map(s => s.personalBest), [false, false]);
+    // Well under its seed, but a first swim. Then faster than that first swim,
+    // though not the seed: a personal best all the same.
+    const [event] = swimmerEvents([swim("m1", "2026-06-10", 25, 20), swim("m2", "2026-06-17", 18, 19.5)]);
+    assert.deepEqual(event.swims.map(s => s.personalBest), [false, true]);
 });
 
 test("mostImproved is the biggest percent drop below seed, and needs 2%", () => {
@@ -101,7 +99,7 @@ test("swimmerTotals", () => {
     assert.equal(best.eventName, "50m Back");
     assert.equal(best.meetDate, "2026-07-08");
     // Meets swum leaves out m6, a no-show there; the DQ swim still got in the water.
-    assert.deepEqual(totals, { personalBests: 4, points: 20.5, meetsSwum: 5 });
+    assert.deepEqual(totals, { personalBests: 2, points: 20.5, meetsSwum: 5 });
     assert.deepEqual(swimmerTotals([]), { personalBests: 0, points: 0, meetsSwum: 0, mostImproved: null });
 });
 

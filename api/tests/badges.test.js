@@ -38,13 +38,14 @@ test("First Splash: the first meet with a legal swim; DQs and no-shows earn noth
     assert.equal(result.totals.meetsSwum, 1);
 });
 
-test("Personal Best: faster than the seed time or an earlier swim; a first swim with no seed has nothing to beat", () => {
+test("Personal Best: faster than an earlier swim in the event; a first swim never is, even under its seed", () => {
     const swims = [
-        swim("m1", 3, "Boys 11-12 50m Freestyle", { place: 4, time: "41.48" }),
-        swim("m1", 7, "Boys 11-12 50m Backstroke", { place: 5, seed: "50.10", time: "50.30" }),
+        // A first swim, well under its seed: not a personal best.
+        swim("m1", 3, "Boys 11-12 50m Freestyle", { place: 4, seed: "43.00", time: "41.48" }),
+        swim("m1", 7, "Boys 11-12 50m Backstroke", { place: 5, seed: "49.00", time: "50.30" }),
         swim("m2", 3, "Boys 11-12 50m Freestyle", { place: 4, seed: "41.48", time: "40.55" }),
-        // Under the seed, and so under the slower swim before it too.
-        swim("m2", 7, "Boys 11-12 50m Backstroke", { place: 4, seed: "50.10", time: "49.90" }),
+        // Faster than the earlier swim, though not the seed: a personal best.
+        swim("m2", 7, "Boys 11-12 50m Backstroke", { place: 4, seed: "49.00", time: "49.90" }),
         swim("m3", 3, "Boys 11-12 50m Freestyle", { place: 4, seed: "40.55", time: "40.80" })
     ];
     const result = swimmerBadges(swims, []);
@@ -59,18 +60,18 @@ test("Personal Best: faster than the seed time or an earlier swim; a first swim 
 test("PB Streak: personal bests at meets in a row; a relay-only meet doesn't break the run, a meet without one does", () => {
     const free = (meetId, seed, time) => swim(meetId, 3, "Girls 11-12 50m Freestyle", { place: 4, seed, time });
     const result = swimmerBadges([
-        free("m1", "40.00", "39.50"),
+        free("m1", "40.50", "39.50"), // a first swim: nothing earlier to beat
         free("m2", "39.50", "39.00"),
         free("m4", "39.00", "38.80"),
-        free("m5", "38.80", "39.10"),
-        free("m6", "38.80", "38.50")
+        free("m5", "38.80", "38.60"),
+        free("m6", "38.60", "38.90")
     ], [leg("m3", 11, "Girls 11-12 100m Freestyle Relay", 2)]);
     const streak = badge(result, "streak");
-    assert.deepEqual([streak.pill, streak.meetId, streak.isNew], ["×3", "m4", false]);
+    assert.deepEqual([streak.pill, streak.meetId, streak.isNew], ["×3", "m5", false]);
     assert.equal(streak.detail, "Personal bests at 3 meets in a row");
     // Two in a row earns it; one doesn't.
-    assert.equal(badge(swimmerBadges([free("m1", "40.00", "39.50"), free("m2", "39.50", "39.00")], []), "streak").pill, "×2");
-    assert.equal(badge(swimmerBadges([free("m1", "40.00", "39.50")], []), "streak"), undefined);
+    assert.equal(badge(swimmerBadges([free("m1", "40.50", "39.50"), free("m2", "39.50", "39.00"), free("m3", "39.00", "38.80")], []), "streak").pill, "×2");
+    assert.equal(badge(swimmerBadges([free("m1", "40.50", "39.50"), free("m2", "39.50", "39.00")], []), "streak"), undefined);
 });
 
 test("Barrier Breaker: the first time under 1:00, 40, 30 or 20 seconds, counting the seed time", () => {
@@ -262,9 +263,11 @@ test("New: earned, counted up, or past a milestone at the swimmer's latest meet"
         swim("m1", 1, "Boys 13-14 50m Freestyle", { place: 1, seed: "30.50", time: "29.80", points: 6 }),
         swim("m2", 2, "Boys 13-14 50m Backstroke", { place: 1, time: "35.00", points: 6 })
     ], []);
-    // Champion's count went up and Point Scorer reached 10 at m2; the rest were earned at m1.
+    // Champion's count went up and Point Scorer reached 10 at m2; the rest were
+    // earned at m1 (under 30s for the first time, though not a personal best:
+    // it was the first swim in the event).
     assert.deepEqual(result.badges.map(b => [b.id, b.isNew]), [
-        ["splash", false], ["pb", false], ["barrier", false], ["champion", true], ["scorer", true]
+        ["splash", false], ["barrier", false], ["champion", true], ["scorer", true]
     ]);
     const champion = badge(result, "champion");
     assert.deepEqual([champion.pill, champion.detail], ["×2", "2 wins. Latest: 50m Backstroke (35.00)"]);

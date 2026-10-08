@@ -92,10 +92,9 @@ function byMeetThenEvent(a, b) {
 
 // One swimmer's season, event by event, oldest swim first. Each scored swim
 // gets its change from the previous scored swim in that event (lower is
-// faster) and whether it's a personal best: faster than the swimmer's best
-// coming into it, which is their seed time (the best on record before the
-// meet) or an earlier swim in that event, whichever is faster. A swim with
-// neither has nothing to beat, so it isn't one.
+// faster) and whether it's a personal best: faster than every earlier swim
+// in that event. A first swim in an event is never one, even when it beats
+// the seed time.
 function swimmerEvents(swims) {
     const byEvent = new Map();
     for (const swim of [...swims].sort(byMeetThenEvent)) {
@@ -109,8 +108,7 @@ function swimmerEvents(swims) {
         const rows = list.map(swim => {
             const timed = isScored(swim) && swim.officialSeconds != null;
             const change = timed && previous != null ? Math.round((swim.officialSeconds - previous) * 100) / 100 : null;
-            const bestBefore = Math.min(best == null ? Infinity : best, swim.seedSeconds == null ? Infinity : swim.seedSeconds);
-            const personalBest = timed && bestBefore !== Infinity && swim.officialSeconds < bestBefore;
+            const personalBest = timed && best != null && swim.officialSeconds < best;
             if (timed) {
                 previous = swim.officialSeconds;
                 best = best == null ? swim.officialSeconds : Math.min(best, swim.officialSeconds);
