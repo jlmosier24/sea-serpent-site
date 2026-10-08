@@ -298,7 +298,7 @@ function postJson(path, body) {
 }
 
 const $ = id => document.getElementById(id);
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 function fmtDate(iso) { const [, m, d] = iso.split('-').map(Number); return `${MONTHS[m - 1]} ${d}`; }
 function fmtTime(t) {
     if (!t) return '';
@@ -778,7 +778,7 @@ async function loadGallery() {
         pendingBody.innerHTML = pending.length ? pending.map(p => `
             <tr>
                 <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
-                <td>${escapeHtml(p.submittedBy || 'Anonymous')}<br><span class="muted">${escapeHtml(new Date(p.submittedAt).toLocaleDateString())}</span></td>
+                <td>${escapeHtml(p.submittedBy || 'Anonymous')}<br><span class="muted">${escapeHtml(new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }))}</span></td>
                 <td>${photoPlace(p)}</td>
                 <td><div class="row-actions">
                     <button type="button" class="btn small primary" onclick="approvePhoto('${escapeHtml(p.id)}')">Approve</button>
@@ -818,7 +818,7 @@ async function rejectPhoto(id) {
 let importState = null;
 
 function fmtWhen(iso) {
-    return new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return new Date(iso).toLocaleString('en-US', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 function scoreLine(score) { return `${score.us}–${score.them}`; }
 function importTile(label, value, caption, { small = false, attention = false } = {}) {

@@ -149,7 +149,7 @@ test("an import refuses a sheet dated for another day unless told to import anyw
     const wrongDay = asUpload(sheetText({ date: "Jul 8, 2026" }));
     const refused = await call(commitResults, { body: { meetId: "m", dataBase64: wrongDay, fileName: "x.pdf" } });
     assert.equal(refused.status, 409);
-    assert.match(refused.body, /Jul 8, 2026.*Jul 13, 2026/);
+    assert.match(refused.body, /July 8, 2026.*July 13, 2026/);
     assert.equal(store.results.all().length, 0);
     assert.equal(store.sheets.blobs.size, 0);
     assert.equal((await store.meets.getEntity("meet", "m")).resultsImported, undefined);

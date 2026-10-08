@@ -17,7 +17,7 @@
 <script src="/assets/meets.js"></script>
 <script src="/assets/photos.js"></script>
 <style>
-    /* Home page only. Cards, buttons, tiles, and dialogs come from /assets/site.css. */
+    /* Home page only. Cards, buttons, tiles, dialogs, and the meet cards come from /assets/site.css. */
     .hero { text-align: center; padding: 56px 0 44px; }
     .hero h1 { font-size: 60px; font-weight: 700; line-height: 1.1; margin: 0 0 20px; }
     .hero p { max-width: 560px; margin: 0 auto; font-size: 20px; color: var(--muted-on-page); }
@@ -26,55 +26,8 @@
     .home-stack { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
     .card-head h2 { white-space: nowrap; }
     .loading, .empty { margin: 0; padding: 24px 0; color: var(--muted); text-align: center; }
-    .ico { width: 18px; height: 18px; flex-shrink: 0; }
-    .card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 
     .swimmer-select { padding: 18px 20px; font-size: 18px; border-radius: 16px; }
-
-    /* Next meet: gold means "coming up". */
-    .upcoming { padding: 20px; }
-    .upcoming h3 { font-size: 23px; margin: 18px 0 8px; }
-    .upcoming-line { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 16px; font-weight: 500; color: var(--gold-text); }
-    .upcoming-line b { font-weight: 700; }
-    /* "Warm-up:" and "Meet start:" share a width, so the two times line up. */
-    .time-label { min-width: 5.2em; margin-right: -3px; }
-    /* The date pill and forecast chip stay side by side even on narrow phones. */
-    .upcoming .card-top { flex-wrap: nowrap; }
-    .upcoming .forecast { min-width: 0; }
-    .forecast { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 10px; border: 1px solid var(--gold-border); border-radius: 20px; background: #fff; font-size: 14px; font-weight: 600; }
-    .forecast svg { width: 20px; height: 20px; flex-shrink: 0; color: #D58B00; }
-    .forecast svg.overcast { color: var(--muted); }
-    .forecast.pending { color: var(--muted); font-size: 13px; font-weight: 500; }
-    .forecast.pending svg { color: var(--muted); }
-    .weather-note { margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed var(--gold-border); font-size: 15px; line-height: 1.45; color: var(--gold-text); }
-    .upcoming .btn-row { margin-top: 16px; }
-    .upcoming .btn { padding: 10px 16px; }
-
-    /* Previous meet: green, or gray-green after a loss (never red). */
-    .result-card .pill { font-size: 14px; }
-    .result-chip { padding: 6px 14px; border-radius: var(--radius-round); background: #fff; color: var(--brand); font-size: 13px; font-weight: 700; }
-    .result-card.loss .result-chip { background: #E6EAE5; color: #2F3A33; }
-    .result-card h3 { font-size: 26px; line-height: 1.15; margin: 18px 0 10px; }
-    .score-row { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 19px; }
-    .score-row.us { font-weight: 700; }
-    .score-row.them { opacity: .92; }
-    .result-card.loss .score-row { font-weight: 600; opacity: 1; }
-    .score-row svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--gold); }
-    .quick-stats { margin: 14px 0 0; font-size: 14px; opacity: .95; }
-    .quick-stats b { font-size: 17px; }
-    .quick-stats .sep { display: inline-block; width: 4px; height: 4px; margin: 0 10px; border-radius: 50%; background: rgba(255,255,255,.6); vertical-align: middle; }
-    .result-card .btn-row { margin-top: 18px; }
-    .result-card .btn { padding: 11px 16px; }
-    .result-card.loss .btn.on-dark { color: #3A463E; }
-
-    /* The meet before the previous one, as one row. */
-    .mini { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 14px; padding: 14px 16px; border: 1px solid var(--soft-border); border-radius: var(--radius-tile); background: var(--soft); color: var(--ink); text-align: left; }
-    button.mini { cursor: pointer; }
-    button.mini:hover { border-color: var(--brand); }
-    .mini-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
-    .mini-title { display: block; font-size: 17px; font-weight: 700; }
-    .mini-sub { display: block; margin-top: 2px; font-size: 14px; color: var(--muted); }
-    .mini > svg { width: 20px; height: 20px; margin-left: auto; color: var(--brand); }
 
     /* Photo card: a slideshow of the newest photos. */
     .photo-card { position: sticky; top: 64px; min-width: 0; }
@@ -128,46 +81,11 @@
 
 <script>
 /* ---------------- Helpers ---------------- */
-const { escapeHtml, fmtDate, hasScore, outcome, OUTCOME_CHIPS } = Meets;
-
-// "18:00" -> "6:00pm"
-function fmtClock(time) {
-    if (!time) return '';
-    const [hours, minutes] = time.split(':');
-    const h = parseInt(hours, 10);
-    return `${h % 12 || 12}:${minutes}${h >= 12 ? 'pm' : 'am'}`;
-}
-
-// Today on the team's own clock -- at 8pm EDT, UTC is already tomorrow.
-function easternToday() {
-    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-}
-
-function daysBetween(fromIsoDate, toIsoDate) {
-    return Math.round((Date.parse(toIsoDate + 'T00:00:00Z') - Date.parse(fromIsoDate + 'T00:00:00Z')) / 86400000);
-}
-
-const ICONS = {
-    pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
-    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-    calendar: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/>',
-    chart: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
-    camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
-    chevron: '<path d="M9 6l6 6-6 6"/>',
-    flag: '<path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/>',
-    pause: '<path d="M9 6v12M15 6v12"/>',
-    play: '<path d="M8 5.5v13l10-6.5z"/>',
-    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-    cloud: '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',
-    rain: '<path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><path d="M8 13v8M12 15v8M16 13v8"/>',
-    storm: '<path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><path d="M13 11l-4 6h6l-4 6"/>'
-};
-function icon(name, className = 'ico') {
-    return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
-}
-const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Winner"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
+const { escapeHtml } = Meets;
+const icon = SiteUI.icon;
 
 /* ---------------- Meets ---------------- */
+// The cards themselves are shared with the Schedule page (/assets/meets.js).
 let meetsById = {};
 
 async function loadMeets() {
@@ -181,170 +99,18 @@ async function loadMeets() {
         return;
     }
     meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
-
-    // A meet is done once it has results or a score, even later the same day.
-    const today = easternToday();
-    const isDone = m => m.date <= today && (m.resultsImported || hasScore(m));
-    const done = meets.filter(isDone).sort((a, b) => b.date.localeCompare(a.date));
-    const next = meets.filter(m => m.date >= today && !isDone(m)).sort((a, b) => a.date.localeCompare(b.date))[0];
-    renderNextMeet(next);
-    renderPreviousMeets(done);
+    const { upcoming, past } = Meets.splitMeets(meets);
+    renderNextMeet(upcoming[0]);
+    // Only meets with results here; the Schedule page lists the rest too.
+    renderPreviousMeets(past.filter(Meets.hasResults));
 }
 
-/* ---------------- Next meet ---------------- */
 function renderNextMeet(m) {
-    const card = document.getElementById('nextMeetCard');
-    if (!m) {
-        card.hidden = true;
-        return;
-    }
-    const where = m.placeName || m.address;
-    const destination = m.address || m.placeName;
-    const box = document.getElementById('nextMeet');
-    box.innerHTML = `
-        <div class="card-top">
-            <span class="pill">${escapeHtml(fmtDate(m.date))}</span>
-            <span class="forecast" id="forecastChip" hidden></span>
-        </div>
-        <h3>${escapeHtml(m.title)}</h3>
-        ${where ? `<p class="upcoming-line">${icon('pin')}${escapeHtml(where)}</p>` : ''}
-        ${meetTimes(m)}
-        <p class="weather-note" id="weatherNote" hidden></p>
-        <div class="btn-row">
-            ${destination ? `<a class="btn primary" href="https://www.google.com/maps/dir/?api=1&amp;destination=${encodeURIComponent(destination)}" target="_blank" rel="noopener">${icon('pin')}Directions</a>` : ''}
-            <button type="button" class="btn" id="addToCalendar">${icon('calendar')}Add to calendar</button>
-        </div>`;
-    box.querySelector('#addToCalendar').addEventListener('click', () => downloadCalendarFile(m));
-    card.hidden = false;
-    loadForecast(m);
+    document.getElementById('nextMeetCard').hidden = !m;
+    if (m) Meets.showUpcoming(document.getElementById('nextMeet'), m, { next: true });
 }
 
-// "Warm-up: 5:15pm" and "Meet start: 6:00pm", each row left out when its time isn't set.
-function meetTimes(m) {
-    const rows = [m.warmUp && ['clock', 'Warm-up:', m.warmUp], m.time && ['flag', 'Meet start:', m.time]].filter(Boolean);
-    if (!rows.length) return '<p class="upcoming-line">Times to be announced.</p>';
-    return rows.map(([name, label, time]) => `<p class="upcoming-line">${icon(name)}<span class="time-label">${label}</span><b>${escapeHtml(fmtClock(time))}</b></p>`).join('');
-}
-
-// The Weather Service forecasts about a week ahead.
-const FORECAST_DAYS = 7;
-
-function weatherIcon(shortForecast) {
-    const text = shortForecast || '';
-    if (/thunder|t-storm/i.test(text)) return icon('storm', 'overcast');
-    if (/rain|shower|drizzle/i.test(text)) return icon('rain', 'overcast');
-    if (/sunny|clear|fair|hot/i.test(text)) return icon('sun', '');
-    return icon('cloud', 'overcast');
-}
-
-async function loadForecast(m) {
-    if (m.lat == null || m.lon == null) return; // no map location, so no forecast
-    const chip = document.getElementById('forecastChip');
-    const note = document.getElementById('weatherNote');
-    let forecast = null;
-    if (daysBetween(easternToday(), m.date) <= FORECAST_DAYS) {
-        try {
-            const res = await fetch(`/api/meetWeather?lat=${encodeURIComponent(m.lat)}&lon=${encodeURIComponent(m.lon)}&date=${encodeURIComponent(m.date)}`);
-            if (res.ok) forecast = await res.json();
-        } catch (e) {
-            // Shown as "Forecast soon" below.
-        }
-    }
-    if (forecast && forecast.available) {
-        // "Chance Showers And Thunderstorms then Mostly Sunny" is a lot for a chip;
-        // the start of it fits, and the note below has the whole forecast.
-        const conditions = (forecast.shortForecast || '').split(/\s+then\s+/i)[0];
-        const summary = [forecast.temperature != null && `${forecast.temperature}°`, conditions].filter(Boolean).join(' · ');
-        chip.className = 'forecast';
-        chip.innerHTML = `${weatherIcon(forecast.shortForecast)}<span>${escapeHtml(summary)}</span>`;
-        note.textContent = forecast.detailedForecast || '';
-    } else {
-        chip.className = 'forecast pending';
-        chip.innerHTML = `${icon('clock', '')}<span>Forecast soon</span>`;
-        note.textContent = 'We\'ll show the forecast here a week before the meet.';
-    }
-    chip.hidden = false;
-    note.hidden = !note.textContent;
-}
-
-/* ---------------- Add to calendar ---------------- */
-// Meets have no end time and calendars need one.
-const MEET_LENGTH_HOURS = 3;
-// Meet times are Eastern; the file spells out the zone's daylight-saving rules.
-const EASTERN_TIMEZONE = [
-    'BEGIN:VTIMEZONE', 'TZID:America/New_York',
-    'BEGIN:DAYLIGHT', 'TZOFFSETFROM:-0500', 'TZOFFSETTO:-0400', 'TZNAME:EDT', 'DTSTART:20070311T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU', 'END:DAYLIGHT',
-    'BEGIN:STANDARD', 'TZOFFSETFROM:-0400', 'TZOFFSETTO:-0500', 'TZNAME:EST', 'DTSTART:20071104T020000', 'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU', 'END:STANDARD',
-    'END:VTIMEZONE'
-];
-
-function icsText(value) {
-    return String(value).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
-}
-
-// Calendar file lines stop at 75 bytes; a longer one continues on the next line after a space.
-function foldIcsLine(line) {
-    const encoder = new TextEncoder();
-    let folded = '';
-    let bytes = 0;
-    for (const ch of line) {
-        const size = encoder.encode(ch).length;
-        if (bytes + size > 75) {
-            folded += '\r\n ';
-            bytes = 1;
-        }
-        folded += ch;
-        bytes += size;
-    }
-    return folded;
-}
-
-// "2026-07-22" at "18:00", plus `addHours` -> "20260722T180000" (a wall-clock time, not UTC).
-function icsDateTime(date, time, addHours = 0) {
-    const [y, mo, d] = date.split('-').map(Number);
-    const [h, mi] = time.split(':').map(Number);
-    const t = new Date(Date.UTC(y, mo - 1, d, h + addHours, mi));
-    return t.toISOString().slice(0, 16).replace(/[-:]/g, '') + '00';
-}
-
-function icsDate(date, addDays = 0) {
-    const [y, mo, d] = date.split('-').map(Number);
-    return new Date(Date.UTC(y, mo - 1, d + addDays)).toISOString().slice(0, 10).replace(/-/g, '');
-}
-
-function calendarFile(m) {
-    const when = m.time
-        ? [`DTSTART;TZID=America/New_York:${icsDateTime(m.date, m.time)}`, `DTEND;TZID=America/New_York:${icsDateTime(m.date, m.time, MEET_LENGTH_HOURS)}`]
-        : [`DTSTART;VALUE=DATE:${icsDate(m.date)}`, `DTEND;VALUE=DATE:${icsDate(m.date, 1)}`];
-    const location = [m.placeName, m.address].filter(Boolean).join(', ');
-    const details = [m.warmUp && `Warm-up at ${fmtClock(m.warmUp)}.`, m.time && `Meet starts at ${fmtClock(m.time)}.`].filter(Boolean).join(' ');
-    const lines = [
-        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Spotswood Sea Serpents//Meet schedule//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
-        ...(m.time ? EASTERN_TIMEZONE : []),
-        'BEGIN:VEVENT',
-        `UID:${m.id}@spotswood-sea-serpents`,
-        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')}`,
-        ...when,
-        `SUMMARY:${icsText(`Sea Serpents ${m.title}`)}`,
-        location && `LOCATION:${icsText(location)}`,
-        details && `DESCRIPTION:${icsText(details)}`,
-        'END:VEVENT', 'END:VCALENDAR'
-    ];
-    return lines.filter(Boolean).map(foldIcsLine).join('\r\n') + '\r\n';
-}
-
-function downloadCalendarFile(m) {
-    const url = URL.createObjectURL(new Blob([calendarFile(m)], { type: 'text/calendar;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `sea-serpents-${m.id}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-/* ---------------- Previous meets ---------------- */
+// The latest finished meet, and the one before it as a single row.
 function renderPreviousMeets(done) {
     const card = document.getElementById('previousMeetCard');
     if (!done.length) {
@@ -352,48 +118,10 @@ function renderPreviousMeets(done) {
         return;
     }
     const box = document.getElementById('previousMeet');
-    box.innerHTML = resultCard(done[0]) + (done[1] ? miniRow(done[1]) : '');
+    box.innerHTML = Meets.resultCard(done[0]) + (done[1] ? Meets.miniRow(done[1]) : '');
     box.querySelectorAll('[data-meet-stats]').forEach(button => {
         button.addEventListener('click', () => Meets.openResults(meetsById[button.dataset.meetStats], button));
     });
-}
-
-function resultCard(m) {
-    const result = outcome(m);
-    const s = m.summary;
-    return `
-        <article class="hero-card result-card${result === 'loss' ? ' loss' : ''}">
-            <div class="card-top">
-                <span class="pill">${escapeHtml(fmtDate(m.date))} · Final</span>
-                ${result ? `<span class="result-chip">${OUTCOME_CHIPS[result]}</span>` : ''}
-            </div>
-            <h3>${escapeHtml(m.title)}</h3>
-            ${result ? `
-                <p class="score-row us"><span>Spotswood ${escapeHtml(m.teamScore)}</span>${result === 'win' ? TROPHY : ''}</p>
-                <p class="score-row them"><span>${escapeHtml(m.opponent)} ${escapeHtml(m.opponentScore)}</span>${result === 'loss' ? TROPHY : ''}</p>` : ''}
-            ${s ? `<p class="quick-stats"><b>${s.firstPlaces}</b> ${s.firstPlaces === 1 ? 'first place' : 'first places'}<span class="sep" aria-hidden="true"></span><b>${s.relayWins}</b> ${s.relayWins === 1 ? 'relay win' : 'relay wins'}</p>` : ''}
-            <div class="btn-row">
-                ${s ? `<button type="button" class="btn on-dark" data-meet-stats="${escapeHtml(m.id)}">${icon('chart')}See team stats</button>` : ''}
-                <a class="btn ghost-on-dark" href="/gallery.html?meet=${encodeURIComponent(m.id)}">${icon('camera')}View photos</a>
-            </div>
-        </article>`;
-}
-
-// "Won 550–473": the higher score first, whoever had it.
-function scoreLine(m) {
-    const result = outcome(m);
-    if (!result) return '';
-    const verb = { win: 'Won', loss: 'Lost', tie: 'Tied' }[result];
-    return `${verb} ${Math.max(m.teamScore, m.opponentScore)}–${Math.min(m.teamScore, m.opponentScore)}`;
-}
-
-function miniRow(m) {
-    const text = `
-        <span class="mini-dot" aria-hidden="true"></span>
-        <span><span class="mini-title">${escapeHtml(m.title)}</span><span class="mini-sub">${escapeHtml([fmtDate(m.date), scoreLine(m)].filter(Boolean).join(' · '))}</span></span>`;
-    return m.summary
-        ? `<button type="button" class="mini" data-meet-stats="${escapeHtml(m.id)}">${text}<span class="sr-only">, see team stats</span>${icon('chevron')}</button>`
-        : `<div class="mini">${text}</div>`;
 }
 
 /* ---------------- Swimmer dropdown ---------------- */

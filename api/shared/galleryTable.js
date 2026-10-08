@@ -27,10 +27,10 @@ function sortNewestFirst(photos) {
     return photos.sort((a, b) => (b.submittedAt || "").localeCompare(a.submittedAt || ""));
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 // Where a photo goes, from the day it was taken: the meet on that day
-// ("Jul 13 · Curtis Park"), "Practice & other" for any other day, or null
+// ("July 13 · Curtis Park"), "Practice & other" for any other day, or null
 // when it has no date. Worked out whenever photos are listed, so a photo
 // lands right even if its meet was added to the schedule after the upload.
 function photoTag(takenDate, meets) {

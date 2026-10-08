@@ -1,7 +1,8 @@
 const { getResultsTable, getRelayResultsTable, toResultDto, toRelayResultDto } = require("../shared/resultsTable");
 
-// Reachable at /api/resultsByMeet?meetId=... Public -- Spotswood results
-// (individual + relay) for one meet.
+// Reachable at /api/resultsByMeet?meetId=... Public -- every result at one
+// meet, both teams', individual and relay: the full list that "View all
+// swimmer results" opens (Meets.openAllResults in /assets/meets.js).
 module.exports = async function (context, req) {
     const meetId = (req.query.meetId || "").trim();
     if (!meetId) {

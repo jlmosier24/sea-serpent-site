@@ -73,8 +73,8 @@ test("photoTag: the meet on that day, Practice & other for any other day, nothin
         { id: "2026-07-13-curtis-park", date: "2026-07-13", shortName: "Curtis Park", opponent: "Curtis Park Seahawks" },
         { id: "2026-06-10-no-short-name", date: "2026-06-10", shortName: "", opponent: "Test Seahawks" }
     ];
-    assert.deepEqual(photoTag("2026-07-13", meets), { key: "2026-07-13-curtis-park", label: "Jul 13 · Curtis Park", meetDate: "2026-07-13" });
-    assert.equal(photoTag("2026-06-10", meets).label, "Jun 10 · Test Seahawks");
+    assert.deepEqual(photoTag("2026-07-13", meets), { key: "2026-07-13-curtis-park", label: "July 13 · Curtis Park", meetDate: "2026-07-13" });
+    assert.equal(photoTag("2026-06-10", meets).label, "June 10 · Test Seahawks");
     assert.deepEqual(photoTag("2026-07-14", meets), { key: "other", label: "Practice & other", meetDate: null });
     assert.equal(photoTag("", meets), null);
 });

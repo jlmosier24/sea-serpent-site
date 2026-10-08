@@ -246,6 +246,79 @@ dialog.dialog::backdrop { background: rgba(12,28,14,.55); }
 .view-all { margin-top: 16px; padding: 14px; font-size: 17px; }
 @media (max-width: 600px) { .banner-us { font-size: 22px; } }
 
+/* ---------- Full results list (Meets.openAllResults in /assets/meets.js) ---------- */
+.results-note { margin: 0; padding: 12px 0; color: var(--muted); }
+.event-results + .event-results { margin-top: 20px; }
+.event-results h3 { margin: 0 0 6px; font-size: 17px; }
+.event-number { margin-right: 4px; color: var(--muted); }
+/* Fixed columns, so they line up from one event to the next. */
+.results-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 14px; }
+.results-table th { padding: 6px 8px; border-bottom: 1px solid var(--card-border); text-align: left; font-size: 13px; font-weight: 600; color: var(--muted); }
+.results-table td { padding: 8px; border-bottom: 1px solid var(--card-border); vertical-align: top; overflow-wrap: anywhere; }
+.results-table tr:last-child td { border-bottom: 0; }
+.results-table th:first-child { width: 3.2em; }
+.results-table th:first-child, .results-table td:first-child { padding-left: 0; }
+.results-table th.r { width: 6.5em; }
+.results-table th.relay-team { width: 34%; }
+.results-table .r { text-align: right; font-variant-numeric: tabular-nums; }
+.relay-swimmer { display: inline-block; max-width: 100%; }
+.results-exh { display: block; font-size: 12px; color: var(--muted); }
+@media (max-width: 600px) {
+    .results-table th, .results-table td { padding: 7px 5px; }
+    .results-table th:first-child { width: 3em; }
+    .results-table th.r { width: 5em; }
+    .results-table th.relay-team { width: 30%; }
+}
+
+/* ---------- Meet cards (Meets.showUpcoming, resultCard and miniRow in /assets/meets.js) ---------- */
+.ico { width: 18px; height: 18px; flex-shrink: 0; }
+.card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* An upcoming meet: gold means "coming up". */
+.upcoming { padding: 20px; }
+.upcoming h3 { font-size: 23px; margin: 18px 0 8px; }
+.upcoming-line { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 16px; font-weight: 500; color: var(--gold-text); }
+.upcoming-line b { font-weight: 700; }
+/* "Warm-up:" and "Meet start:" share a width, so the two times line up. */
+.time-label { min-width: 5.2em; margin-right: -3px; }
+/* The date pill and forecast chip stay side by side even on narrow phones. */
+.upcoming .card-top { flex-wrap: nowrap; }
+.upcoming .forecast { min-width: 0; }
+.forecast { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 10px; border: 1px solid var(--gold-border); border-radius: 20px; background: #fff; font-size: 14px; font-weight: 600; }
+.forecast svg { width: 20px; height: 20px; flex-shrink: 0; color: #D58B00; }
+.forecast svg.overcast { color: var(--muted); }
+.forecast.pending { color: var(--muted); font-size: 13px; font-weight: 500; }
+.forecast.pending svg { color: var(--muted); }
+.weather-note { margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed var(--gold-border); font-size: 15px; line-height: 1.45; color: var(--gold-text); }
+.upcoming .btn-row { margin-top: 16px; }
+.upcoming .btn { padding: 10px 16px; }
+
+/* A finished meet: green, or gray-green after a loss (never red). */
+.result-card .pill { font-size: 14px; }
+.result-chip { padding: 6px 14px; border-radius: var(--radius-round); background: #fff; color: var(--brand); font-size: 13px; font-weight: 700; }
+.result-card.loss .result-chip { background: #E6EAE5; color: #2F3A33; }
+.result-card h3 { font-size: 26px; line-height: 1.15; margin: 18px 0 10px; }
+.result-card .score-row { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 19px; }
+.result-card .score-row.us { font-weight: 700; }
+.result-card .score-row.them { opacity: .92; }
+.result-card.loss .score-row { font-weight: 600; opacity: 1; }
+.result-card .score-row svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--gold); }
+.quick-stats { margin: 14px 0 0; font-size: 14px; opacity: .95; }
+.quick-stats b { font-size: 17px; }
+.quick-stats .sep { display: inline-block; width: 4px; height: 4px; margin: 0 10px; border-radius: 50%; background: rgba(255,255,255,.6); vertical-align: middle; }
+.result-card .btn-row { margin-top: 18px; }
+.result-card .btn { padding: 11px 16px; }
+.result-card.loss .btn.on-dark { color: #3A463E; }
+
+/* An earlier meet as one row. */
+.mini { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 14px; padding: 14px 16px; border: 1px solid var(--soft-border); border-radius: var(--radius-tile); background: var(--soft); color: var(--ink); text-align: left; }
+button.mini { cursor: pointer; }
+button.mini:hover { border-color: var(--brand); }
+.mini-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
+.mini-title { display: block; font-size: 17px; font-weight: 700; }
+.mini-sub { display: block; margin-top: 2px; font-size: 14px; color: var(--muted); }
+.mini > svg { width: 20px; height: 20px; margin-left: auto; color: var(--brand); }
+
 /* ---------- Photo viewer (built by Photos.open in /assets/photos.js) ---------- */
 .viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .viewer-top .pill { padding: 6px 14px; font-size: 14px; }

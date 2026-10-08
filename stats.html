@@ -170,7 +170,7 @@
     </div>
 </dialog>
 <script>
-const { escapeHtml, fmtDate, fmtShortDate, fmtSeconds, displayName, initials, shortEventName, plural } = Meets;
+const { escapeHtml, fmtDate, fmtSeconds, displayName, initials, shortEventName, plural } = Meets;
 
 // For each opponent's short name, and the results popup its name opens.
 let meetsById = {};
@@ -349,7 +349,7 @@ function swimRow(swim) {
     const opponentCell = meet && meet.summary
         ? `<button type="button" class="opponent-link" data-meet="${escapeHtml(swim.meetId)}">${escapeHtml(opponent)}<span class="sr-only">, meet results</span>${CHEVRON}</button>`
         : escapeHtml(opponent);
-    return `<tr><td>${escapeHtml(fmtShortDate(swim.meetDate))}</td><td>${opponentCell}</td><td>${timeCell(swim)}</td><td class="r">${placeCell(swim)}</td></tr>`;
+    return `<tr><td>${escapeHtml(fmtDate(swim.meetDate))}</td><td>${opponentCell}</td><td>${timeCell(swim)}</td><td class="r">${placeCell(swim)}</td></tr>`;
 }
 
 // Time, then the change from the previous swim in this event, then a PB tag.
@@ -392,7 +392,13 @@ function chartSvg(swims, width) {
     const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
     const fastest = values.indexOf(min);
     const labeled = i => spacing >= 60 || i === 0 || i === n - 1 || i === fastest;
-    const dated = i => spacing >= 46 || labeled(i);
+    // Dates share one line along the bottom, so each needs room ("August 12"
+    // is about 55px wide): the fastest swim's first, then the last and first.
+    const DATE_ROOM = 62;
+    const dated = new Set();
+    for (const i of spacing >= DATE_ROOM ? swims.keys() : [fastest, n - 1, 0]) {
+        if ([...dated].every(j => Math.abs(i - j) * spacing >= DATE_ROOM)) dated.add(i);
+    }
 
     let svg = `<svg width="${width}" height="${H}" viewBox="0 0 ${width} ${H}">`;
     for (const f of [0, 0.5, 1]) {
@@ -407,7 +413,7 @@ function chartSvg(swims, width) {
             ? `<circle class="chart-best-halo" cx="${cx}" cy="${cy.toFixed(1)}" r="12"/><circle class="chart-best" cx="${cx}" cy="${cy.toFixed(1)}" r="8"/>`
             : `<circle class="chart-dot" cx="${cx}" cy="${cy.toFixed(1)}" r="6"/>`;
         if (labeled(i)) svg += `<text class="chart-value" x="${cx}" y="${(cy - 16).toFixed(1)}" text-anchor="middle">${escapeHtml(s.officialTime)}</text>`;
-        if (dated(i)) svg += `<text class="chart-date" x="${cx}" y="${H - 14}" text-anchor="middle">${escapeHtml(fmtShortDate(s.meetDate))}</text>`;
+        if (dated.has(i)) svg += `<text class="chart-date" x="${cx}" y="${H - 14}" text-anchor="middle">${escapeHtml(fmtDate(s.meetDate))}</text>`;
     });
     return svg + '</svg>';
 }

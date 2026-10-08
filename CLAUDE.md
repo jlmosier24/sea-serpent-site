@@ -24,7 +24,7 @@ Website for the Spotswood Sea Serpents summer swim team: homepage with meet card
 
 ## Content rules
 - "vs." means home and "at" means away. Titles use the short name ("vs. Massad"); score rows use the full name ("Curtis Park Seahawks 511").
-- Dates: "Jun 10", "July 13 · Final". Times: "6:00pm".
+- Dates: the full month and day everywhere, like "July 22" and "July 13 · Final". Times: "6:00pm".
 - Stat labels: "1st places", "Relay wins" ("7 of 16"), "Top-3 finishes", "First-time swims", "Personal bests", "Most improved", "Points for the team", "Relay legs".
 
 ## Data rules

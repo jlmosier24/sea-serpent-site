@@ -9,7 +9,7 @@ const { meetSummary, teamScore } = require("../shared/stats");
 const { forEachInBatches } = require("../shared/batches");
 const { getBadgesTable, recomputeBadges } = require("../shared/badgeStore");
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 function fmtDate(iso) {
     const [y, m, d] = iso.split("-").map(Number);
     return `${MONTHS[m - 1]} ${d}, ${y}`;

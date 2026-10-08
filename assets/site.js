@@ -1,5 +1,5 @@
 // Spotswood Sea Serpents: shared behavior for every page -- the site header
-// and footer, dialogs, and file drop zones. Styles live in /assets/site.css.
+// and footer, icons, dialogs, and file drop zones. Styles live in /assets/site.css.
 //
 // Load it in <head> WITHOUT defer: <site-header> and <site-footer> are then
 // already defined when the parser reaches them, so they render with the rest
@@ -68,6 +68,28 @@
 
     customElements.define("site-header", SiteHeader);
     customElements.define("site-footer", SiteFooter);
+
+    /* ---------- Icons ---------- */
+    // Line icons drawn in the text color: icon("pin") for an 18px .ico, or
+    // icon("sun", "") to size it with the surrounding styles.
+    const ICONS = {
+        pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+        clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        calendar: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+        chart: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+        camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+        chevron: '<path d="M9 6l6 6-6 6"/>',
+        flag: '<path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/>',
+        pause: '<path d="M9 6v12M15 6v12"/>',
+        play: '<path d="M8 5.5v13l10-6.5z"/>',
+        sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+        cloud: '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',
+        rain: '<path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><path d="M8 13v8M12 15v8M16 13v8"/>',
+        storm: '<path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><path d="M13 11l-4 6h6l-4 6"/>'
+    };
+    function icon(name, className = "ico") {
+        return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
+    }
 
     /* ---------- Dialogs ---------- */
     // Native <dialog class="dialog"> opened with showModal(): the browser itself
@@ -169,5 +191,5 @@
         });
     }
 
-    window.SiteUI = { openDialog, setupDropZone };
+    window.SiteUI = { icon, openDialog, setupDropZone };
 })();

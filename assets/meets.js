@@ -1,11 +1,14 @@
 // Spotswood Sea Serpents: shared by the public pages that show meets and
-// swimmers -- date, time, and name formatting, a meet's outcome, and the meet
-// results popup. Styles live in /assets/site.css.
+// swimmers -- date, time, and name formatting, which meets are upcoming or
+// past, the meet cards (Home and Schedule), the meet results popup, and the
+// full results list. Styles live in /assets/site.css.
 //
 // Load it after /assets/site.js and WITHOUT defer, so a page's own script
 // at the end of <body> can already use window.Meets.
 (function () {
     "use strict";
+
+    const icon = (name, className) => SiteUI.icon(name, className);
 
     function escapeHtml(str) {
         // Quotes too, not just <>& -- output also lands inside attributes like alt="…".
@@ -16,12 +19,15 @@
 
     // "2026-07-13" -> "July 13"
     function fmtDate(isoDate) {
-        return new Date(isoDate + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" });
+        return isoDate ? new Date(isoDate + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" }) : "";
     }
 
-    // "2026-07-13" -> "Jul 13"
-    function fmtShortDate(isoDate) {
-        return isoDate ? new Date(isoDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+    // "18:00" -> "6:00pm"
+    function fmtClock(time) {
+        if (!time) return "";
+        const [hours, minutes] = time.split(":");
+        const h = parseInt(hours, 10);
+        return `${h % 12 || 12}:${minutes}${h >= 12 ? "pm" : "am"}`;
     }
 
     // 93.02 -> "1:33.02", 40.25 -> "40.25"
@@ -30,6 +36,15 @@
         if (seconds < 60) return seconds.toFixed(2);
         const minutes = Math.floor(seconds / 60);
         return `${minutes}:${(seconds - minutes * 60).toFixed(2).padStart(5, "0")}`;
+    }
+
+    // Today on the team's own clock -- at 8pm EDT, UTC is already tomorrow.
+    function easternToday() {
+        return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    }
+
+    function daysBetween(fromIsoDate, toIsoDate) {
+        return Math.round((Date.parse(toIsoDate + "T00:00:00Z") - Date.parse(fromIsoDate + "T00:00:00Z")) / 86400000);
     }
 
     // Meet sheets list swimmers last name first: "Doe, Jr., John" -> "John Doe Jr.", initials "JD".
@@ -61,6 +76,11 @@
         return meet.teamScore != null && meet.opponentScore != null;
     }
 
+    // A meet has results once its sheet is imported or a score is typed in.
+    function hasResults(meet) {
+        return !!meet.resultsImported || hasScore(meet);
+    }
+
     // "win", "loss", "tie", or null when the meet has no score.
     function outcome(meet) {
         if (!hasScore(meet)) return null;
@@ -69,24 +89,234 @@
     }
     const OUTCOME_CHIPS = { win: "WIN", loss: "LOSS", tie: "TIE" };
 
+    // Upcoming meets, soonest first, and past ones, newest first. A meet is
+    // past once its day is over, or earlier that day once it has results.
+    function splitMeets(meets) {
+        const today = easternToday();
+        const isPast = m => m.date < today || (m.date === today && hasResults(m));
+        return {
+            upcoming: meets.filter(m => !isPast(m)).sort((a, b) => a.date.localeCompare(b.date)),
+            past: meets.filter(isPast).sort((a, b) => b.date.localeCompare(a.date))
+        };
+    }
+
+    /* ---------- Upcoming meet card ---------- */
+    // Fills a gold card (<article class="gold-card upcoming">) with an upcoming
+    // meet: its date, name, pool, and times. The next meet also gets its
+    // forecast, Directions, and Add to calendar.
+    function showUpcoming(card, meet, { next = false } = {}) {
+        // The pool's name, or its address when it has none; Directions needs the address.
+        const where = meet.placeName || meet.address;
+        const destination = meet.address || meet.placeName;
+        card.innerHTML = `
+            <div class="card-top">
+                <span class="pill">${escapeHtml(fmtDate(meet.date))}</span>
+                ${next ? '<span class="forecast" hidden></span>' : ""}
+            </div>
+            <h3>${escapeHtml(meet.title)}</h3>
+            ${where ? `<p class="upcoming-line">${icon("pin")}${escapeHtml(where)}</p>` : ""}
+            ${meetTimes(meet)}
+            ${next ? `
+                <p class="weather-note" hidden></p>
+                <div class="btn-row">
+                    ${destination ? `<a class="btn primary" href="https://www.google.com/maps/dir/?api=1&amp;destination=${encodeURIComponent(destination)}" target="_blank" rel="noopener">${icon("pin")}Directions</a>` : ""}
+                    <button type="button" class="btn" data-add-to-calendar>${icon("calendar")}Add to calendar</button>
+                </div>` : ""}`;
+        if (!next) return;
+        card.querySelector("[data-add-to-calendar]").addEventListener("click", () => downloadCalendarFile(meet));
+        loadForecast(card, meet);
+    }
+
+    // "Warm-up: 5:15pm" and "Meet start: 6:00pm", each row left out when its time isn't set.
+    function meetTimes(meet) {
+        const rows = [meet.warmUp && ["clock", "Warm-up:", meet.warmUp], meet.time && ["flag", "Meet start:", meet.time]].filter(Boolean);
+        if (!rows.length) return '<p class="upcoming-line">Times to be announced.</p>';
+        return rows.map(([name, label, time]) => `<p class="upcoming-line">${icon(name)}<span class="time-label">${label}</span><b>${escapeHtml(fmtClock(time))}</b></p>`).join("");
+    }
+
+    /* ---------- Forecast ---------- */
+    // The Weather Service forecasts about a week ahead.
+    const FORECAST_DAYS = 7;
+
+    function weatherIcon(shortForecast) {
+        const text = shortForecast || "";
+        if (/thunder|t-storm/i.test(text)) return icon("storm", "overcast");
+        if (/rain|shower|drizzle/i.test(text)) return icon("rain", "overcast");
+        if (/sunny|clear|fair|hot/i.test(text)) return icon("sun", "");
+        return icon("cloud", "overcast");
+    }
+
+    // The card's forecast chip and note, or "Forecast soon" until the meet is
+    // within a week. A meet with no map location gets neither.
+    async function loadForecast(card, meet) {
+        if (meet.lat == null || meet.lon == null) return;
+        const chip = card.querySelector(".forecast");
+        const note = card.querySelector(".weather-note");
+        let forecast = null;
+        if (daysBetween(easternToday(), meet.date) <= FORECAST_DAYS) {
+            try {
+                const res = await fetch(`/api/meetWeather?lat=${encodeURIComponent(meet.lat)}&lon=${encodeURIComponent(meet.lon)}&date=${encodeURIComponent(meet.date)}`);
+                if (res.ok) forecast = await res.json();
+            } catch (e) {
+                // Shown as "Forecast soon" below.
+            }
+        }
+        if (forecast && forecast.available) {
+            // "Chance Showers And Thunderstorms then Mostly Sunny" is a lot for a chip;
+            // the start of it fits, and the note below has the whole forecast.
+            const conditions = (forecast.shortForecast || "").split(/\s+then\s+/i)[0];
+            const summary = [forecast.temperature != null && `${forecast.temperature}°`, conditions].filter(Boolean).join(" · ");
+            chip.className = "forecast";
+            chip.innerHTML = `${weatherIcon(forecast.shortForecast)}<span>${escapeHtml(summary)}</span>`;
+            note.textContent = forecast.detailedForecast || "";
+        } else {
+            chip.className = "forecast pending";
+            chip.innerHTML = `${icon("clock", "")}<span>Forecast soon</span>`;
+            note.textContent = "We'll show the forecast here a week before the meet.";
+        }
+        chip.hidden = false;
+        note.hidden = !note.textContent;
+    }
+
+    /* ---------- Add to calendar ---------- */
+    // Meets have no end time and calendars need one.
+    const MEET_LENGTH_HOURS = 3;
+    // Meet times are Eastern; the file spells out the zone's daylight-saving rules.
+    const EASTERN_TIMEZONE = [
+        "BEGIN:VTIMEZONE", "TZID:America/New_York",
+        "BEGIN:DAYLIGHT", "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", "DTSTART:20070311T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU", "END:DAYLIGHT",
+        "BEGIN:STANDARD", "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST", "DTSTART:20071104T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU", "END:STANDARD",
+        "END:VTIMEZONE"
+    ];
+
+    function icsText(value) {
+        return String(value).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+    }
+
+    // Calendar file lines stop at 75 bytes; a longer one continues on the next line after a space.
+    function foldIcsLine(line) {
+        const encoder = new TextEncoder();
+        let folded = "";
+        let bytes = 0;
+        for (const ch of line) {
+            const size = encoder.encode(ch).length;
+            if (bytes + size > 75) {
+                folded += "\r\n ";
+                bytes = 1;
+            }
+            folded += ch;
+            bytes += size;
+        }
+        return folded;
+    }
+
+    // "2026-07-22" at "18:00", plus `addHours` -> "20260722T180000" (a wall-clock time, not UTC).
+    function icsDateTime(date, time, addHours = 0) {
+        const [y, mo, d] = date.split("-").map(Number);
+        const [h, mi] = time.split(":").map(Number);
+        const t = new Date(Date.UTC(y, mo - 1, d, h + addHours, mi));
+        return t.toISOString().slice(0, 16).replace(/[-:]/g, "") + "00";
+    }
+
+    function icsDate(date, addDays = 0) {
+        const [y, mo, d] = date.split("-").map(Number);
+        return new Date(Date.UTC(y, mo - 1, d + addDays)).toISOString().slice(0, 10).replace(/-/g, "");
+    }
+
+    function calendarFile(meet) {
+        const when = meet.time
+            ? [`DTSTART;TZID=America/New_York:${icsDateTime(meet.date, meet.time)}`, `DTEND;TZID=America/New_York:${icsDateTime(meet.date, meet.time, MEET_LENGTH_HOURS)}`]
+            : [`DTSTART;VALUE=DATE:${icsDate(meet.date)}`, `DTEND;VALUE=DATE:${icsDate(meet.date, 1)}`];
+        const location = [meet.placeName, meet.address].filter(Boolean).join(", ");
+        const details = [meet.warmUp && `Warm-up at ${fmtClock(meet.warmUp)}.`, meet.time && `Meet starts at ${fmtClock(meet.time)}.`].filter(Boolean).join(" ");
+        const lines = [
+            "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Spotswood Sea Serpents//Meet schedule//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+            ...(meet.time ? EASTERN_TIMEZONE : []),
+            "BEGIN:VEVENT",
+            `UID:${meet.id}@spotswood-sea-serpents`,
+            `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "")}`,
+            ...when,
+            `SUMMARY:${icsText(`Sea Serpents ${meet.title}`)}`,
+            location && `LOCATION:${icsText(location)}`,
+            details && `DESCRIPTION:${icsText(details)}`,
+            "END:VEVENT", "END:VCALENDAR"
+        ];
+        return lines.filter(Boolean).map(foldIcsLine).join("\r\n") + "\r\n";
+    }
+
+    function downloadCalendarFile(meet) {
+        const url = URL.createObjectURL(new Blob([calendarFile(meet)], { type: "text/calendar;charset=utf-8" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `sea-serpents-${meet.id}.ics`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    /* ---------- Past meet card and rows ---------- */
+    const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Winner"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
+
+    // The most recent meet: green, or gray-green after a loss (never red).
+    // "See team stats" carries data-meet-stats for the page to open the popup.
+    function resultCard(meet) {
+        const result = outcome(meet);
+        const s = meet.summary;
+        return `
+            <article class="hero-card result-card${result === "loss" ? " loss" : ""}">
+                <div class="card-top">
+                    <span class="pill">${escapeHtml(fmtDate(meet.date))} · Final</span>
+                    ${result ? `<span class="result-chip">${OUTCOME_CHIPS[result]}</span>` : ""}
+                </div>
+                <h3>${escapeHtml(meet.title)}</h3>
+                ${result ? `
+                    <p class="score-row us"><span>Spotswood ${escapeHtml(meet.teamScore)}</span>${result === "win" ? TROPHY : ""}</p>
+                    <p class="score-row them"><span>${escapeHtml(meet.opponent)} ${escapeHtml(meet.opponentScore)}</span>${result === "loss" ? TROPHY : ""}</p>` : ""}
+                ${s ? `<p class="quick-stats"><b>${s.firstPlaces}</b> ${s.firstPlaces === 1 ? "first place" : "first places"}<span class="sep" aria-hidden="true"></span><b>${s.relayWins}</b> ${s.relayWins === 1 ? "relay win" : "relay wins"}</p>` : ""}
+                <div class="btn-row">
+                    ${s ? `<button type="button" class="btn on-dark" data-meet-stats="${escapeHtml(meet.id)}">${icon("chart")}See team stats</button>` : ""}
+                    <a class="btn ghost-on-dark" href="/gallery.html?meet=${encodeURIComponent(meet.id)}">${icon("camera")}View photos</a>
+                </div>
+            </article>`;
+    }
+
+    // "Won 550–473": the higher score first, whoever had it. "Final" without a score.
+    function scoreLine(meet) {
+        const result = outcome(meet);
+        if (!result) return "Final";
+        const verb = { win: "Won", loss: "Lost", tie: "Tied" }[result];
+        return `${verb} ${Math.max(meet.teamScore, meet.opponentScore)}–${Math.min(meet.teamScore, meet.opponentScore)}`;
+    }
+
+    // An earlier meet as one row, which opens its popup when it has one.
+    function miniRow(meet) {
+        const text = `
+            <span class="mini-dot" aria-hidden="true"></span>
+            <span><span class="mini-title">${escapeHtml(meet.title)}</span><span class="mini-sub">${escapeHtml(`${fmtDate(meet.date)} · ${scoreLine(meet)}`)}</span></span>`;
+        return meet.summary
+            ? `<button type="button" class="mini" data-meet-stats="${escapeHtml(meet.id)}">${text}<span class="sr-only">, see team stats</span>${icon("chevron")}</button>`
+            : `<div class="mini">${text}</div>`;
+    }
+
     /* ---------- Meet results popup ---------- */
     const CLOSE_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 
-    // Built on first use, so pages don't each carry a copy of the markup.
-    function resultsDialog() {
-        let dialog = document.getElementById("meetDialog");
+    // Dialogs are built on first use, so pages don't each carry a copy of the markup.
+    function makeDialog(id, closeLabel, wide) {
+        let dialog = document.getElementById(id);
         if (dialog) return dialog;
         dialog = document.createElement("dialog");
-        dialog.className = "dialog";
-        dialog.id = "meetDialog";
-        dialog.setAttribute("aria-labelledby", "meetDialogTitle");
+        dialog.className = wide ? "dialog wide" : "dialog";
+        dialog.id = id;
+        dialog.setAttribute("aria-labelledby", `${id}Title`);
         dialog.innerHTML = `
             <div class="dialog-grab" aria-hidden="true"></div>
             <div class="dialog-head">
-                <div><h2 id="meetDialogTitle"></h2><p id="meetDialogWhen"></p></div>
-                <button type="button" class="dialog-close" data-close-dialog aria-label="Close meet results">${CLOSE_ICON}</button>
+                <div><h2 id="${id}Title"></h2><p id="${id}When"></p></div>
+                <button type="button" class="dialog-close" data-close-dialog aria-label="${closeLabel}">${CLOSE_ICON}</button>
             </div>
-            <div class="dialog-body" id="meetDialogBody"></div>`;
+            <div class="dialog-body" id="${id}Body"></div>`;
         document.body.appendChild(dialog);
         return dialog;
     }
@@ -96,13 +326,14 @@
     function openResults(meet, opener) {
         if (!meet || !meet.summary) return;
         const s = meet.summary;
-        const dialog = resultsDialog();
+        const dialog = makeDialog("meetDialog", "Close meet results");
         dialog.querySelector("#meetDialogTitle").textContent = meet.title;
         dialog.querySelector("#meetDialogWhen").textContent = `${fmtDate(meet.date)} · Final`;
         const body = dialog.querySelector("#meetDialogBody");
         body.innerHTML = scoreBanner(meet) + statTiles(s) + seedCard(s) + dropCard(s.biggestDrop) + `
             <p class="meet-foot">Individual and relay results from the official meet sheet. Biggest drop is the largest percent improvement over seed among swimmers age 7 and up.</p>
-            <button type="button" class="btn primary block view-all" disabled>View all swimmer results</button>`;
+            <button type="button" class="btn primary block view-all">View all swimmer results</button>`;
+        body.querySelector(".view-all").addEventListener("click", (event) => openAllResults(meet, event.currentTarget));
         SiteUI.openDialog(dialog, opener);
         body.scrollTop = 0; // only once it's showing; a hidden box keeps its old scroll position
     }
@@ -162,8 +393,89 @@
             </div>`;
     }
 
+    /* ---------- Full results list ---------- */
+    // Every result at a meet, both teams, event by event (/api/resultsByMeet).
+    // It opens on top of the meet popup, so closing it goes back there. A meet
+    // has hundreds of rows, so they're loaded only when asked for.
+    const allResults = new Map(); // meet id -> { individual, relays }
+    const STATUS_TEXT = { DQ: "DQ", NS: "Did not swim", DNF: "Did not finish" };
+
+    async function openAllResults(meet, opener) {
+        const dialog = makeDialog("allResultsDialog", "Close all results", true);
+        dialog.querySelector("#allResultsDialogTitle").textContent = meet.title;
+        dialog.querySelector("#allResultsDialogWhen").textContent = `${fmtDate(meet.date)} · All results`;
+        dialog.dataset.meet = meet.id;
+        const body = dialog.querySelector("#allResultsDialogBody");
+        body.innerHTML = '<p class="results-note">Loading results…</p>';
+        SiteUI.openDialog(dialog, opener);
+        body.scrollTop = 0;
+
+        let results = allResults.get(meet.id);
+        if (!results) {
+            try {
+                const res = await fetch(`/api/resultsByMeet?meetId=${encodeURIComponent(meet.id)}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                results = await res.json();
+                allResults.set(meet.id, results);
+            } catch (e) {
+                if (dialog.dataset.meet === meet.id) body.innerHTML = '<p class="results-note">Couldn\'t load the results right now.</p>';
+                return;
+            }
+        }
+        if (dialog.dataset.meet !== meet.id) return; // another meet's list was opened meanwhile
+        const events = resultsByEvent(results.individual, results.relays);
+        body.innerHTML = events.length ? events.map(eventResults).join("") : '<p class="results-note">No results yet.</p>';
+    }
+
+    // Individual and relay events share one numbering in the sheet (a relay can
+    // be event 3 with individual events on either side), so they're grouped by
+    // event number across both to read in the sheet's order.
+    function resultsByEvent(individual, relays) {
+        const byEvent = new Map();
+        const add = (row, relay) => {
+            if (!byEvent.has(row.eventNumber)) byEvent.set(row.eventNumber, { eventNumber: row.eventNumber, eventName: row.eventName, relay, rows: [] });
+            byEvent.get(row.eventNumber).rows.push(row);
+        };
+        individual.forEach(row => add(row, false));
+        relays.forEach(row => add(row, true));
+        const events = [...byEvent.values()].sort((a, b) => a.eventNumber - b.eventNumber);
+        // No place (a DQ, or an exhibition swim, which isn't scored) sorts after
+        // everyone who placed, rather than first as 0 would.
+        events.forEach(e => e.rows.sort((a, b) => (a.place ?? Infinity) - (b.place ?? Infinity)));
+        return events;
+    }
+
+    function eventResults(event) {
+        const id = `allResultsEvent${event.eventNumber}`;
+        const head = event.relay
+            ? '<th scope="col">Place</th><th scope="col" class="relay-team">Team</th><th scope="col">Swimmers</th><th scope="col" class="r">Time</th>'
+            : '<th scope="col">Place</th><th scope="col">Swimmer</th><th scope="col">Team</th><th scope="col" class="r">Time</th>';
+        const rows = event.rows.map(row => event.relay
+            ? `<tr><td>${escapeHtml(row.place ?? "")}</td><td>${escapeHtml(row.team)} (${escapeHtml(row.relayLetter)})</td><td>${relaySwimmers(row.swimmers || [])}</td><td class="r">${resultTime(row)}</td></tr>`
+            : `<tr><td>${escapeHtml(row.place ?? "")}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.team)}</td><td class="r">${resultTime(row)}</td></tr>`).join("");
+        return `
+            <section class="event-results">
+                <h3 id="${id}"><span class="event-number">#${escapeHtml(event.eventNumber)}</span> ${escapeHtml(event.eventName)}</h3>
+                <table class="results-table" aria-labelledby="${id}"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
+            </section>`;
+    }
+
+    // "Doe, Jane; Poe, Sam; ...": "; " between swimmers, since each name has a
+    // comma, and each name kept on one line when it fits.
+    function relaySwimmers(swimmers) {
+        return swimmers.map((s, i) => `<span class="relay-swimmer">${escapeHtml(s.name)}${i < swimmers.length - 1 ? ";" : ""}</span>`).join(" ");
+    }
+
+    // The time, or why there isn't one. An exhibition swim is timed but not scored.
+    function resultTime(row) {
+        if (STATUS_TEXT[row.status]) return escapeHtml(STATUS_TEXT[row.status]);
+        const time = escapeHtml(row.officialTime);
+        return row.status === "EXH" ? `${time}<span class="results-exh">Exhibition</span>` : time;
+    }
+
     window.Meets = {
-        escapeHtml, fmtDate, fmtShortDate, fmtSeconds, displayName, initials, shortEventName, plural,
-        hasScore, outcome, OUTCOME_CHIPS, openResults
+        escapeHtml, fmtDate, fmtClock, fmtSeconds, easternToday, displayName, initials, shortEventName, plural,
+        hasScore, hasResults, outcome, OUTCOME_CHIPS, splitMeets,
+        showUpcoming, resultCard, miniRow, openResults, openAllResults
     };
 })();

@@ -40,7 +40,7 @@ test("the date check reads the date and says where the photo will go, storing no
     addMeet("2026-07-13-curtis-park", "2026-07-13", "Curtis Park");
     const meetDay = await call(photoDate, { body: { originalBase64: base64(original("2026:07:13")) } });
     assert.equal(meetDay.status, 200);
-    assert.deepEqual(meetDay.body, { takenDate: "2026-07-13", tag: { key: "2026-07-13-curtis-park", label: "Jul 13 · Curtis Park", meetDate: "2026-07-13" } });
+    assert.deepEqual(meetDay.body, { takenDate: "2026-07-13", tag: { key: "2026-07-13-curtis-park", label: "July 13 · Curtis Park", meetDate: "2026-07-13" } });
 
     const otherDay = await call(photoDate, { body: { originalBase64: base64(heic({ tiff: tiffBlock({ exif: { [DATE_TAKEN]: "2026:07:14 08:00:00" } }) })) } });
     assert.deepEqual(otherDay.body.tag, { key: "other", label: "Practice & other", meetDate: null });
@@ -62,7 +62,7 @@ test("an upload stores the resized copy, stripped, as pending with the original'
     assert.equal(res.status, 200);
     assert.equal(res.body.status, "pending");
     assert.equal(res.body.takenDate, "2026-07-13");
-    assert.equal(res.body.tag.label, "Jul 13 · Curtis Park");
+    assert.equal(res.body.tag.label, "July 13 · Curtis Park");
 
     const [row] = store.photos.all();
     assert.equal(row.status, "pending");
@@ -106,7 +106,7 @@ test("the public list has approved photos only, each placed by its date against 
     const res = await call(publicList, {});
     assert.equal(res.status, 200);
     assert.equal(res.body.length, 3);
-    assert.deepEqual(res.body.map(p => p.tag && p.tag.label).sort(), [null, "Jul 13 · Curtis Park", "Practice & other"].sort());
+    assert.deepEqual(res.body.map(p => p.tag && p.tag.label).sort(), [null, "July 13 · Curtis Park", "Practice & other"].sort());
     assert.equal(res.body.every(p => p.status === "approved" && p.url && p.downloadUrl), true);
     assert.equal(res.body.find(p => p.id === "0-old").caption, "Relay warm-ups");
 });
@@ -118,6 +118,6 @@ test("the admin list includes pending photos and where each will go", async () =
     const res = await call(adminList, {});
     assert.equal(res.status, 200);
     assert.equal(res.body[0].status, "pending");
-    assert.equal(res.body[0].tag.label, "Jul 13 · Curtis Park");
+    assert.equal(res.body[0].tag.label, "July 13 · Curtis Park");
     assert.equal(res.body[0].takenDate, "2026-07-13");
 });

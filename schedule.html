@@ -8,262 +8,69 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/site.js"></script>
+<script src="/assets/meets.js"></script>
 <style>
-    :root {
-        --deep: #17261A; --navy: #2D6B34; --teal: #2F8F3E; --teal-dark: #1F6B2B;
-        --coral: #C1442E; --gold: #F0B429; --gold-dark: #D19B1F; --foam: #F6F8E7; --paper: #FFFFFF; --sub: #5B6B57; --line: rgba(22,38,27,0.12);
-    }
-    * { box-sizing: border-box; }
-    [hidden] { display: none !important; }
-    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-    body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #D7E8BB 0%, #EDF4DE 45%, #FFFFFF 100%) no-repeat; font-family: 'Inter', sans-serif; color: var(--deep); }
-    h1, h2, h3, .brand-name { font-family: 'Poppins', sans-serif; }
-
-    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; margin: 0 auto; padding: 22px 24px; }
-    .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
-    .brand-mark { height: 26px; width: auto; display: block; }
-    .brand-name { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
-    .nav-links { display: flex; gap: 28px; font-size: 0.88rem; font-weight: 600; }
-    .nav-links a { color: var(--deep); text-decoration: none; }
-    .nav-links a:hover, .nav-links a.active { color: var(--teal-dark); }
-    .nav-toggle { display: none; background: none; border: none; padding: 4px; color: var(--deep); cursor: pointer; }
-    @media (max-width: 720px) {
-        .nav-links { position: absolute; top: 68px; left: 0; right: 0; background: var(--paper); flex-direction: column; gap: 0; padding: 8px 24px 16px; box-shadow: 0 12px 24px rgba(7,44,63,0.1); display: none; }
-        .nav-links.open { display: flex; }
-        .nav-links a { padding: 10px 0; border-bottom: 1px solid var(--line); }
-        .nav-toggle { display: block; }
-    }
-
-    main { max-width: 880px; margin: 0 auto; padding: 24px 24px 80px; }
-    h1 { font-size: 2rem; margin: 8px 0 4px; }
-    .lede { color: var(--sub); margin: 0 0 32px; }
-
-    .meet-list { display: flex; flex-direction: column; gap: 16px; list-style: none; margin: 0; padding: 0; }
-    .meet-card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 20px 24px; }
-    .meet-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-    .meet-date { background: var(--gold); color: var(--deep); font-weight: 700; font-size: 0.8rem; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
-    .meet-title { font-size: 1.15rem; font-weight: 700; margin: 10px 0 4px; }
-    .meet-meta { color: var(--sub); font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 4px 16px; }
-    .weather { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--navy); background: var(--foam); border-radius: 12px; padding: 8px 14px; margin-top: 12px; }
-    .weather img { width: 32px; height: 32px; }
-    .past-badge { color: var(--sub); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-
-    .results-toggle { background: none; border: none; color: var(--teal-dark); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 10px 0 0; }
-
-    dialog#resultsModal { border: none; border-radius: 18px; padding: 0; width: min(640px, 92vw); max-height: 80vh; overflow: hidden; box-shadow: 0 24px 48px rgba(22,38,27,0.18); color: var(--deep); font-family: 'Inter', sans-serif; }
-    dialog#resultsModal::backdrop { background: rgba(22,38,27,0.45); backdrop-filter: blur(2px); }
-    dialog#resultsModal .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
-    dialog#resultsModal .modal-head h3 { margin: 0; font-size: 1.05rem; }
-    dialog#resultsModal .modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: var(--sub); cursor: pointer; padding: 2px 6px; border-radius: 8px; flex-shrink: 0; }
-    dialog#resultsModal .modal-close:hover { color: var(--deep); background: var(--foam); }
-    #resultsModalBody { padding: 14px 20px 20px; overflow: auto; max-height: calc(80vh - 58px); }
-    #resultsModalBody table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    #resultsModalBody th, #resultsModalBody td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-    #resultsModalBody th { color: var(--sub); font-weight: 600; }
-    #resultsModalBody h4 { margin: 18px 0 6px; font-size: 0.85rem; font-weight: 700; color: var(--teal-dark); }
-    #resultsModalBody h4:first-child { margin-top: 0; }
-
-    .empty, .loading { color: var(--sub); text-align: center; padding: 40px 0; }
-    footer { text-align: center; padding: 32px 24px; color: var(--sub); font-size: 0.85rem; }
+    /* Schedule page only. The meet cards and popups come from /assets/site.css. */
+    .schedule { display: flex; flex-direction: column; gap: 30px; max-width: 760px; padding-bottom: 80px; }
+    .meet-group { display: flex; flex-direction: column; gap: 16px; }
+    .group-label { margin: 0 0 -2px; font-size: 15px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-on-page); }
+    .meet-group .mini { margin-top: 0; }
+    .none-yet, .loading, .empty { margin: 0; font-size: 16px; color: var(--muted-on-page); }
 </style>
 </head>
 <body>
-<nav>
-    <a class="brand" href="/">
-        <img class="brand-mark" src="/assets/logo.png" alt="Spotswood Sea Serpents logo">
-        <span class="brand-name">Spotswood Sea Serpents</span>
-    </a>
-    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="document.querySelector('.nav-links').classList.toggle('open'); this.setAttribute('aria-expanded', document.querySelector('.nav-links').classList.contains('open'))">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/schedule.html" class="active">Schedule</a>
-        <a href="/gallery.html">Gallery</a>
-        <a href="/stats.html">Stats</a>
-    </div>
-</nav>
-<main>
-    <h1>Meet Schedule</h1>
-    <p class="lede">All meets for the season. Forecasts appear automatically once a meet is about a week out.</p>
-    <div id="content"><p class="loading">Loading meets…</p></div>
+<site-header current="schedule"></site-header>
+<main class="wrap">
+    <section class="page-title">
+        <h1>Meet Schedule</h1>
+        <p>All meets for the season. Forecasts appear automatically once a meet is about a week out.</p>
+    </section>
+    <div class="schedule" id="schedule"><p class="loading">Loading meets…</p></div>
 </main>
-<dialog id="resultsModal" closedby="any" aria-labelledby="resultsModalTitle">
-    <div class="modal-head">
-        <h3 id="resultsModalTitle"></h3>
-        <button type="button" class="modal-close" aria-label="Close" onclick="document.getElementById('resultsModal').close()">&times;</button>
-    </div>
-    <div id="resultsModalBody"></div>
-</dialog>
-<footer>Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>
+<site-footer></site-footer>
+
 <script>
-// Meet/result fields are admin-entered (or come from an imported PDF), but
-// everything landing in innerHTML on this page is escaped on general
-// principle -- see gallery.html, which has the same helper for genuinely
-// public, unauthenticated input.
-function escapeHtml(str) {
-    // Quotes too, not just <>& -- output also lands inside attributes like alt="…".
-    return (str == null ? '' : String(str))
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function fmtDate(dateStr) {
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-}
-
-// Stored as "HH:MM" 24-hour (what <input type="time"> produces) -- displayed
-// as "6:00pm" instead.
-function timeToClock(t) {
-    if (!t) return '';
-    const [hStr, mStr] = t.split(':');
-    let h = parseInt(hStr, 10);
-    const suffix = h >= 12 ? 'pm' : 'am';
-    h = h % 12 || 12;
-    return `${h}:${mStr}${suffix}`;
-}
-
-async function loadWeather(card, meet) {
-    if (meet.lat == null || meet.lon == null) return;
-    try {
-        const res = await fetch(`/api/meetWeather?lat=${meet.lat}&lon=${meet.lon}&date=${meet.date}`);
-        if (!res.ok) return;
-        const w = await res.json();
-        if (!w.available) return;
-        const box = card.querySelector('.weather');
-        box.hidden = false;
-        box.querySelector('.weather-icon').src = w.icon || '';
-        box.querySelector('.weather-text').textContent = `${w.shortForecast}, ${w.temperature}°${w.temperatureUnit}`;
-    } catch (e) { /* forecast is a nice-to-have, fine to skip on error */ }
-}
-
-async function fetchResults(meetId) {
-    try {
-        const res = await fetch(`/api/resultsByMeet?meetId=${encodeURIComponent(meetId)}`);
-        return await res.json();
-    } catch (e) {
-        return { individual: [], relays: [] };
-    }
-}
-
-let resultsByMeetId = {};
+// Upcoming meets on gold cards, the next one with its forecast, Directions,
+// and Add to calendar; then past meets, newest first: the latest on the green
+// card, the rest as rows that open the meet's popup. The cards are shared
+// with the home page (/assets/meets.js).
 let meetsById = {};
 
-// Individual and relay events share one numbering scheme in the source PDF
-// (e.g. a relay can be event #3 with individual events on either side), so
-// grouping by eventNumber across both -- not individual-then-relay -- is
-// what actually reproduces "event 1 through the last event" in order.
-function groupResultsByEvent(individual, relays) {
-    const byEvent = new Map();
-    for (const r of individual) {
-        if (!byEvent.has(r.eventNumber)) byEvent.set(r.eventNumber, { eventNumber: r.eventNumber, eventName: r.eventName, kind: 'individual', rows: [] });
-        byEvent.get(r.eventNumber).rows.push(r);
-    }
-    for (const r of relays) {
-        if (!byEvent.has(r.eventNumber)) byEvent.set(r.eventNumber, { eventNumber: r.eventNumber, eventName: r.eventName, kind: 'relay', rows: [] });
-        byEvent.get(r.eventNumber).rows.push(r);
-    }
-    const groups = [...byEvent.values()].sort((a, b) => a.eventNumber - b.eventNumber);
-    // No place (DQ'd, or an EXH swim that isn't scored) sorts after everyone
-    // who actually placed, rather than to the front as 0 would.
-    groups.forEach(g => g.rows.sort((a, b) => (a.place ?? Infinity) - (b.place ?? Infinity)));
-    return groups;
-}
-
-function renderEventGroup(g) {
-    // "; " rather than ", " -- each swimmer's own name already has a comma
-    // ("Last, First"), so a comma-joined list of several reads as one long
-    // ambiguous name.
-    const table = g.kind === 'relay'
-        ? `<table><thead><tr><th>Team</th><th>Swimmers</th><th>Time</th><th>Place</th></tr></thead><tbody>${g.rows.map(r => `<tr><td>${escapeHtml(r.team)} (${escapeHtml(r.relayLetter)})</td><td>${escapeHtml((r.swimmers || []).map(s => s.name).join('; '))}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('')}</tbody></table>`
-        : `<table><thead><tr><th>Swimmer</th><th>Team</th><th>Time</th><th>Place</th></tr></thead><tbody>${g.rows.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td><td>${escapeHtml(r.officialTime || r.status)}</td><td>${escapeHtml(r.place || '')}</td></tr>`).join('')}</tbody></table>`;
-    return `<h4>#${g.eventNumber} &mdash; ${escapeHtml(g.eventName)}</h4>${table}`;
-}
-
-function openResultsModal(meetId) {
-    const m = meetsById[meetId];
-    const data = resultsByMeetId[meetId];
-    if (!m || !data) return;
-    const groups = groupResultsByEvent(data.individual, data.relays);
-    document.getElementById('resultsModalTitle').textContent = `${fmtDate(m.date)} — ${m.title}`;
-    document.getElementById('resultsModalBody').innerHTML = groups.length
-        ? groups.map(renderEventGroup).join('')
-        : '<p class="muted">No results yet.</p>';
-    document.documentElement.style.overflow = 'hidden';
-    document.getElementById('resultsModal').showModal();
-}
-
-// closedby="any" (click-outside-to-close) isn't supported everywhere yet
-// (missing in Safari as of this writing) -- fall back to manually closing
-// on a genuine backdrop click. Esc-to-close needs no fallback; showModal()
-// has handled that natively for as long as <dialog> has existed.
-(function () {
-    const dialog = document.getElementById('resultsModal');
-    if ('closedBy' in HTMLDialogElement.prototype) return;
-    dialog.addEventListener('click', (event) => {
-        if (event.target !== dialog) return;
-        const rect = dialog.getBoundingClientRect();
-        const inside = rect.top <= event.clientY && event.clientY <= rect.top + rect.height && rect.left <= event.clientX && event.clientX <= rect.left + rect.width;
-        if (!inside) dialog.close();
-    });
-})();
-
-// The page behind a modal <dialog> isn't guaranteed to stop scrolling on
-// its own (varies by browser), so this locks it explicitly on open --
-// 'close' fires no matter how the dialog closed (button, backdrop, Esc),
-// so unlocking here covers every path from one place.
-document.getElementById('resultsModal').addEventListener('close', () => {
-    document.documentElement.style.overflow = '';
-});
-
 (async function () {
-    const content = document.getElementById('content');
+    const box = document.getElementById('schedule');
+    let meets;
     try {
         const res = await fetch('/api/meets');
-        const meets = await res.json();
-        if (!meets.length) {
-            content.innerHTML = '<p class="empty">No meets scheduled yet.</p>';
-            return;
-        }
-
-        // Fetched upfront (not lazily on click) so a meet with nothing
-        // imported yet can just skip rendering "View results" altogether,
-        // rather than showing a button that opens to an empty state.
-        const resultsList = await Promise.all(meets.map(m => fetchResults(m.id)));
-        resultsByMeetId = Object.fromEntries(meets.map((m, i) => [m.id, resultsList[i]]));
-        meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
-
-        // Eastern, not UTC -- toISOString() rolls over to tomorrow at 8pm EDT, mid-meet.
-        const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-        const list = document.createElement('ul');
-        list.className = 'meet-list';
-        list.innerHTML = meets.map((m, i) => {
-            const hasResults = resultsList[i].individual.length > 0 || resultsList[i].relays.length > 0;
-            return `
-            <li class="meet-card" data-index="${i}">
-                <div class="meet-top">
-                    <span class="meet-date">${fmtDate(m.date)}</span>
-                    ${m.date < today ? '<span class="past-badge">Past</span>' : ''}
-                </div>
-                <div class="meet-title">${escapeHtml(m.title)}</div>
-                <div class="meet-meta">
-                    ${m.time ? `<span>${escapeHtml(timeToClock(m.time))}</span>` : ''}
-                    ${m.placeName ? `<span>${escapeHtml(m.placeName)}</span>` : ''}
-                    ${m.address ? `<span>${escapeHtml(m.address)}</span>` : ''}
-                </div>
-                <div class="weather" hidden><img class="weather-icon" alt=""><span class="weather-text"></span></div>
-                ${hasResults ? `<button class="results-toggle" onclick="openResultsModal('${escapeHtml(m.id)}')">View results</button>` : ''}
-            </li>
-        `;
-        }).join('');
-        content.innerHTML = '';
-        content.appendChild(list);
-        meets.forEach((m, i) => loadWeather(list.children[i], m));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        meets = await res.json();
     } catch (e) {
-        content.innerHTML = '<p class="empty">Couldn\'t load the schedule right now.</p>';
+        box.innerHTML = '<p class="empty">Couldn\'t load the schedule right now.</p>';
+        return;
     }
+    meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
+    const { upcoming, past } = Meets.splitMeets(meets);
+    box.innerHTML = `
+        <section class="meet-group" aria-labelledby="upcomingHeading">
+            <h2 class="group-label" id="upcomingHeading">Upcoming</h2>
+            ${upcoming.length ? upcoming.map(() => '<article class="gold-card upcoming"></article>').join('') : '<p class="none-yet">No upcoming meets yet.</p>'}
+        </section>
+        ${past.length ? `
+            <section class="meet-group" aria-labelledby="pastHeading">
+                <h2 class="group-label" id="pastHeading">Past meets</h2>
+                ${Meets.resultCard(past[0])}
+                ${past.slice(1).map(Meets.miniRow).join('')}
+            </section>` : ''}`;
+    box.querySelectorAll('article.upcoming').forEach((card, i) => Meets.showUpcoming(card, upcoming[i], { next: i === 0 }));
 })();
+
+// "See team stats" on the latest meet, and the rows for earlier ones.
+document.getElementById('schedule').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-meet-stats]');
+    if (button) Meets.openResults(meetsById[button.dataset.meetStats], button);
+});
 </script>
 </body>
 </html>
