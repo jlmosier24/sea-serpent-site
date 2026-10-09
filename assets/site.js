@@ -1,9 +1,9 @@
-// Spotswood Sea Serpents: shared behavior for every page -- the site header
-// and footer, icons, dialogs, and file drop zones. Styles live in /assets/site.css.
+// Spotswood Sea Serpents: shared behavior for every page -- the site header,
+// icons, dialogs, and file drop zones. Styles live in /assets/site.css.
 //
-// Load it in <head> WITHOUT defer: <site-header> and <site-footer> are then
-// already defined when the parser reaches them, so they render with the rest
-// of the page instead of popping in a moment later.
+// Load it in <head> WITHOUT defer: <site-header> is then already defined when
+// the parser reaches it, so it renders with the rest of the page instead of
+// popping in a moment later.
 (function () {
     "use strict";
 
@@ -59,15 +59,7 @@
         });
     }
 
-    class SiteFooter extends HTMLElement {
-        connectedCallback() {
-            if (this.firstElementChild) return;
-            this.innerHTML = '<footer class="site-footer">Spotswood Sea Serpents &middot; Questions? Ask your coach.</footer>';
-        }
-    }
-
     customElements.define("site-header", SiteHeader);
-    customElements.define("site-footer", SiteFooter);
 
     /* ---------- Icons ---------- */
     // Line icons drawn in the text color: icon("pin") for an 18px .ico, or

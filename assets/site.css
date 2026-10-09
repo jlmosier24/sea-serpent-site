@@ -70,8 +70,8 @@ html.is-locked { overflow: hidden; scrollbar-gutter: stable; }
 .wrap.narrow { max-width: 980px; }
 @media (max-width: 600px) { .wrap { padding: 0 16px; } }
 
-/* ---------- Site header and footer (rendered by <site-header> and <site-footer>) ---------- */
-site-header, site-footer { display: block; }
+/* ---------- Site header (rendered by <site-header>) ---------- */
+site-header { display: block; }
 .site-header .wrap { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 26px; padding-bottom: 8px; }
 .brand { display: flex; align-items: center; gap: 9px; color: var(--ink); text-decoration: none; }
 /* The logo stays exactly as the site has always shown it: 26px tall at its own shape, no box. */
@@ -83,7 +83,6 @@ site-header, site-footer { display: block; }
 .site-nav a[aria-current="page"] { color: var(--brand); font-weight: 600; }
 .nav-toggle { display: none; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--card-border); border-radius: 50%; background: var(--card); color: var(--ink); cursor: pointer; }
 .nav-toggle svg { width: 22px; height: 22px; }
-.site-footer { text-align: center; padding: 40px 24px 64px; color: var(--muted); font-size: 18px; }
 @media (max-width: 860px) {
     .site-nav { gap: 16px; }
     .site-nav a { font-size: 14px; }
