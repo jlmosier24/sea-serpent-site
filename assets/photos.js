@@ -1,4 +1,4 @@
-// Spotswood Sea Serpents: the photo viewer shared by the Gallery and the home
+// Spotswood Sea Serpents: the photo viewer shared by the Photos page and the home
 // page -- one photo at a time from a list, with its meet, Previous and Next
 // (the arrow keys too), and Download. Styles live in /assets/site.css.
 //

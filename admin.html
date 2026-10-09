@@ -102,7 +102,7 @@
     .done-icon svg { width: 28px; height: 28px; }
     .done-title { margin: 0; font-size: 18px; font-weight: 700; }
 
-    /* Gallery tab */
+    /* Photos tab */
     .msg { margin: 10px 0 0; font-size: 14px; }
     .msg.success { color: var(--ok-text); }
     .msg.error { color: var(--danger); }
@@ -152,7 +152,7 @@
     <h1>Team Admin</h1>
     <div class="tabs" role="tablist" aria-label="Admin sections">
         <button type="button" role="tab" id="tabBtn-meets" aria-controls="tab-meets" aria-selected="true">Meets</button>
-        <button type="button" role="tab" id="tabBtn-gallery" aria-controls="tab-gallery" aria-selected="false" tabindex="-1">Gallery</button>
+        <button type="button" role="tab" id="tabBtn-gallery" aria-controls="tab-gallery" aria-selected="false" tabindex="-1">Photos</button>
     </div>
 
     <!-- MEETS -->
@@ -233,7 +233,7 @@
         </div>
     </section>
 
-    <!-- GALLERY -->
+    <!-- PHOTOS -->
     <section class="stack" id="tab-gallery" role="tabpanel" aria-labelledby="tabBtn-gallery" hidden>
         <div class="card">
             <h2>Pending review</h2>
@@ -737,7 +737,7 @@ async function loadSettings() {
     renderPool();
 }
 
-/* ---------- Gallery ---------- */
+/* ---------- Photos ---------- */
 // The thumbnails are too small to judge a photo by -- tapping one opens it full size.
 const galleryPhotosById = new Map();
 function viewPhoto(id) {
@@ -797,7 +797,7 @@ async function loadGallery() {
             </tr>
         `).join('') : '<tr><td colspan="4" class="muted">Nothing approved yet.</td></tr>';
     } catch (e) {
-        pendingBody.innerHTML = approvedBody.innerHTML = '<tr><td colspan="4" class="muted">Couldn\'t load gallery.</td></tr>';
+        pendingBody.innerHTML = approvedBody.innerHTML = '<tr><td colspan="4" class="muted">Couldn\'t load photos.</td></tr>';
     }
 }
 

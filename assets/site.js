@@ -10,7 +10,7 @@
     const NAV_LINKS = [
         { key: "home", href: "/", label: "Home" },
         { key: "schedule", href: "/schedule.html", label: "Schedule" },
-        { key: "gallery", href: "/gallery.html", label: "Gallery" },
+        { key: "gallery", href: "/gallery.html", label: "Photos" },
         { key: "stats", href: "/stats.html", label: "Stats" }
     ];
     const MENU_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';

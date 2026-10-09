@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gallery | Spotswood Sea Serpents</title>
+<title>Photos | Spotswood Sea Serpents</title>
 <meta name="description" content="Team photos for the Spotswood Sea Serpents summer swim team. Share your own -- it goes live after a quick coach review.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 30c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 12 0' stroke='%232F8F3E' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +29,6 @@
     .photo-tile { position: relative; display: block; aspect-ratio: 1.22; padding: 0; border: 0; border-radius: 20px; overflow: hidden; background: var(--soft); cursor: pointer; }
     .photo-tile img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
     .photo-tile:hover img { transform: scale(1.04); }
-    .photo-tag { position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 20px); padding: 4px 11px; border-radius: 14px; background: rgba(16,36,15,.72); color: #fff; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     @media (prefers-reduced-motion: reduce) { .photo-tile img { transition: none; } }
 
     /* Upload dialog */
@@ -63,7 +62,7 @@
 <main class="wrap">
     <div class="page-title gallery-title">
         <div>
-            <h1>Team Gallery</h1>
+            <h1>Team Photos</h1>
             <p>Photos from meets and practices. Anyone can add one. Photos are reviewed before they go live.</p>
         </div>
         <button type="button" class="btn primary" id="uploadButton"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Upload photos</button>
@@ -111,7 +110,7 @@ function filterOptions() {
         meets.set(photo.tag.key, option);
     }
     return [
-        { key: 'all', label: 'All', heading: 'All photos', count: photos.length },
+        { key: 'all', label: 'All', heading: 'Recent', count: photos.length },
         ...[...meets.values()].sort((a, b) => b.date.localeCompare(a.date)),
         ...(other ? [{ key: 'other', label: 'Practice & other', count: other }] : [])
     ];
@@ -141,7 +140,6 @@ function renderGrid() {
             return `
                 <button type="button" class="photo-tile" data-index="${i}" aria-label="Open photo ${i + 1} of ${list.length}${label ? `, ${escapeHtml(label)}` : ''}">
                     <img src="${escapeHtml(photo.url)}" alt="" loading="lazy">
-                    ${label ? `<span class="photo-tag" aria-hidden="true">${escapeHtml(label)}</span>` : ''}
                 </button>`;
         }).join('')
         : `<p class="empty">${photos.length ? 'No photos here yet.' : 'No photos yet. Be the first to share one!'}</p>`;
