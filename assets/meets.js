@@ -331,8 +331,7 @@
         dialog.querySelector("#meetDialogTitle").textContent = meet.title;
         dialog.querySelector("#meetDialogWhen").textContent = `${fmtDate(meet.date)} · Final`;
         const body = dialog.querySelector("#meetDialogBody");
-        body.innerHTML = scoreBanner(meet, s) + statTiles(s) + seedCard(s) + pointsCard(s) + highlightsCard(s) + `
-            <p class="meet-foot">Individual and relay results from the official meet sheet. Biggest drop is the largest percent improvement over seed among swimmers age 7 and up. Triple winners won every individual event they entered (at least three). Biggest climb is the most places gained over seed ranking in an event. Photo finish is the closest individual race won against the other team. Youngest scorers are the youngest swimmers to score points, listed by points.</p>
+        body.innerHTML = scoreBanner(meet) + statTiles(s) + seedCard(s) + pointsCard(s) + highlightCards(s) + `
             <button type="button" class="btn primary block view-all">View all swimmer results</button>`;
         body.querySelector(".view-all").addEventListener("click", (event) => openAllResults(meet, event.currentTarget));
         setUpPointsCard(body, s);
@@ -340,17 +339,15 @@
         body.scrollTop = 0; // only once it's showing; a hidden box keeps its old scroll position
     }
 
-    function scoreBanner(meet, s) {
+    function scoreBanner(meet) {
         const result = outcome(meet);
         if (!result) return "";
-        const label = result === "loss" ? `Final team score · lost by ${Math.abs(meet.teamScore - meet.opponentScore)}` : "Final team score";
         return `
             <div class="score-banner${result === "loss" ? " loss" : ""}">
                 <div>
-                    <p class="banner-label">${escapeHtml(label)}</p>
+                    <p class="banner-label">Final team score</p>
                     <p class="banner-us">Spotswood ${escapeHtml(meet.teamScore)}</p>
                     <p class="banner-them">${escapeHtml(meet.opponent)} ${escapeHtml(meet.opponentScore)}</p>
-                    <p class="banner-relays">${plural(s.relayWins, "relay win", "relay wins")}</p>
                 </div>
                 <span class="banner-chip">${OUTCOME_CHIPS[result]}</span>
             </div>`;
@@ -386,56 +383,44 @@
             </div>`;
     }
 
-    /* ---------- Points by card ---------- */
-    // Spotswood's points split three ways, one tab each; every tab adds up to
-    // the team score. The biggest age group or stroke gets the gold bar; the
-    // relay rows mix ages and strokes, so they don't compete for it.
-    const POINTS_TABS = [["ageGroup", "Age group"], ["stroke", "Stroke"], ["place", "Place"]];
-    const NOT_GOLD = new Set(["Mixed relays", "Relays"]);
+    /* ---------- Points by age group card ---------- */
+    // Spotswood's points by age group, for the whole team or boys or girls
+    // only (design/update-5/UPDATE.md, section 5). All adds up to the team
+    // score; each row's share is of its own tab's total. The biggest age group
+    // gets the gold bar; Mixed relays span ages, so it doesn't compete for it.
+    const POINTS_TABS = [["all", "All"], ["boys", "Boys"], ["girls", "Girls"]];
     const fmtPoints = points => String(Math.round(points * 100) / 100);
 
     function pointsCard(s) {
-        if (!s.pointsBy) return "";
+        if (!s.pointsBy || !s.pointsBy.all) return "";
         return `
             <section class="inset points-card" aria-labelledby="pointsTitle">
-                <h3 id="pointsTitle">Points by</h3>
+                <h3 id="pointsTitle">Points by age group</h3>
                 <div class="points-tabs" role="tablist" aria-labelledby="pointsTitle">
                     ${POINTS_TABS.map(([key, label], i) => `<button type="button" role="tab" id="pointsTab-${key}" data-tab="${key}" aria-controls="pointsPanel" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${label}</button>`).join("")}
                 </div>
-                <div class="points-panel" id="pointsPanel" role="tabpanel" aria-labelledby="pointsTab-ageGroup">
+                <div class="points-panel" id="pointsPanel" role="tabpanel" aria-labelledby="pointsTab-all">
                     <ul class="points-bars"></ul>
-                    <div class="points-tip" aria-hidden="true" hidden></div>
                 </div>
             </section>`;
     }
 
-    function pointsRows(rows, tab) {
-        const total = rows.reduce((n, r) => n + r.individual + r.relay, 0);
-        const pointsOf = r => r.individual + r.relay;
-        const most = Math.max(0, ...rows.map(pointsOf));
-        const gold = Math.max(0, ...rows.filter(r => !NOT_GOLD.has(r.label)).map(pointsOf));
+    function pointsRows(rows) {
+        const total = rows.reduce((n, r) => n + r.points, 0);
+        const most = Math.max(0, ...rows.map(r => r.points));
+        const gold = Math.max(0, ...rows.filter(r => r.label !== "Mixed relays").map(r => r.points));
         return rows.map(r => {
-            const points = pointsOf(r);
-            const pct = total ? Math.round(points / total * 100) : 0;
-            const top = gold > 0 && points === gold && !NOT_GOLD.has(r.label);
-            // The stroke tab's rows are all individual, or all relay, so they don't need the split.
-            const split = tab === "stroke" ? "" : `Individual ${fmtPoints(r.individual)} · relay ${fmtPoints(r.relay)}`;
-            const pointWord = points === 1 ? "point" : "points";
-            const sum = `${fmtPoints(points)} ${pointWord} · ${pct}% of team`;
-            // "11-12: 132 points, 25% of team points. Individual 100, relay 32. Most points."
-            const label = `${r.label}: ${fmtPoints(points)} ${pointWord}, ${pct}% of team points.`
-                + (split ? ` Individual ${fmtPoints(r.individual)}, relay ${fmtPoints(r.relay)}.` : "")
-                + (top ? " Most points." : "");
+            const pct = total ? Math.round(r.points / total * 100) : 0;
+            const top = gold > 0 && r.points === gold && r.label !== "Mixed relays";
             return `
-                <li><button type="button" class="points-row${top ? " top" : ""}" aria-label="${escapeHtml(label)}" data-name="${escapeHtml(r.label)}" data-split="${escapeHtml(split)}" data-sum="${escapeHtml(sum)}">
+                <li class="points-row${top ? " top" : ""}">
                     <span class="points-label">${escapeHtml(r.label)}</span>
-                    <span class="points-track"><span class="points-bar" style="--w: ${most ? points / most : 0}"></span><span class="points-value">${fmtPoints(points)}</span><span class="points-pct">${pct}%</span></span>
-                </button></li>`;
+                    <span class="points-track"><span class="points-bar" style="--w: ${most ? r.points / most : 0}"></span><span class="points-value">${fmtPoints(r.points)}</span><span class="points-pct">${pct}%</span>${top ? '<span class="sr-only">, most points</span>' : ""}</span>
+                </li>`;
         }).join("");
     }
 
-    // Tabs follow the usual keyboard pattern (arrow keys, Home, End); each row
-    // shows a tooltip on hover, focus, or tap.
+    // Tabs follow the usual keyboard pattern (arrow keys, Home, End).
     function setUpPointsCard(body, s) {
         const card = body.querySelector(".points-card");
         if (!card) return;
@@ -443,22 +428,7 @@
         const tabs = [...tablist.querySelectorAll('[role="tab"]')];
         const panel = card.querySelector('[role="tabpanel"]');
         const list = panel.querySelector(".points-bars");
-        const tip = panel.querySelector(".points-tip");
 
-        function hideTip() { tip.hidden = true; }
-        function showTip(row) {
-            const name = document.createElement("b");
-            name.textContent = row.dataset.name;
-            const lines = [name];
-            if (row.dataset.split) lines.push(Object.assign(document.createElement("span"), { textContent: row.dataset.split }));
-            lines.push(Object.assign(document.createElement("span"), { textContent: row.dataset.sum }));
-            tip.replaceChildren(...lines);
-            tip.hidden = false;
-            const bar = row.querySelector(".points-bar");
-            const left = bar.offsetLeft + Math.min(bar.offsetWidth, 120);
-            tip.style.left = `${Math.max(0, Math.min(left, panel.clientWidth - tip.offsetWidth))}px`;
-            tip.style.top = `${row.offsetTop - tip.offsetHeight - 6}px`;
-        }
         function select(tab, focus) {
             tabs.forEach(t => {
                 const on = t === tab;
@@ -466,8 +436,7 @@
                 t.tabIndex = on ? 0 : -1;
             });
             panel.setAttribute("aria-labelledby", tab.id);
-            list.innerHTML = pointsRows(s.pointsBy[tab.dataset.tab], tab.dataset.tab);
-            hideTip();
+            list.innerHTML = pointsRows(s.pointsBy[tab.dataset.tab] || []);
             if (focus) tab.focus();
         }
 
@@ -482,55 +451,40 @@
             event.preventDefault();
             select(tabs[(next + tabs.length) % tabs.length], true);
         });
-        list.addEventListener("pointerover", (event) => {
-            const row = event.target.closest(".points-row");
-            if (row) showTip(row);
-        });
-        list.addEventListener("pointerleave", hideTip);
-        list.addEventListener("focusin", (event) => {
-            const row = event.target.closest(".points-row");
-            if (row) showTip(row);
-        });
-        list.addEventListener("focusout", hideTip);
-        list.addEventListener("click", (event) => {
-            const row = event.target.closest(".points-row");
-            if (row) showTip(row);
-        });
         select(tabs[0]);
     }
 
-    /* ---------- Meet highlights card ---------- */
-    // Each section shows only when something qualifies, with every tie listed.
-    const ORDINAL_SUFFIX = n => (n % 100 >= 11 && n % 100 <= 13 ? "th" : { 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th");
-    const ordinal = n => `${n}${ORDINAL_SUFFIX(n)}`;
+    /* ---------- Highlight cards ---------- */
+    // Triple winners (or, when there are none, the top point scorers), then the
+    // biggest time drop in each age group (design/update-5/UPDATE.md, sections
+    // 2 to 4). A card shows only when something qualifies, with every tie listed.
+    const HL_TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 20h8"/></svg>';
+    const HL_STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>';
 
-    function highlightsCard(s) {
-        const h = s.highlights || {};
-        const section = (one, many, items) => {
-            if (!items || !items.length) return "";
-            const title = items.length > 1 && many ? `${many} <span class="hl-count">${items.length}</span>` : one;
-            return `<div class="hl"><h4 class="hl-title">${title}</h4><ul class="hl-list">${items.join("")}</ul></div>`;
-        };
-        const item = (name, detail, right) => `
-            <li><div><p class="hl-name">${escapeHtml(displayName(name))}</p><p class="hl-detail">${escapeHtml(detail)}</p></div><div class="hl-right">${right}</div></li>`;
-        const value = text => `<span class="hl-value">${escapeHtml(text)}</span>`;
-        const pts = points => `${fmtPoints(points)} ${points === 1 ? "pt" : "pts"}`;
-        const eventAge = r => `${shortEventName(r.eventName)} · age ${r.age}`;
-        const drop = s.biggestDrop;
-        const sections = [
-            section("Biggest drop", null, drop && [item(drop.name, eventAge(drop), value(`−${drop.seconds.toFixed(2)}s`))]),
-            section("Triple winner", "Triple winners", (h.tripleWinners || []).map(t => item(t.name, `Age ${t.age}`, value(pts(t.points))))),
-            section("Biggest climb", "Biggest climbs", (h.biggestClimb || []).map(c => item(c.name, eventAge(c), `
-                <span class="climb"><span aria-hidden="true">${ordinal(c.seedRank)}<small>Seed</small></span><span class="climb-arrow" aria-hidden="true">→</span><span aria-hidden="true">${ordinal(c.place)}<small>Finish</small></span><span class="sr-only">seeded ${ordinal(c.seedRank)}, finished ${ordinal(c.place)}</span></span>`))),
-            section("Photo finish", "Photo finishes", (h.photoFinishes || []).map(p => item(p.name, eventAge(p), `${value(`${p.margin.toFixed(2)}s`)}<small>margin</small>`))),
-            section("Youngest scorer", "Youngest scorers", (h.youngestScorers || []).map(y => item(y.name, `Age ${y.age}`, value(pts(y.points)))))
-        ].filter(Boolean);
-        if (!sections.length) return "";
+    function highlightCard(title, iconHtml, rows) {
+        if (!rows.length) return "";
         return `
-            <section class="gold-card highlights-card" aria-labelledby="highlightsTitle">
-                <h3 id="highlightsTitle">Meet highlights</h3>
-                ${sections.join("")}
+            <section class="inset hl-card">
+                <h3 class="hl-card-title">${escapeHtml(title)}${iconHtml}</h3>
+                <ul class="hl-list">${rows.join("")}</ul>
             </section>`;
+    }
+    // A name, a grey line under it, and an optional value on the right.
+    const hlRow = (name, lineHtml, value) => `
+        <li><div class="hl-who"><p class="hl-name">${escapeHtml(displayName(name))}</p>${lineHtml ? `<p class="hl-line">${lineHtml}</p>` : ""}</div>${value ? `<span class="hl-value">${escapeHtml(value)}</span>` : ""}</li>`;
+
+    function highlightCards(s) {
+        const h = s.highlights || {};
+        const triples = h.tripleWinners || [];
+        const scorers = h.topScorers || [];
+        const drops = h.biggestDrops || [];
+        const pts = points => `${fmtPoints(points)} ${points === 1 ? "pt" : "pts"}`;
+        return highlightCard(triples.length === 1 ? "Triple winner" : "Triple winners", `<span class="hl-icon">${HL_TROPHY}</span>`,
+                triples.map(t => hlRow(t.name, escapeHtml((t.events || []).join(" · ")))))
+            + (triples.length ? "" : highlightCard("Top point scorers", `<span class="hl-icon star">${HL_STAR}</span>`,
+                scorers.map(p => hlRow(p.name, "", pts(p.points)))))
+            + highlightCard(drops.length === 1 ? "Biggest time drop" : "Biggest time drops", "",
+                drops.map(d => hlRow(d.name, `<b>${escapeHtml(d.group)}</b> · ${escapeHtml(shortEventName(d.eventName))}`, `−${d.seconds.toFixed(2)}s`)));
     }
 
     /* ---------- Full results list ---------- */

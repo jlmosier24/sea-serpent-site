@@ -54,16 +54,14 @@ for (const expected of EXPECTED) {
         }
         assert.deepEqual(teamScore(parsed), expected.score);
 
-        const drop = summary.biggestDrop;
-        assert.deepEqual(
-            { eventName: drop.eventName, seedTime: drop.seedTime, officialTime: drop.officialTime, seconds: drop.seconds, percent: Math.round(drop.percent * 1000) / 10 },
-            expected.drop
-        );
+        // The handoff's biggest drop is its age group's, among the popup's biggest drops by age group.
+        const drop = summary.highlights.biggestDrops.find(d => d.eventName === expected.drop.eventName);
+        assert.ok(drop, "the handoff's biggest drop is listed");
+        assert.deepEqual([drop.seconds, Math.round(drop.percent * 1000) / 10], [expected.drop.seconds, expected.drop.percent]);
 
-        // The popup's Points by card: each tab adds up to the team's final score.
-        for (const [tab, rows] of Object.entries(summary.pointsBy)) {
-            const total = Math.round(rows.reduce((n, r) => n + r.individual + r.relay, 0) * 100) / 100;
-            assert.equal(total, expected.score.us, `Points by ${tab}`);
-        }
+        // The popup's Points by age group: All adds up to the team's final score, and so do Boys and Girls together.
+        const total = tab => summary.pointsBy[tab].reduce((n, r) => n + r.points, 0);
+        assert.equal(Math.round(total("all") * 100) / 100, expected.score.us, "All");
+        assert.equal(Math.round((total("boys") + total("girls")) * 100) / 100, expected.score.us, "Boys and Girls");
     });
 }

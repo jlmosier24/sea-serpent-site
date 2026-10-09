@@ -5,10 +5,6 @@
 const { isSpotswoodTeam } = require("./meetResultsParser");
 const { hasRealSeed } = require("./seeds");
 
-// Seeds for the youngest swimmers are often stale or placeholders, so the
-// meet's "Biggest drop" only looks at swimmers this age and up.
-const BIGGEST_DROP_MIN_AGE = 7;
-
 function isScored(swim) {
     return swim.status === "OK";
 }
@@ -23,20 +19,6 @@ function dropBelowSeed(swim) {
     return { seconds, percent: seconds / swim.seedSeconds };
 }
 
-function describeDrop(swim, drop) {
-    return {
-        name: swim.name,
-        age: swim.age,
-        eventName: swim.eventName,
-        meetId: swim.meetId,
-        meetDate: swim.meetDate,
-        seedTime: swim.seedTime,
-        officialTime: swim.officialTime,
-        seconds: Math.round(drop.seconds * 100) / 100,
-        percent: drop.percent
-    };
-}
-
 const round2 = n => Math.round(n * 100) / 100;
 const sum = numbers => round2(numbers.reduce((total, n) => total + n, 0));
 function groupBy(rows, keyOf) {
@@ -48,122 +30,81 @@ function groupBy(rows, keyOf) {
     }
     return groups;
 }
-const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th"];
-
-/* ---------- Points by (design/update-4/UPDATE.md, B.4) ---------- */
+/* ---------- Points by age group (design/update-5/UPDATE.md, section 5) ---------- */
 // Points come from the sheet's points column, never worked out again:
-// individual places score 6/4/3/2/1 and relays 8/4/2, ties as printed. Each
-// split adds up to the same total, the team's score.
-const AGE_GROUPS = ["8 & under", "9-10", "11-12", "13-14", "15-18"];
+// individual places score 6/4/3/2/1 and relays 8/4/2, ties as printed. The
+// All tab adds up to the team's score, and so do Boys and Girls together.
+const AGE_GROUPS = ["6 & under", "7-8", "9-10", "11-12", "13-14", "15-18"];
 const MIXED_RELAYS = "Mixed relays";
-const STROKES = ["Freestyle", "Backstroke", "Breaststroke", "Butterfly", "IM"];
-const RELAYS = "Relays";
+const POINTS_ROWS = [...AGE_GROUPS, MIXED_RELAYS];
 
 function ageGroupOf(age) {
     if (age == null) return null;
-    if (age <= 8) return "8 & under";
+    if (age <= 6) return "6 & under";
+    if (age <= 8) return "7-8";
     if (age <= 10) return "9-10";
     if (age <= 12) return "11-12";
     if (age <= 14) return "13-14";
     return "15-18";
 }
 
-// A relay counts toward its own age group, or Mixed relays when it spans
-// several ("Girls 12 & Under 100m Medley Relay", "Boys 18 & Under 125m
-// Freestyle Relay", "Girls 13-18 100m Medley Relay").
+// "Girls 9-10 50m Freestyle" -> "girls"; "Men 15-18 ..." -> "boys".
+function genderOf(eventName) {
+    if (/^(Girls|Women)\b/i.test(eventName || "")) return "girls";
+    if (/^(Boys|Men)\b/i.test(eventName || "")) return "boys";
+    return null;
+}
+
+// Where a relay's points go: an 8 & under relay's are shared by its swimmers,
+// each to their own age group (null here); a relay for one age group counts
+// there; the ones spanning several (12 & under, 13-18, 18 & under) are Mixed.
 function relayAgeGroup(eventName) {
     const under = /(\d+)\s*&\s*Under/i.exec(eventName || "");
-    if (under) return Number(under[1]) <= 8 ? "8 & under" : MIXED_RELAYS;
+    if (under) return Number(under[1]) <= 8 ? null : MIXED_RELAYS;
     const range = /(\d+)-(\d+)/.exec(eventName || "");
     return range && AGE_GROUPS.includes(`${range[1]}-${range[2]}`) ? `${range[1]}-${range[2]}` : MIXED_RELAYS;
 }
 
-function strokeOf(eventName) {
-    if (/\bIM\b|Individual Medley/i.test(eventName || "")) return "IM";
-    return STROKES.find(stroke => new RegExp(stroke, "i").test(eventName || "")) || null;
-}
-
-// Each tab's rows in a fixed order, so every meet shows the same ones:
-// { label, individual, relay } points.
+// { all, boys, girls }: each a row per group in a fixed order, { label, points }.
+// Shared relay points can come to halves (2 points among four swimmers).
 function pointsBy(swims, relays) {
-    const tab = labels => labels.map(label => ({ label, individual: 0, relay: 0 }));
-    const split = { ageGroup: tab([...AGE_GROUPS, MIXED_RELAYS]), stroke: tab([...STROKES, RELAYS]), place: tab(ORDINALS) };
-    const add = (rows, label, kind, points) => {
-        const row = rows.find(r => r.label === label);
-        if (row) row[kind] = round2(row[kind] + points);
+    const tabs = { all: {}, boys: {}, girls: {} };
+    const add = (eventName, label, points) => {
+        for (const tab of ["all", genderOf(eventName)]) {
+            if (tab && label) tabs[tab][label] = (tabs[tab][label] || 0) + points;
+        }
     };
     for (const swim of swims) {
-        if (!swim.points) continue;
-        add(split.ageGroup, ageGroupOf(swim.age), "individual", swim.points);
-        add(split.stroke, strokeOf(swim.eventName), "individual", swim.points);
-        add(split.place, ORDINALS[swim.place - 1], "individual", swim.points);
+        if (swim.points) add(swim.eventName, ageGroupOf(swim.age), swim.points);
     }
     for (const relay of relays) {
         if (!relay.points) continue;
-        add(split.ageGroup, relayAgeGroup(relay.eventName), "relay", relay.points);
-        add(split.stroke, RELAYS, "relay", relay.points);
-        add(split.place, ORDINALS[relay.place - 1], "relay", relay.points);
+        const group = relayAgeGroup(relay.eventName);
+        if (group) add(relay.eventName, group, relay.points);
+        // Split among the swimmers the sheet lists, so the points all land somewhere.
+        else for (const swimmer of relay.swimmers || []) add(relay.eventName, ageGroupOf(swimmer.age), relay.points / relay.swimmers.length);
     }
-    return split;
+    const rows = tab => POINTS_ROWS.map(label => ({ label, points: round2(tabs[tab][label] || 0) }));
+    return { all: rows("all"), boys: rows("boys"), girls: rows("girls") };
 }
 
-/* ---------- Meet highlights (design/update-4/UPDATE.md, B.5) ---------- */
-// Every list shows ties in full, with no cap.
+/* ---------- Highlight cards (design/update-5/UPDATE.md, sections 2 to 4) ---------- */
+// Every list shows ties in full.
 
-// Swimmers who won every individual event they entered, at least three.
+const SHORT_STROKES = { Freestyle: "Free", Backstroke: "Back", Breaststroke: "Breast", Butterfly: "Fly" };
+// "Girls 13-14 50m Butterfly" -> "50 Fly"; a meet is all one course, so the unit goes.
+function shortEvent(eventName) {
+    const m = /(\d+)\s*(?:yd|m)\s+(.+)$/.exec(eventName || "");
+    return m ? `${m[1]} ${SHORT_STROKES[m[2]] || m[2]}` : eventName;
+}
+
+// Swimmers who won every individual event they entered, at least three:
+// { name, age, events } with the events in meet order.
 function tripleWinners(swims) {
     return [...groupBy(swims, s => s.name)]
         .filter(([, entries]) => entries.length >= 3 && entries.every(s => isScored(s) && s.place === 1))
-        .map(([name, entries]) => ({ name, age: entries[0].age, points: sum(entries.map(s => s.points || 0)) }))
+        .map(([name, entries]) => ({ name, age: entries[0].age, events: [...entries].sort((a, b) => a.eventNumber - b.eventNumber).map(s => shortEvent(s.eventName)) }))
         .sort((a, b) => (a.age - b.age) || a.name.localeCompare(b.name));
-}
-
-// The most places gained in one event, from the swimmer's place in the seed
-// order to where they finished. The seed order ranks the event's real seeds
-// (no NT or converted seeds) fastest first; exhibition swims aren't placed,
-// so they're left out of it.
-function biggestClimb(individual) {
-    let most = 0;
-    let climbs = [];
-    for (const rows of groupBy(individual, r => r.eventNumber).values()) {
-        const seeds = rows.filter(r => hasRealSeed(r) && r.status !== "EXH").map(r => r.seedSeconds).sort((a, b) => a - b);
-        for (const swim of rows) {
-            if (!isSpotswoodTeam(swim.team) || !isScored(swim) || swim.place == null || !hasRealSeed(swim)) continue;
-            const seedRank = seeds.indexOf(swim.seedSeconds) + 1; // a tied seed shares the higher rank
-            const gained = seedRank - swim.place;
-            if (gained <= 0 || gained < most) continue;
-            if (gained > most) {
-                most = gained;
-                climbs = [];
-            }
-            climbs.push({ name: swim.name, age: swim.age, eventName: swim.eventName, eventNumber: swim.eventNumber, seedRank, place: swim.place });
-        }
-    }
-    return climbs.sort((a, b) => a.eventNumber - b.eventNumber);
-}
-
-// The closest individual races Spotswood won against the other team: a
-// Spotswood winner with the other team's swimmer next, in 2nd. A tie for
-// first wasn't won, and a Spotswood 1-2 isn't a race against them.
-function photoFinishes(individual) {
-    let closest = Infinity;
-    let races = [];
-    for (const rows of groupBy(individual, r => r.eventNumber).values()) {
-        const placed = rows.filter(r => isScored(r) && r.place != null && r.officialSeconds != null);
-        const winners = placed.filter(r => r.place === 1);
-        const second = placed.filter(r => r.place === 2);
-        if (winners.length !== 1 || !isSpotswoodTeam(winners[0].team)) continue;
-        if (!second.length || second.some(r => isSpotswoodTeam(r.team))) continue;
-        const winner = winners[0];
-        const margin = round2(Math.min(...second.map(r => r.officialSeconds)) - winner.officialSeconds);
-        if (margin <= 0 || margin > closest) continue;
-        if (margin < closest) {
-            closest = margin;
-            races = [];
-        }
-        races.push({ name: winner.name, age: winner.age, eventName: winner.eventName, eventNumber: winner.eventNumber, margin });
-    }
-    return races.sort((a, b) => a.eventNumber - b.eventNumber);
 }
 
 // Individual points by swimmer: { name, age, points } for each who scored.
@@ -172,12 +113,32 @@ function individualScorers(swims) {
         .map(([name, entries]) => ({ name, age: entries[0].age, points: sum(entries.map(s => s.points)) }));
 }
 
-// Every swimmer of the youngest age to score individual points, most points first.
-function youngestScorers(swims) {
-    const scorers = individualScorers(swims).filter(s => s.age != null);
+// The top 3 by individual points, with everyone tied at the cut-off.
+const TOP_SCORERS = 3;
+function topScorers(swims) {
+    const scorers = individualScorers(swims).sort((a, b) => (b.points - a.points) || a.name.localeCompare(b.name));
     if (!scorers.length) return [];
-    const youngest = Math.min(...scorers.map(s => s.age));
-    return scorers.filter(s => s.age === youngest).sort((a, b) => (b.points - a.points) || a.name.localeCompare(b.name));
+    const cutoff = scorers[Math.min(TOP_SCORERS, scorers.length) - 1].points;
+    return scorers.filter(s => s.points >= cutoff).map(({ name, points }) => ({ name, points }));
+}
+
+// Each age group's biggest drop below a seed time: chosen by percent, shown
+// in seconds, every tie listed. A group with no drop is left out.
+function biggestDrops(scored) {
+    const drops = [];
+    for (const group of AGE_GROUPS) {
+        const inGroup = scored
+            .filter(s => ageGroupOf(s.age) === group)
+            .map(s => ({ swim: s, drop: dropBelowSeed(s) }))
+            .filter(d => d.drop);
+        if (!inGroup.length) continue;
+        const best = Math.max(...inGroup.map(d => d.drop.percent));
+        inGroup
+            .filter(d => best - d.drop.percent < 1e-9)
+            .sort((a, b) => a.swim.eventNumber - b.swim.eventNumber)
+            .forEach(({ swim, drop }) => drops.push({ group, name: swim.name, age: swim.age, eventName: swim.eventName, seconds: round2(drop.seconds), percent: drop.percent }));
+    }
+    return drops;
 }
 
 // Swims faster than the swimmer's best earlier swim in the event, by the
@@ -204,13 +165,7 @@ function meetSummary(individual, relays, earlier = []) {
     const ourRelays = relays.filter(r => isSpotswoodTeam(r.team));
     // A converted seed isn't a real time in this pool, so it's left out of both counts.
     const timedWithSeed = scored.filter(r => hasRealSeed(r) && r.officialSeconds != null);
-
-    let biggestDrop = null;
-    for (const swim of scored) {
-        if (swim.age == null || swim.age < BIGGEST_DROP_MIN_AGE) continue;
-        const drop = dropBelowSeed(swim);
-        if (drop && (!biggestDrop || drop.percent > biggestDrop.percent)) biggestDrop = describeDrop(swim, drop);
-    }
+    const triples = tripleWinners(swims);
 
     return {
         swims: swims.length, // every Spotswood entry, including DQs and no-shows
@@ -232,13 +187,12 @@ function meetSummary(individual, relays, earlier = []) {
         timeDropped: sum(timedWithSeed.filter(r => r.officialSeconds < r.seedSeconds).map(r => r.seedSeconds - r.officialSeconds)),
         dqs: swims.filter(r => r.status === "DQ").length,
         noShows: swims.filter(r => r.status === "NS").length,
-        biggestDrop,
         pointsBy: pointsBy(swims, ourRelays),
         highlights: {
-            tripleWinners: tripleWinners(swims),
-            biggestClimb: biggestClimb(individual),
-            photoFinishes: photoFinishes(individual),
-            youngestScorers: youngestScorers(swims)
+            tripleWinners: triples,
+            // Shown only when nobody won every event they entered.
+            topScorers: triples.length ? [] : topScorers(swims),
+            biggestDrops: biggestDrops(scored)
         }
     };
 }
@@ -326,5 +280,5 @@ function swimmerSeason(name, swims, earned = {}) {
 }
 
 module.exports = {
-    meetSummary, teamScore, swimmerEvents, swimmerSeason, dropBelowSeed, BIGGEST_DROP_MIN_AGE
+    meetSummary, teamScore, swimmerEvents, swimmerSeason, dropBelowSeed
 };

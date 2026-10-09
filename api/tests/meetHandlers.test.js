@@ -240,7 +240,7 @@ test("an import recognises seeds converted from the swimmer's own yards time at 
     assert.deepEqual(store.results.all().filter(r => r.meetId === "m" && r.seedConverted).map(r => r.partitionKey), ["Doe, Jane"]);
     // Hers was the only swim with a seed to compare, so the meet has none now.
     const { summary } = (await call(publicMeets)).body.find(m => m.id === "m");
-    assert.deepEqual([summary.fasterThanSeed, summary.timedWithSeed, summary.biggestDrop], [0, 0, null]);
+    assert.deepEqual([summary.fasterThanSeed, summary.timedWithSeed, summary.highlights.biggestDrops], [0, 0, []]);
 });
 
 test("an import saves the meet's numbers for the home page, and editing the meet keeps them", async () => {
@@ -253,7 +253,7 @@ test("an import saves the meet's numbers for the home page, and editing the meet
             ({ swims, relays, swimmers, firstPlaces, topThree, relayWins, relayEvents, firstTimeSwims, fasterThanSeed, timedWithSeed }))(meet.summary),
         { swims: 5, relays: 2, swimmers: 5, firstPlaces: 1, topThree: 2, relayWins: 1, relayEvents: 1, firstTimeSwims: 1, fasterThanSeed: 1, timedWithSeed: 1 }
     );
-    assert.deepEqual([meet.summary.biggestDrop.name, meet.summary.biggestDrop.age, meet.summary.biggestDrop.seconds], ["Doe, Jane", 8, 0.6]);
+    assert.deepEqual(meet.summary.highlights.biggestDrops.map(d => [d.name, d.age, d.seconds]), [["Doe, Jane", 8, 0.6]]);
 
     await call(saveMeet, { body: { id: "m", opponent: "Test Seahawks", shortName: "Test", homeAway: "away", date: "2026-07-13", note: "Edited", teamScore: 525, opponentScore: 511 } });
     const [edited] = (await call(publicMeets)).body;
