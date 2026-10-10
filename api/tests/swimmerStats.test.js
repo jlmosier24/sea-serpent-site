@@ -14,7 +14,8 @@ Object.assign(require("../shared/badgeStore"), { getBadgesTable: () => badges })
 const swimmerStats = require("../swimmerStats/index.js");
 
 const { PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
-const { recomputeBadges } = require("../shared/badgeStore");
+const { recomputeBadges, readSwimmerNames } = require("../shared/badgeStore");
+const { toRelayResultEntity } = require("../shared/resultsTable");
 
 function addMeet(id, date) {
     meets.upsertEntity({ partitionKey: MEET_PARTITION_KEY, rowKey: id, opponent: "Test Seahawks", shortName: "Test", homeAway: "home", date });
@@ -39,6 +40,10 @@ test("with no name, it lists Spotswood's swimmers only, sorted", async () => {
     const res = await call(swimmerStats, { query: {} });
     assert.equal(res.status, 200);
     assert.deepEqual(res.body, { swimmers: ["Doe, Jane", "O'Moe, Kim"] });
+});
+
+test("before any import saves the list, the first request gathers it from the results and saves it", async () => {
+    assert.deepEqual(await readSwimmerNames(badges), ["Doe, Jane", "O'Moe, Kim"]);
 });
 
 test("before badges have been worked out, a swimmer's season still loads, with none", async () => {
@@ -69,4 +74,27 @@ test("a name with an apostrophe works, and an unknown or opposing-only name is a
     assert.equal((await call(swimmerStats, { query: { name: "O'Moe, Kim" } })).status, 200);
     assert.equal((await call(swimmerStats, { query: { name: "Nobody, Here" } })).status, 404);
     assert.equal((await call(swimmerStats, { query: { name: "Roe, Rita" } })).status, 404);
+});
+
+test("the list is read from the saved row, and each badge update saves it again", async () => {
+    // A new swim without a badge update isn't listed yet, so the saved row is what's read.
+    addSwim("Poe, Sam", "Spotswood", "m2", 9, "Boys 9-10 25m Freestyle", 1, 17.2);
+    assert.deepEqual((await call(swimmerStats, { query: {} })).body.swimmers, ["Doe, Jane", "O'Moe, Kim"]);
+
+    // A Spotswood relay swimmer with no individual swim has no season, so stays off the list.
+    const relays = new FakeTable();
+    relays.upsertEntity(toRelayResultEntity({
+        eventNumber: 11, eventName: "Mixed 9-10 100m Freestyle Relay", relayLetter: "A", teamAbbrev: "SPOT", team: "Spotswood",
+        place: 1, status: "OK", officialTime: "70.00", officialSeconds: 70,
+        swimmers: [{ name: "Doe, Jane" }, { name: "Relay, Only" }, { name: "Poe, Sam" }, { name: "O'Moe, Kim" }]
+    }, "m2"));
+    await recomputeBadges({ resultsTable: results, relayTable: relays, meetsTable: meets, badgesTable: badges });
+    assert.deepEqual((await call(swimmerStats, { query: {} })).body.swimmers, ["Doe, Jane", "O'Moe, Kim", "Poe, Sam"]);
+
+    // Someone whose only swims are gone (their meet deleted) drops off at the next update.
+    await results.deleteEntity("Poe, Sam", "m2__9");
+    await recomputeBadges({ resultsTable: results, relayTable: new FakeTable(), meetsTable: meets, badgesTable: badges });
+    assert.deepEqual((await call(swimmerStats, { query: {} })).body.swimmers, ["Doe, Jane", "O'Moe, Kim"]);
+    // The list's row isn't mistaken for a swimmer's badges.
+    assert.equal((await call(swimmerStats, { query: { name: "Doe, Jane" } })).status, 200);
 });

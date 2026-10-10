@@ -64,7 +64,7 @@ test("update 2's example swimmers get the badges, pills, lists, New tags and tot
     // Everyone's pills match their lists: a count is the number of rows, and
     // a total is the rows added up.
     const number = text => Number(String(text).replace(/[^\d.]/g, ""));
-    for await (const entity of badges.listEntities()) {
+    for await (const entity of badges.listEntities({ queryOptions: { filter: `PartitionKey eq '${BADGE_PARTITION_KEY}'` } })) {
         for (const b of JSON.parse(entity.badgesJson).filter(b => b.list)) {
             const rows = b.list.rows;
             if (b.pill == null) assert.equal(rows.length, 1, b.id);
