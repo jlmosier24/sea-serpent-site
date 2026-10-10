@@ -27,6 +27,10 @@
     .card-head h2 { white-space: nowrap; }
     .loading, .empty { margin: 0; padding: 24px 0; color: var(--muted); text-align: center; }
 
+    /* Schedule card: the next meet and the last one, each under a small label. */
+    .meet-part + .meet-part { margin-top: 24px; }
+    .part-label { margin: 0 0 10px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
     .swimmer-select { padding: 18px 20px; font-size: 18px; border-radius: 16px; }
 
     /* Photo card: a slideshow of the newest photos. */
@@ -60,14 +64,17 @@
                 <select class="input swimmer-select" id="swimmerSelect" aria-label="Choose a swimmer"><option value="">Loading swimmers…</option></select>
             </section>
 
-            <section class="card" id="nextMeetCard" aria-labelledby="nextMeetHeading" hidden>
-                <div class="card-head"><h2 id="nextMeetHeading">Next Meet</h2><a href="/schedule.html">Full schedule →</a></div>
-                <article class="gold-card upcoming" id="nextMeet"></article>
-            </section>
-
-            <section class="card" id="previousMeetCard" aria-labelledby="previousMeetHeading">
-                <div class="card-head"><h2 id="previousMeetHeading">Previous Meet</h2><a href="/schedule.html">Full schedule →</a></div>
-                <div id="previousMeet"><p class="loading">Loading meets…</p></div>
+            <section class="card" id="scheduleCard" aria-labelledby="scheduleHeading">
+                <div class="card-head"><h2 id="scheduleHeading">Schedule</h2><a href="/schedule.html">Full schedule →</a></div>
+                <div class="meet-part" id="nextPart" hidden>
+                    <h3 class="part-label">Next meet</h3>
+                    <article class="gold-card upcoming" id="nextMeet"></article>
+                </div>
+                <div class="meet-part" id="lastPart" hidden>
+                    <h3 class="part-label">Last meet</h3>
+                    <div id="lastMeet"></div>
+                </div>
+                <p class="loading" id="meetsStatus">Loading meets…</p>
             </section>
         </div>
 
@@ -85,7 +92,6 @@ const icon = SiteUI.icon;
 
 /* ---------------- Meets ---------------- */
 // The cards themselves are shared with the Schedule page (/assets/meets.js).
-let meetsById = {};
 
 async function loadMeets() {
     let meets;
@@ -94,33 +100,38 @@ async function loadMeets() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         meets = await res.json();
     } catch (e) {
-        document.getElementById('previousMeet').innerHTML = '<p class="empty">Couldn\'t load the meets right now.</p>';
+        showMeetsStatus('Couldn\'t load the meets right now.');
         return;
     }
-    meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
     const { upcoming, past } = Meets.splitMeets(meets);
-    renderNextMeet(upcoming[0]);
-    // Only meets with results here; the Schedule page lists the rest too.
-    renderPreviousMeets(past.filter(Meets.hasResults));
+    const next = upcoming[0];
+    // Only a meet with results here; the Schedule page lists the rest too.
+    const last = past.find(Meets.hasResults);
+    renderNextMeet(next);
+    renderLastMeet(last);
+    if (next || last) document.getElementById('meetsStatus').hidden = true;
+    else showMeetsStatus('No meets on the schedule yet.');
+}
+
+function showMeetsStatus(text) {
+    const status = document.getElementById('meetsStatus');
+    status.className = 'empty';
+    status.textContent = text;
 }
 
 function renderNextMeet(m) {
-    document.getElementById('nextMeetCard').hidden = !m;
+    document.getElementById('nextPart').hidden = !m;
     if (m) Meets.showUpcoming(document.getElementById('nextMeet'), m, { next: true });
 }
 
-// The latest finished meet, and the one before it as a single row.
-function renderPreviousMeets(done) {
-    const card = document.getElementById('previousMeetCard');
-    if (!done.length) {
-        card.hidden = true;
-        return;
-    }
-    const box = document.getElementById('previousMeet');
-    box.innerHTML = Meets.resultCard(done[0]) + (done[1] ? Meets.miniRow(done[1]) : '');
-    box.querySelectorAll('[data-meet-stats]').forEach(button => {
-        button.addEventListener('click', () => Meets.openResults(meetsById[button.dataset.meetStats], button));
-    });
+// The latest finished meet; "See team stats" opens its popup.
+function renderLastMeet(m) {
+    document.getElementById('lastPart').hidden = !m;
+    if (!m) return;
+    const box = document.getElementById('lastMeet');
+    box.innerHTML = Meets.resultCard(m);
+    const button = box.querySelector('[data-meet-stats]');
+    if (button) button.addEventListener('click', () => Meets.openResults(m, button));
 }
 
 /* ---------------- Swimmer dropdown ---------------- */

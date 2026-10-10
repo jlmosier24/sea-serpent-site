@@ -281,24 +281,6 @@
             </article>`;
     }
 
-    // "Won 550–473": the higher score first, whoever had it. "Final" without a score.
-    function scoreLine(meet) {
-        const result = outcome(meet);
-        if (!result) return "Final";
-        const verb = { win: "Won", loss: "Lost", tie: "Tied" }[result];
-        return `${verb} ${Math.max(meet.teamScore, meet.opponentScore)}–${Math.min(meet.teamScore, meet.opponentScore)}`;
-    }
-
-    // An earlier meet as one row, which opens its popup when it has one.
-    function miniRow(meet) {
-        const text = `
-            <span class="mini-dot" aria-hidden="true"></span>
-            <span><span class="mini-title">${escapeHtml(meet.title)}</span><span class="mini-sub">${escapeHtml(`${fmtDate(meet.date)} · ${scoreLine(meet)}`)}</span></span>`;
-        return meet.summary
-            ? `<button type="button" class="mini" data-meet-stats="${escapeHtml(meet.id)}">${text}<span class="sr-only">, see team stats</span>${icon("chevron")}</button>`
-            : `<div class="mini">${text}</div>`;
-    }
-
     /* ---------- Meet results popup ---------- */
     const CLOSE_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 
@@ -570,6 +552,6 @@
     window.Meets = {
         escapeHtml, fmtDate, fmtClock, fmtSeconds, easternToday, displayName, initials, shortEventName, plural,
         hasScore, hasResults, outcome, OUTCOME_CHIPS, splitMeets,
-        showUpcoming, resultCard, miniRow, openResults, openAllResults
+        showUpcoming, resultCard, openResults, openAllResults
     };
 })();

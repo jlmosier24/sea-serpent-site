@@ -298,7 +298,7 @@ dialog.dialog::backdrop { background: rgba(12,28,14,.55); }
     .results-table th.relay-team { width: 30%; }
 }
 
-/* ---------- Meet cards (Meets.showUpcoming, resultCard and miniRow in /assets/meets.js) ---------- */
+/* ---------- Meet cards (Meets.showUpcoming, and resultCard in /assets/meets.js) ---------- */
 .ico { width: 18px; height: 18px; flex-shrink: 0; }
 .card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 
@@ -337,15 +337,6 @@ dialog.dialog::backdrop { background: rgba(12,28,14,.55); }
 .result-card .btn-row { margin-top: 18px; }
 .result-card .btn { padding: 11px 16px; }
 .result-card.loss .btn.on-dark { color: #3A463E; }
-
-/* An earlier meet as one row. */
-.mini { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 14px; padding: 14px 16px; border: 1px solid var(--soft-border); border-radius: var(--radius-tile); background: var(--soft); color: var(--ink); text-align: left; }
-button.mini { cursor: pointer; }
-button.mini:hover { border-color: var(--brand); }
-.mini-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
-.mini-title { display: block; font-size: 17px; font-weight: 700; }
-.mini-sub { display: block; margin-top: 2px; font-size: 14px; color: var(--muted); }
-.mini > svg { width: 20px; height: 20px; margin-left: auto; color: var(--brand); }
 
 /* ---------- Photo viewer (built by Photos.open in /assets/photos.js) ---------- */
 .viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
