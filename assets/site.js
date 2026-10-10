@@ -87,8 +87,8 @@
     // Native <dialog class="dialog"> opened with showModal(): the browser itself
     // keeps Tab inside, closes on Esc, and hides the rest of the page from
     // screen readers (the role="dialog" / aria-modal behavior). This adds the
-    // rest of the spec: tap outside to close, page scroll lock, and focus back
-    // on whatever opened it.
+    // rest of the spec: tap outside to close, page scroll lock, focus back
+    // on whatever opened it, and a short motion in and out (site.css).
     //
     // Markup: a trigger with data-open-dialog="<dialog id>" and, inside the
     // dialog, any element with data-close-dialog. Pages can also call
@@ -108,11 +108,20 @@
                 if (event.target !== dialog) return;
                 const box = dialog.getBoundingClientRect();
                 const inside = box.top <= event.clientY && event.clientY <= box.bottom && box.left <= event.clientX && event.clientX <= box.right;
-                if (!inside) dialog.close();
+                if (!inside) closeDialog(dialog);
             });
         }
+        // Esc and tap-outside ask first, so they can play the closing motion too.
+        // A browser may not let that be held off (Esc pressed again quickly);
+        // then the dialog just closes at once.
+        dialog.addEventListener("cancel", (event) => {
+            if (!event.cancelable) return;
+            event.preventDefault();
+            closeDialog(dialog);
+        });
         // 'close' fires however the dialog closed (button, Esc, outside tap).
         dialog.addEventListener("close", () => {
+            dialog.removeAttribute("data-closing");
             if (!document.querySelector("dialog[open]")) document.documentElement.classList.remove("is-locked");
             const opener = dialog.siteUiOpener;
             dialog.siteUiOpener = null;
@@ -122,11 +131,35 @@
     }
 
     function openDialog(dialog, opener) {
-        if (!dialog || dialog.open) return;
+        if (!dialog) return;
+        // Opened again while closing: it turns around and stays open.
+        if (dialog.open) {
+            dialog.removeAttribute("data-closing");
+            return;
+        }
         prepareDialog(dialog);
         dialog.siteUiOpener = opener || document.activeElement;
         document.documentElement.classList.add("is-locked");
         dialog.showModal();
+    }
+
+    // [data-closing] plays the closing motion while the dialog is still open,
+    // then it closes for real. This works the same in every browser, unlike
+    // closing first and animating on the way out, which Safari can't do yet.
+    const CLOSE_WAIT_MAX_MS = 400;
+
+    function closeDialog(dialog) {
+        if (!dialog || !dialog.open || dialog.hasAttribute("data-closing")) return;
+        dialog.setAttribute("data-closing", "");
+        const finish = () => {
+            if (dialog.hasAttribute("data-closing")) dialog.close();
+        };
+        const motion = dialog.getAnimations();
+        if (!motion.length) return finish();
+        Promise.race([
+            Promise.allSettled(motion.map(animation => animation.finished)),
+            new Promise(resolve => setTimeout(resolve, CLOSE_WAIT_MAX_MS))
+        ]).then(finish);
     }
 
     document.addEventListener("click", (event) => {
@@ -137,8 +170,7 @@
         }
         const closer = event.target.closest("[data-close-dialog]");
         if (closer) {
-            const dialog = closer.closest("dialog");
-            if (dialog) dialog.close();
+            closeDialog(closer.closest("dialog"));
         }
     });
 
@@ -183,5 +215,5 @@
         });
     }
 
-    window.SiteUI = { icon, openDialog, setupDropZone };
+    window.SiteUI = { icon, openDialog, closeDialog, setupDropZone };
 })();

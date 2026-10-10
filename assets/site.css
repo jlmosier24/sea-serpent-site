@@ -212,13 +212,30 @@ dialog.dialog::backdrop { background: rgba(12,28,14,.55); }
 .dialog-close svg { width: 18px; height: 18px; }
 .dialog-body { min-height: 0; overflow-y: auto; padding: 18px 26px 26px; }
 .dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+/* Opening and closing: a fade with a small rise, or on phones a slide up from
+   the bottom. Opening starts from @starting-style (a browser without it just
+   opens at once); closing is [data-closing], set by SiteUI.closeDialog until
+   the motion ends. */
+dialog.dialog { --dialog-from-opacity: 0; --dialog-from: translateY(12px) scale(.97); transition: opacity .2s ease-out, transform .22s cubic-bezier(.2, .8, .2, 1); }
+dialog.dialog::backdrop { transition: opacity .2s ease-out; }
+@starting-style {
+    dialog.dialog[open] { opacity: var(--dialog-from-opacity); transform: var(--dialog-from); }
+    dialog.dialog[open]::backdrop { opacity: 0; }
+}
+dialog.dialog[data-closing] { opacity: var(--dialog-from-opacity); transform: var(--dialog-from); transition-duration: .15s; transition-timing-function: ease-in; }
+dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 /* Phones: a bottom sheet instead of a centered box. */
 @media (max-width: 600px) {
     dialog.dialog, dialog.dialog.wide { width: 100%; max-height: 92vh; max-height: 92dvh; margin: auto 0 0; border-radius: 26px 26px 0 0; }
+    dialog.dialog { --dialog-from-opacity: 1; --dialog-from: translateY(100%); transition-duration: .28s; }
+    dialog.dialog[data-closing] { transition-duration: .2s; }
     .dialog-grab { display: block; }
     .dialog-head { padding: 14px 18px 0; }
     .dialog-head h2 { font-size: 21px; }
     .dialog-body { padding: 16px 18px calc(22px + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) {
+    dialog.dialog, dialog.dialog[data-closing] { --dialog-from-opacity: 0; --dialog-from: none; transition-duration: .12s; }
 }
 
 /* ---------- Meet results popup (built by Meets.openResults in /assets/meets.js) ---------- */
@@ -278,6 +295,13 @@ dialog.dialog::backdrop { background: rgba(12,28,14,.55); }
 
 /* ---------- Full results list (Meets.openAllResults in /assets/meets.js) ---------- */
 .results-note { margin: 0; padding: 12px 0; color: var(--muted); }
+/* Gray placeholder rows while the results load, so the popup opens at its full height. */
+.results-loading { display: flex; flex-direction: column; gap: 14px; }
+.results-loading span { display: block; height: 14px; border-radius: 7px; background: var(--soft); animation: results-loading 1.2s ease-in-out infinite alternate; }
+.results-loading .head { width: 45%; height: 18px; margin-top: 12px; }
+.results-loading .head:first-child { margin-top: 0; }
+@keyframes results-loading { to { background: var(--soft-border); } }
+@media (prefers-reduced-motion: reduce) { .results-loading span { animation: none; } }
 .event-results + .event-results { margin-top: 20px; }
 .event-results h3 { margin: 0 0 6px; font-size: 17px; }
 .event-number { margin-right: 4px; color: var(--muted); }
@@ -344,7 +368,9 @@ dialog.dialog::backdrop { background: rgba(12,28,14,.55); }
 .viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .viewer-top .pill { padding: 6px 14px; font-size: 14px; }
 .viewer-download { margin-left: auto; }
-.viewer-photo { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 18px; background: var(--soft); }
+.viewer-photo { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 18px; background: var(--soft); transition: opacity .25s ease-out; }
+/* Until a photo has loaded: a quick fade out, and room held for the first one. */
+.viewer-photo.is-loading { min-height: min(40vh, 320px); opacity: 0; transition-duration: .12s; }
 .viewer-caption { margin: 10px 2px 0; font-size: 14px; color: var(--muted); }
 .viewer-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
 .viewer-nav .btn { padding: 9px 18px; font-size: 15px; }

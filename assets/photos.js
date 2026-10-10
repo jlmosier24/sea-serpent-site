@@ -40,6 +40,11 @@
                 </div>
             </div>`;
         document.body.appendChild(dialog);
+        // Each photo fades in once it has loaded (see render).
+        const img = dialog.querySelector(".viewer-photo");
+        const loaded = () => img.classList.remove("is-loading");
+        img.addEventListener("load", loaded);
+        img.addEventListener("error", loaded);
         dialog.querySelector(".viewer-prev").addEventListener("click", () => step(-1));
         dialog.querySelector(".viewer-next").addEventListener("click", () => step(1));
         dialog.addEventListener("keydown", (event) => {
@@ -69,7 +74,12 @@
         show(".viewer-top", !!label || !!photo.downloadUrl);
 
         const img = dialog.querySelector(".viewer-photo");
-        img.src = photo.url;
+        if (img.getAttribute("src") !== photo.url) {
+            img.classList.add("is-loading");
+            img.src = photo.url;
+            // One already in the browser's cache can be ready at once.
+            if (img.complete) img.classList.remove("is-loading");
+        }
         img.alt = photo.caption || (photo.tag && photo.tag.key !== "other" ? `Team photo from ${label}` : "Team photo");
         // Older photos were uploaded with captions; new ones don't have any.
         const caption = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(" ");

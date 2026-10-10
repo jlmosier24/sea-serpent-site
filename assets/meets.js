@@ -476,13 +476,20 @@
     const allResults = new Map(); // meet id -> { individual, relays }
     const STATUS_TEXT = { DQ: "DQ", NS: "Did not swim", DNF: "Did not finish" };
 
+    // Two events' worth of gray rows; screen readers hear "Loading results".
+    const RESULTS_LOADING = `
+        <div class="results-loading" role="status">
+            <p class="sr-only">Loading results…</p>
+            ${[0, 1].map(() => '<span class="head" aria-hidden="true"></span>' + '<span aria-hidden="true"></span>'.repeat(8)).join("")}
+        </div>`;
+
     async function openAllResults(meet, opener) {
         const dialog = makeDialog("allResultsDialog", "Close all results", true);
         dialog.querySelector("#allResultsDialogTitle").textContent = meet.title;
         dialog.querySelector("#allResultsDialogWhen").textContent = `${fmtDate(meet.date)} · All results`;
         dialog.dataset.meet = meet.id;
         const body = dialog.querySelector("#allResultsDialogBody");
-        body.innerHTML = '<p class="results-note">Loading results…</p>';
+        body.innerHTML = RESULTS_LOADING;
         SiteUI.openDialog(dialog, opener);
         body.scrollTop = 0;
 
