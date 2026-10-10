@@ -17,7 +17,6 @@
     .schedule { display: flex; flex-direction: column; gap: 30px; max-width: 760px; padding-bottom: 80px; }
     .meet-group { display: flex; flex-direction: column; gap: 16px; }
     .group-label { margin: 0 0 -2px; font-size: 15px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-on-page); }
-    .meet-group .mini { margin-top: 0; }
     .none-yet, .loading, .empty { margin: 0; font-size: 16px; color: var(--muted-on-page); }
 </style>
 </head>
@@ -33,8 +32,8 @@
 
 <script>
 // Upcoming meets on gold cards, the next one with its forecast, Directions,
-// and Add to calendar; then past meets, newest first: the latest on the green
-// card, the rest as rows that open the meet's popup. The cards are shared
+// and Add to calendar; then past meets, newest first, each on the green
+// (or gray-green) result card. The cards are shared
 // with the home page (/assets/meets.js).
 let meetsById = {};
 
@@ -59,13 +58,12 @@ let meetsById = {};
         ${past.length ? `
             <section class="meet-group" aria-labelledby="pastHeading">
                 <h2 class="group-label" id="pastHeading">Past meets</h2>
-                ${Meets.resultCard(past[0])}
-                ${past.slice(1).map(Meets.miniRow).join('')}
+                ${past.map(Meets.resultCard).join('')}
             </section>` : ''}`;
     box.querySelectorAll('article.upcoming').forEach((card, i) => Meets.showUpcoming(card, upcoming[i], { next: i === 0 }));
 })();
 
-// "See team stats" on the latest meet, and the rows for earlier ones.
+// "See team stats" on each past meet's card.
 document.getElementById('schedule').addEventListener('click', (event) => {
     const button = event.target.closest('[data-meet-stats]');
     if (button) Meets.openResults(meetsById[button.dataset.meetStats], button);
