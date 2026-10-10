@@ -177,5 +177,84 @@
         SiteUI.openDialog(viewer(), opener);
     }
 
-    window.Photos = { open };
+    /* ---------- Rows of whole photos ---------- */
+    // The home card and the Photos page lay photos out in rows of one height,
+    // each photo as wide as its shape needs and each full row filling the
+    // width, so nothing is cropped. Rows are worked out from each photo's
+    // size (width/height from /api/galleryPublic; square when unknown) and
+    // the space there is, and again when that space changes. Within a row,
+    // CSS does the sizing: each tile grows in proportion to its shape.
+    const ROW_GAP = 8;
+
+    // Groups list into rows: [{ items: [{ photo, index, ratio }], full }].
+    function groupRows(list, width, { targetHeight, maxRows = Infinity, fullRowsOnly = false }) {
+        const rows = [];
+        let row = [];
+        let ratios = 0;
+        for (const [index, photo] of list.entries()) {
+            const ratio = photo.width && photo.height ? photo.width / photo.height : 1;
+            row.push({ photo, index, ratio });
+            ratios += ratio;
+            if (ratios * targetHeight + ROW_GAP * (row.length - 1) >= width) {
+                rows.push({ items: row, full: true });
+                row = [];
+                ratios = 0;
+                if (rows.length === maxRows) return rows;
+            }
+        }
+        // A last row too short to fill the width keeps the row height rather
+        // than stretching -- or is left off where only full rows should show,
+        // unless it's all there is.
+        if (row.length && (!fullRowsOnly || !rows.length)) rows.push({ items: row, full: false, spare: width / targetHeight - ratios });
+        return rows;
+    }
+
+    function rowsHtml(rows, list, labelFor) {
+        return rows.map(row => `
+            <div class="photo-row">
+                ${row.items.map(({ photo, index, ratio }) => {
+                    const label = labelFor ? labelFor(photo) : "";
+                    return `<button type="button" class="photo-tile" data-index="${index}" style="flex-grow: ${ratio.toFixed(4)}; aspect-ratio: ${ratio.toFixed(4)}" aria-label="Open photo ${index + 1} of ${list.length}${label ? `, ${escapeAttr(label)}` : ""}"><img src="${escapeAttr(photo.url)}" alt="" loading="lazy"></button>`;
+                }).join("")}
+                ${row.full ? "" : `<span class="photo-row-spare" style="flex-grow: ${Math.max(0, row.spare).toFixed(4)}" aria-hidden="true"></span>`}
+            </div>`).join("");
+    }
+
+    function escapeAttr(text) {
+        return String(text).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Fills box with photo rows and keeps them fitted as its width changes.
+    // options: targetHeight(width) -> px, maxRows, fullRowsOnly, labelFor(photo).
+    // Returns how many photos are showing. Tiles carry data-index into list.
+    const observed = new WeakMap();
+
+    function showRows(box, list, options) {
+        const render = () => {
+            const width = box.clientWidth;
+            const rows = groupRows(list, width, { ...options, targetHeight: options.targetHeight(width) });
+            const key = rows.map(r => r.items.length).join(",");
+            const state = observed.get(box);
+            if (state.key !== key) {
+                state.key = key;
+                box.innerHTML = `<div class="photo-rows">${rowsHtml(rows, list, options.labelFor)}</div>`;
+            }
+            return rows.reduce((total, r) => total + r.items.length, 0);
+        };
+        if (!observed.has(box)) {
+            observed.set(box, { key: null, render });
+            let lastWidth = box.clientWidth;
+            new ResizeObserver(() => {
+                if (box.clientWidth === lastWidth) return;
+                lastWidth = box.clientWidth;
+                observed.get(box).render();
+            }).observe(box);
+        }
+        const state = observed.get(box);
+        state.render = render;
+        state.key = null; // a new list always draws fresh
+        return render();
+    }
+
+    window.Photos = { open, showRows };
 })();

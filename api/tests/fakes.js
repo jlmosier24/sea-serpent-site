@@ -59,6 +59,15 @@ class FakeContainer {
     async *listBlobsFlat({ prefix = "" } = {}) {
         for (const name of [...this.blobs.keys()]) if (name.startsWith(prefix)) yield { name };
     }
+    getBlobClient(name) {
+        return {
+            downloadToBuffer: async (offset = 0, count) => {
+                const data = this.blobs.get(name);
+                if (!data) throw Object.assign(new Error("Blob not found"), { statusCode: 404 });
+                return Buffer.from(data).subarray(offset, count ? offset + count : undefined);
+            }
+        };
+    }
     async deleteBlob(name) { this.blobs.delete(name); }
 }
 

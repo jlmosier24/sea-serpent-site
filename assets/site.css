@@ -380,6 +380,17 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
     .upcoming .btn, .result-card .btn { padding: 12px 16px; }
 }
 
+/* ---------- Rows of whole photos (Photos.showRows in /assets/photos.js) ---------- */
+/* Each tile grows in proportion to its shape and keeps that shape, so every
+   photo in a row comes out the same height. */
+.photo-rows { display: flex; flex-direction: column; gap: 8px; }
+.photo-row { display: flex; gap: 8px; }
+.photo-row .photo-tile { flex: 1 1 0; min-width: 0; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: var(--soft); cursor: pointer; }
+.photo-row .photo-tile img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.photo-row .photo-tile:hover img { transform: scale(1.04); }
+.photo-row-spare { flex: 0 1 0; }
+@media (prefers-reduced-motion: reduce) { .photo-row .photo-tile img { transition: none; } }
+
 /* ---------- Photo viewer (built by Photos.open in /assets/photos.js) ---------- */
 .viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .viewer-top .pill { padding: 6px 14px; font-size: 14px; }

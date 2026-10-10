@@ -24,12 +24,7 @@
     .filter-note { margin: -6px 0 16px; color: var(--muted); font-size: 15px; }
     .loading, .empty { margin: 0; padding: 40px 10px; color: var(--muted); text-align: center; }
 
-    .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-    .photo-grid .loading, .photo-grid .empty { grid-column: 1 / -1; }
-    .photo-tile { position: relative; display: block; aspect-ratio: 1.22; padding: 0; border: 0; border-radius: 20px; overflow: hidden; background: var(--soft); cursor: pointer; }
-    .photo-tile img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
-    .photo-tile:hover img { transform: scale(1.04); }
-    @media (prefers-reduced-motion: reduce) { .photo-tile img { transition: none; } }
+    /* The photos themselves are rows of whole photos (Photos.showRows, /assets/photos.js). */
 
     /* Upload dialog */
     .dropzone .muted { color: var(--muted); font-size: 14px; }
@@ -53,8 +48,6 @@
     .done-note { margin: 6px 0 0; color: var(--muted); }
     .dialog-actions.centered { justify-content: center; }
 
-    @media (max-width: 900px) { .photo-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 700px) { .photo-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
 </style>
 </head>
 <body>
@@ -134,15 +127,9 @@ function renderGrid() {
     document.getElementById('galleryHeading').textContent = option.heading || option.label;
     const list = shownPhotos();
     document.getElementById('photoCount').textContent = plural(list.length, 'photo', 'photos');
-    grid.innerHTML = list.length
-        ? list.map((photo, i) => {
-            const label = photo.tag ? photo.tag.label : '';
-            return `
-                <button type="button" class="photo-tile" data-index="${i}" aria-label="Open photo ${i + 1} of ${list.length}${label ? `, ${escapeHtml(label)}` : ''}">
-                    <img src="${escapeHtml(photo.url)}" alt="" loading="lazy">
-                </button>`;
-        }).join('')
-        : `<p class="empty">${photos.length ? 'No photos here yet.' : 'No photos yet. Be the first to share one!'}</p>`;
+    // Rows of whole photos, shorter on phones so a row still fits two or three.
+    Photos.showRows(grid, list, { targetHeight: width => (width < 500 ? 130 : 210), labelFor: photo => (photo.tag ? photo.tag.label : '') });
+    if (!list.length) grid.innerHTML = `<p class="empty">${photos.length ? 'No photos here yet.' : 'No photos yet. Be the first to share one!'}</p>`;
 }
 
 filtersBox.addEventListener('click', (event) => {

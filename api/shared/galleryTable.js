@@ -19,7 +19,11 @@ function toGalleryDto(entity) {
         // The day the photo was taken ("YYYY-MM-DD"), read from the photo
         // itself on upload; "" when it had no date (and for older uploads,
         // whose dates were removed in the browser before this was read).
-        takenDate: entity.takenDate || ""
+        takenDate: entity.takenDate || "",
+        // Pixels, for laying photos out before they load; null for older
+        // uploads until galleryPublic has read their size once.
+        width: entity.width || null,
+        height: entity.height || null
     };
 }
 

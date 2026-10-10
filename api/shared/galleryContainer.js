@@ -1,4 +1,5 @@
 const { BlobServiceClient, BlobSASPermissions } = require("@azure/storage-blob");
+const { readJpegSize } = require("./photoDate");
 
 const CONTAINER_NAME = "gallery-photos";
 
@@ -22,4 +23,17 @@ function photoReadUrl(container, blobName, downloadName) {
     return container.getBlobClient(blobName).generateSasUrl(options);
 }
 
-module.exports = { getGalleryContainer, photoReadUrl };
+// A stored photo's width and height, read from the start of its file (the
+// size sits near the top of a JPEG), or null when it can't be read. For
+// photos uploaded before sizes were noted.
+const SIZE_READ_BYTES = 128 * 1024;
+
+async function readStoredPhotoSize(container, blobName) {
+    try {
+        return readJpegSize(await container.getBlobClient(blobName).downloadToBuffer(0, SIZE_READ_BYTES));
+    } catch (e) {
+        return null;
+    }
+}
+
+module.exports = { getGalleryContainer, photoReadUrl, readStoredPhotoSize };

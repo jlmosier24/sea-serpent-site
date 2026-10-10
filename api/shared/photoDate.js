@@ -91,6 +91,23 @@ function jpegEnd(b, at) {
     return b.length;
 }
 
+// A JPEG's width and height in pixels, from its frame header (SOFn), or null
+// when it has none in the bytes given. The start of the file is enough.
+const FRAME_MARKERS = new Set([0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF]);
+
+function readJpegSize(b) {
+    if (!isJpeg(b)) return null;
+    try {
+        const frame = jpegSegments(b).segments.find(s => FRAME_MARKERS.has(s.marker));
+        if (!frame || frame.start + 9 > frame.end) return null;
+        const height = b.readUInt16BE(frame.start + 5);
+        const width = b.readUInt16BE(frame.start + 7);
+        return width && height ? { width, height } : null;
+    } catch (e) {
+        return null;
+    }
+}
+
 // The JPEG without its metadata, or null when it isn't a JPEG this can read
 // to the image data (so nothing unchecked gets stored).
 function stripJpegMetadata(b) {
@@ -276,4 +293,4 @@ function heifDate(b) {
     return tiffDate(data, 4 + data.readUInt32BE(0), data.length);
 }
 
-module.exports = { readPhotoDate, stripJpegMetadata };
+module.exports = { readPhotoDate, stripJpegMetadata, readJpegSize };

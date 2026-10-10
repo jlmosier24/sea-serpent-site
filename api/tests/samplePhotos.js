@@ -64,7 +64,7 @@ function segment(marker, payload) {
 // look like an end marker. The scan data includes an escaped 0xFF and a
 // restart marker. After the real end marker come trailing bytes, like the
 // extra data some phones append.
-function jpeg({ tiff = null, trailer = "TRAILING-DATA" } = {}) {
+function jpeg({ tiff = null, trailer = "TRAILING-DATA", width = 1, height = 1 } = {}) {
     const huffman = segment(0xC4, Buffer.from([0, 0xFF, 0xD9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
     const scan = segment(0xDA, Buffer.from([1, 1, 0, 0, 63, 0]));
     return Buffer.concat([
@@ -73,7 +73,7 @@ function jpeg({ tiff = null, trailer = "TRAILING-DATA" } = {}) {
         ...(tiff ? [segment(0xE1, Buffer.concat([Buffer.from("Exif\0\0", "latin1"), tiff]))] : []),
         segment(0xFE, Buffer.from("A comment", "latin1")),
         segment(0xDB, Buffer.alloc(65, 1)),
-        segment(0xC0, Buffer.from([8, 0, 1, 0, 1, 1, 1, 0x11, 0])),
+        segment(0xC0, Buffer.from([8, height >> 8, height & 0xFF, width >> 8, width & 0xFF, 1, 1, 0x11, 0])),
         huffman,
         scan,
         Buffer.from([0x12, 0xFF, 0x00, 0x34, 0xFF, 0xD0, 0x56]),

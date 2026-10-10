@@ -29,7 +29,7 @@ const { PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const base64 = buffer => buffer.toString("base64");
 const original = date => jpeg({ tiff: tiffBlock({ exif: { [DATE_TAKEN]: `${date} 18:42:07` }, gps: true }) });
 // What the browser sends to be stored: a resized copy, which has no metadata of its own.
-const resized = jpeg();
+const resized = jpeg({ width: 1200, height: 1600 });
 
 function addMeet(id, date, shortName) {
     store.meets.upsertEntity({ partitionKey: MEET_PARTITION_KEY, rowKey: id, opponent: `${shortName} Seahawks`, shortName, homeAway: "away", date });
@@ -68,6 +68,8 @@ test("an upload stores the resized copy, stripped, as pending with the original'
     assert.equal(row.status, "pending");
     assert.equal(row.takenDate, "2026-07-13");
     assert.equal(row.blobName.endsWith(".jpg"), true);
+    // Its size is noted, for laying it out before it loads.
+    assert.deepEqual([row.width, row.height], [1, 1]);
     const stored = store.container.blobs.get(row.blobName);
     assert.equal(stored.includes(Buffer.from("Exif\0\0", "latin1")), false);
     assert.equal(stored.includes(Buffer.from("GPS!", "latin1")), false);
@@ -120,4 +122,31 @@ test("the admin list includes pending photos and where each will go", async () =
     assert.equal(res.body[0].status, "pending");
     assert.equal(res.body[0].tag.label, "July 13 · Curtis Park");
     assert.equal(res.body[0].takenDate, "2026-07-13");
+});
+
+test("the public list reads an older photo's size from its file once, and saves it", async () => {
+    resetStore();
+    // From before sizes were noted: the photo's in storage, its row has no size.
+    store.container.blobs.set("0-wide.jpg", jpeg({ width: 1600, height: 1200 }));
+    await store.photos.createEntity({ partitionKey: "photo", rowKey: "0-wide", blobName: "0-wide.jpg", status: "approved", submittedAt: "2026-07-01T00:00:00.000Z" });
+    // One whose file is missing still lists, just without a size.
+    await store.photos.createEntity({ partitionKey: "photo", rowKey: "0-gone", blobName: "0-gone.jpg", status: "approved", submittedAt: "2026-07-02T00:00:00.000Z" });
+    await call(upload, { body: { dataBase64: base64(resized) } });
+    const fresh = store.photos.all().find(r => r.status === "pending");
+    await store.photos.updateEntity({ partitionKey: "photo", rowKey: fresh.rowKey, status: "approved" }, "Merge");
+
+    const res = await call(publicList, {});
+    const sizes = Object.fromEntries(res.body.map(p => [p.id, [p.width, p.height]]));
+    assert.deepEqual(sizes["0-wide"], [1600, 1200]);
+    assert.deepEqual(sizes["0-gone"], [null, null]);
+    assert.deepEqual(sizes[fresh.rowKey], [1200, 1600]);
+    assert.deepEqual([(await store.photos.getEntity("photo", "0-wide")).width, (await store.photos.getEntity("photo", "0-wide")).height], [1600, 1200]);
+});
+
+test("a JPEG's size comes from its frame header, and only the start of the file is needed", () => {
+    const { readJpegSize } = require("../shared/photoDate");
+    const photo = jpeg({ width: 4032, height: 3024, tiff: tiffBlock({ exif: { [DATE_TAKEN]: "2026:07:13 18:42:07" } }) });
+    assert.deepEqual(readJpegSize(photo), { width: 4032, height: 3024 });
+    assert.deepEqual(readJpegSize(photo.subarray(0, photo.indexOf(Buffer.from([0xFF, 0xDA])))), { width: 4032, height: 3024 });
+    assert.equal(readJpegSize(Buffer.from("not a photo")), null);
 });

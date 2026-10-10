@@ -1,7 +1,7 @@
 const { getGalleryContainer } = require("../shared/galleryContainer");
 const { getGalleryTable, toGalleryDto, photoTag, PARTITION_KEY } = require("../shared/galleryTable");
 const { getMeetsTable, listMeets } = require("../shared/meetsTable");
-const { readPhotoDate, stripJpegMetadata } = require("../shared/photoDate");
+const { readPhotoDate, stripJpegMetadata, readJpegSize } = require("../shared/photoDate");
 const { fromBase64, MAX_ORIGINAL_BYTES, MAX_PHOTO_BYTES } = require("../shared/photoUpload");
 
 function generateId() {
@@ -15,7 +15,7 @@ function generateId() {
 // against abuse, on top of the size/type checks below.
 //
 // The body carries two things: the browser's resized JPEG, which is what's
-// stored (with any metadata stripped), and the original photo's bytes, read
+// stored (with any metadata stripped, and its size noted), and the original photo's bytes, read
 // here only for the day it was taken and then dropped.
 module.exports = async function (context, req) {
     const body = req.body || {};
@@ -47,7 +47,9 @@ module.exports = async function (context, req) {
             blobName,
             status: "pending",
             submittedAt: new Date().toISOString(),
-            takenDate
+            takenDate,
+            // Its size, so the Photos layouts can place it before it loads.
+            ...readJpegSize(cleaned)
         };
         await getGalleryTable().createEntity(entity);
 
