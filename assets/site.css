@@ -230,6 +230,11 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
     dialog.dialog { --dialog-from-opacity: 1; --dialog-from: translateY(100%); transition-duration: .28s; }
     dialog.dialog[data-closing] { transition-duration: .2s; }
     .dialog-grab { display: block; }
+    /* The sheet's top can be dragged down to close it (site.js); a taller
+       touch area around the handle makes it easy to catch. */
+    .dialog-grab, .dialog-head { touch-action: none; }
+    .dialog-grab { box-sizing: content-box; padding: 10px 40px; margin: 0 auto -10px; background-clip: content-box; }
+    dialog.dialog.is-dragging { transition: none; }
     .dialog-head { padding: 14px 18px 0; }
     .dialog-head h2 { font-size: 21px; }
     .dialog-body { padding: 16px 18px calc(22px + env(safe-area-inset-bottom)); }

@@ -98,6 +98,7 @@
     function prepareDialog(dialog) {
         if (prepared.has(dialog)) return;
         prepared.add(dialog);
+        setUpSwipeToClose(dialog);
         // closedby="any" adds tap-outside-to-close where it's supported...
         if (!dialog.hasAttribute("closedby")) dialog.setAttribute("closedby", "any");
         // ...and Safari, which doesn't support it yet, gets the same by hand: a
@@ -128,6 +129,46 @@
             // Browsers normally return focus on their own; this covers any that don't.
             if (opener && opener.isConnected && document.activeElement !== opener) opener.focus();
         });
+    }
+
+    // On a phone, where a dialog is a bottom sheet: drag its top (the handle
+    // and title) down and it follows the finger. Let go past a quarter of its
+    // height, or flick, and it slides on down and closes; otherwise it springs
+    // back. Dragging inside the content scrolls it, as before.
+    const SHEET_QUERY = "(max-width: 600px)";
+    const SHEET_CLOSE_SHARE = 0.25;
+    const SHEET_FLICK_PX_PER_MS = 0.5;
+    const SHEET_FLICK_MIN_PX = 40;
+
+    function setUpSwipeToClose(dialog) {
+        let drag = null;
+        dialog.addEventListener("pointerdown", (event) => {
+            if (event.pointerType === "mouse" || !event.isPrimary || !matchMedia(SHEET_QUERY).matches) return;
+            if (!event.target.closest(".dialog-grab, .dialog-head") || event.target.closest("button, a")) return;
+            if (dialog.hasAttribute("data-closing")) return;
+            drag = { id: event.pointerId, y: event.clientY, time: event.timeStamp, dy: 0 };
+            dialog.setPointerCapture(event.pointerId);
+            dialog.classList.add("is-dragging");
+        });
+        dialog.addEventListener("pointermove", (event) => {
+            if (!drag || event.pointerId !== drag.id) return;
+            drag.dy = Math.max(0, event.clientY - drag.y);
+            dialog.style.transform = `translateY(${drag.dy}px)`;
+        });
+        const release = (event) => {
+            if (!drag || event.pointerId !== drag.id) return;
+            const { dy, time } = drag;
+            drag = null;
+            const speed = dy / Math.max(1, event.timeStamp - time);
+            const far = dy > dialog.offsetHeight * SHEET_CLOSE_SHARE;
+            const flick = speed > SHEET_FLICK_PX_PER_MS && dy > SHEET_FLICK_MIN_PX;
+            // Both finish with the usual motion, from wherever the sheet was let go.
+            dialog.classList.remove("is-dragging");
+            dialog.style.transform = "";
+            if (event.type === "pointerup" && (far || flick)) closeDialog(dialog);
+        };
+        dialog.addEventListener("pointerup", release);
+        dialog.addEventListener("pointercancel", release);
     }
 
     function openDialog(dialog, opener) {
