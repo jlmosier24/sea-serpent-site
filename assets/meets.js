@@ -123,7 +123,7 @@
                     <button type="button" class="btn" data-add-to-calendar>${icon("calendar")}Add to calendar</button>
                 </div>` : ""}`;
         if (!next) return;
-        card.querySelector("[data-add-to-calendar]").addEventListener("click", () => downloadCalendarFile(meet));
+        card.querySelector("[data-add-to-calendar]").addEventListener("click", (event) => openCalendarChoices(meet, event.currentTarget));
         loadForecast(card, meet);
     }
 
@@ -179,80 +179,56 @@
     }
 
     /* ---------- Add to calendar ---------- */
-    // Meets have no end time and calendars need one.
+    // A sheet with two ways in: Google Calendar, opened with the meet filled in,
+    // or the meet's calendar file from /api/meetCalendar, which an iPhone
+    // offers to add and a computer opens in Outlook or Calendar. (A file built
+    // here in the browser just landed in Android's Downloads.) Both run from
+    // warm-up, or the meet's start without one, for three hours.
     const MEET_LENGTH_HOURS = 3;
-    // Meet times are Eastern; the file spells out the zone's daylight-saving rules.
-    const EASTERN_TIMEZONE = [
-        "BEGIN:VTIMEZONE", "TZID:America/New_York",
-        "BEGIN:DAYLIGHT", "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", "DTSTART:20070311T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU", "END:DAYLIGHT",
-        "BEGIN:STANDARD", "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST", "DTSTART:20071104T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU", "END:STANDARD",
-        "END:VTIMEZONE"
-    ];
-
-    function icsText(value) {
-        return String(value).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
-    }
-
-    // Calendar file lines stop at 75 bytes; a longer one continues on the next line after a space.
-    function foldIcsLine(line) {
-        const encoder = new TextEncoder();
-        let folded = "";
-        let bytes = 0;
-        for (const ch of line) {
-            const size = encoder.encode(ch).length;
-            if (bytes + size > 75) {
-                folded += "\r\n ";
-                bytes = 1;
-            }
-            folded += ch;
-            bytes += size;
-        }
-        return folded;
-    }
 
     // "2026-07-22" at "18:00", plus `addHours` -> "20260722T180000" (a wall-clock time, not UTC).
-    function icsDateTime(date, time, addHours = 0) {
+    function calendarDateTime(date, time, addHours = 0) {
         const [y, mo, d] = date.split("-").map(Number);
         const [h, mi] = time.split(":").map(Number);
-        const t = new Date(Date.UTC(y, mo - 1, d, h + addHours, mi));
-        return t.toISOString().slice(0, 16).replace(/[-:]/g, "") + "00";
+        return new Date(Date.UTC(y, mo - 1, d, h + addHours, mi)).toISOString().slice(0, 16).replace(/[-:]/g, "") + "00";
     }
 
-    function icsDate(date, addDays = 0) {
+    function calendarDate(date, addDays = 0) {
         const [y, mo, d] = date.split("-").map(Number);
         return new Date(Date.UTC(y, mo - 1, d + addDays)).toISOString().slice(0, 10).replace(/-/g, "");
     }
 
-    function calendarFile(meet) {
-        const when = meet.time
-            ? [`DTSTART;TZID=America/New_York:${icsDateTime(meet.date, meet.time)}`, `DTEND;TZID=America/New_York:${icsDateTime(meet.date, meet.time, MEET_LENGTH_HOURS)}`]
-            : [`DTSTART;VALUE=DATE:${icsDate(meet.date)}`, `DTEND;VALUE=DATE:${icsDate(meet.date, 1)}`];
-        const location = [meet.placeName, meet.address].filter(Boolean).join(", ");
+    function googleCalendarUrl(meet) {
+        const start = meet.warmUp || meet.time;
+        const dates = start
+            ? `${calendarDateTime(meet.date, start)}/${calendarDateTime(meet.date, start, MEET_LENGTH_HOURS)}`
+            : `${calendarDate(meet.date)}/${calendarDate(meet.date, 1)}`;
         const details = [meet.warmUp && `Warm-up at ${fmtClock(meet.warmUp)}.`, meet.time && `Meet starts at ${fmtClock(meet.time)}.`].filter(Boolean).join(" ");
-        const lines = [
-            "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Spotswood Sea Serpents//Meet schedule//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
-            ...(meet.time ? EASTERN_TIMEZONE : []),
-            "BEGIN:VEVENT",
-            `UID:${meet.id}@spotswood-sea-serpents`,
-            `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "")}`,
-            ...when,
-            `SUMMARY:${icsText(`Sea Serpents ${meet.title}`)}`,
-            location && `LOCATION:${icsText(location)}`,
-            details && `DESCRIPTION:${icsText(details)}`,
-            "END:VEVENT", "END:VCALENDAR"
-        ];
-        return lines.filter(Boolean).map(foldIcsLine).join("\r\n") + "\r\n";
+        const params = new URLSearchParams({ action: "TEMPLATE", text: `Spotswood ${meet.title}`, dates, ctz: "America/New_York" });
+        const location = [meet.placeName, meet.address].filter(Boolean).join(", ");
+        if (location) params.set("location", location);
+        if (details) params.set("details", details);
+        return `https://calendar.google.com/calendar/render?${params}`;
     }
 
-    function downloadCalendarFile(meet) {
-        const url = URL.createObjectURL(new Blob([calendarFile(meet)], { type: "text/calendar;charset=utf-8" }));
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `sea-serpents-${meet.id}.ics`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    function openCalendarChoices(meet, opener) {
+        const dialog = makeDialog("calendarDialog", "Close");
+        dialog.querySelector("#calendarDialogTitle").textContent = "Add to calendar";
+        dialog.querySelector("#calendarDialogWhen").textContent = [meet.title, fmtDate(meet.date), meet.time && fmtClock(meet.time)].filter(Boolean).join(" · ");
+        const option = (href, title, sub, external) => `
+            <a class="calendar-option" href="${escapeHtml(href)}"${external ? ' target="_blank" rel="noopener"' : ""}>
+                <span class="calendar-option-icon">${icon("calendar")}</span>
+                <span class="calendar-option-text"><b>${title}</b><span>${sub}</span></span>
+                ${icon("chevron")}
+            </a>`;
+        dialog.querySelector("#calendarDialogBody").innerHTML = `
+            <div class="calendar-options">
+                ${option(googleCalendarUrl(meet), "Google Calendar", "Opens Google Calendar with the meet filled in", true)}
+                ${option(`/api/meetCalendar?id=${encodeURIComponent(meet.id)}`, "Apple or Outlook calendar", "For iPhones and computers", false)}
+            </div>`;
+        // Picking one is the end of it; the sheet closes behind it.
+        dialog.querySelectorAll(".calendar-option").forEach(link => link.addEventListener("click", () => SiteUI.closeDialog(dialog)));
+        SiteUI.openDialog(dialog, opener);
     }
 
     /* ---------- Past meet card and rows ---------- */
