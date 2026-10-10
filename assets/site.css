@@ -363,6 +363,12 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .result-card .btn-row { margin-top: 18px; }
 .result-card .btn { padding: 11px 16px; }
 .result-card.loss .btn.on-dark { color: #3A463E; }
+/* Phones: each card's buttons full width, one above the other, so they're
+   even and easy to tap rather than wrapping at different widths. */
+@media (max-width: 600px) {
+    .upcoming .btn-row, .result-card .btn-row { display: grid; gap: 8px; }
+    .upcoming .btn, .result-card .btn { padding: 12px 16px; }
+}
 
 /* ---------- Photo viewer (built by Photos.open in /assets/photos.js) ---------- */
 .viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
