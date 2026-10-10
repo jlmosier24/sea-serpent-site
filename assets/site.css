@@ -47,6 +47,8 @@
 
 /* ---------- Base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
+/* No blue flash on tap in phone browsers, which showed behind a popup as it opened. */
+html { -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 body {
     margin: 0;
