@@ -368,9 +368,12 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .viewer-top .pill { padding: 6px 14px; font-size: 14px; }
 .viewer-download { margin-left: auto; }
-.viewer-photo { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 18px; background: var(--soft); transition: opacity .25s ease-out; }
+.viewer-photo { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 18px; background: var(--soft); transition: opacity .25s ease-out, transform .25s ease-out; touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; }
 /* Until a photo has loaded: a quick fade out, and room held for the first one. */
 .viewer-photo.is-loading { min-height: min(40vh, 320px); opacity: 0; transition-duration: .12s; }
+/* Following a finger (Photos' swipe): no lag behind it. */
+.viewer-photo.is-dragging { transition: none; }
+@media (prefers-reduced-motion: reduce) { .viewer-photo { transition: opacity .12s; } }
 .viewer-caption { margin: 10px 2px 0; font-size: 14px; color: var(--muted); }
 .viewer-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
 .viewer-nav .btn { padding: 9px 18px; font-size: 15px; }

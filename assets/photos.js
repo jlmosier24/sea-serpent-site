@@ -1,6 +1,6 @@
 // Spotswood Sea Serpents: the photo viewer shared by the Photos page and the home
 // page -- one photo at a time from a list, with its meet, Previous and Next
-// (the arrow keys too), and Download. Styles live in /assets/site.css.
+// (the arrow keys too, or a swipe on a touch screen), and Download. Styles live in /assets/site.css.
 //
 // Load it after /assets/site.js and WITHOUT defer, so a page's own script
 // at the end of <body> can already use window.Photos.
@@ -45,6 +45,7 @@
         const loaded = () => img.classList.remove("is-loading");
         img.addEventListener("load", loaded);
         img.addEventListener("error", loaded);
+        setUpSwipe(img);
         dialog.querySelector(".viewer-prev").addEventListener("click", () => step(-1));
         dialog.querySelector(".viewer-next").addEventListener("click", () => step(1));
         dialog.addEventListener("keydown", (event) => {
@@ -53,6 +54,79 @@
             if (event.key === "ArrowRight") { event.preventDefault(); step(1); }
         });
         return dialog;
+    }
+
+    // Swipe on a touch screen: the photo follows the finger sideways. Let go
+    // past a fifth of its width, or flick, and it slides off while the next one
+    // (left) or previous one (right) comes in from the other side; otherwise it
+    // springs back. Up and down stay with the page, and mice use the buttons.
+    const SWIPE_START_PX = 8;
+    const SWIPE_SHARE = 0.2;
+    const FLICK_PX_PER_MS = 0.5;
+    const FLICK_MIN_PX = 30;
+    const SLIDE_OUT_MS = 200;
+    const SLIDE_IN_PX = 40;
+
+    function setUpSwipe(img) {
+        img.draggable = false;
+        let drag = null;
+        img.addEventListener("pointerdown", (event) => {
+            if (event.pointerType === "mouse" || photos.length < 2 || !event.isPrimary || sliding) return;
+            drag = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp, moving: false, dx: 0 };
+        });
+        img.addEventListener("pointermove", (event) => {
+            if (!drag || event.pointerId !== drag.id) return;
+            const dx = event.clientX - drag.x;
+            const dy = event.clientY - drag.y;
+            if (!drag.moving) {
+                if (Math.abs(dx) < SWIPE_START_PX && Math.abs(dy) < SWIPE_START_PX) return;
+                if (Math.abs(dy) > Math.abs(dx)) { drag = null; return; }
+                drag.moving = true;
+                img.setPointerCapture(event.pointerId);
+                img.classList.add("is-dragging");
+            }
+            drag.dx = dx;
+            img.style.transform = `translateX(${dx}px)`;
+        });
+        const release = (event) => {
+            if (!drag || event.pointerId !== drag.id) return;
+            const { moving, dx, time } = drag;
+            drag = null;
+            if (!moving) return;
+            img.classList.remove("is-dragging");
+            const speed = Math.abs(dx) / Math.max(1, event.timeStamp - time);
+            const far = Math.abs(dx) > img.clientWidth * SWIPE_SHARE;
+            const flick = speed > FLICK_PX_PER_MS && Math.abs(dx) > FLICK_MIN_PX;
+            if (event.type === "pointerup" && (far || flick)) slideTo(img, dx < 0 ? 1 : -1);
+            else img.style.transform = "";
+        };
+        img.addEventListener("pointerup", release);
+        img.addEventListener("pointercancel", release);
+    }
+
+    let sliding = false;
+
+    function slideTo(img, delta) {
+        // With reduced motion, just the photo's usual fade.
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            img.style.transform = "";
+            step(delta);
+            return;
+        }
+        sliding = true;
+        img.style.transform = `translateX(${delta > 0 ? "-" : ""}100%)`;
+        img.style.opacity = "0";
+        setTimeout(() => {
+            // The next photo starts a little to the other side and comes in as it fades in.
+            img.classList.add("is-dragging");
+            img.style.transform = `translateX(${delta > 0 ? SLIDE_IN_PX : -SLIDE_IN_PX}px)`;
+            img.style.opacity = "";
+            step(delta);
+            img.getBoundingClientRect(); // apply the start before the move
+            img.classList.remove("is-dragging");
+            img.style.transform = "";
+            sliding = false;
+        }, SLIDE_OUT_MS);
     }
 
     function show(selector, visible) {
