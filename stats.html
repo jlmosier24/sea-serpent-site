@@ -44,11 +44,12 @@
     .fav-btn[aria-pressed="true"] { border-color: #fff; background: #fff; color: var(--brand); }
     .fav-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
     .fav-note { margin: 8px 0 0; font-size: 14px; opacity: .9; text-align: right; }
-    /* Phones: the star goes under the name (past the 60px avatar and its gap) so the name keeps its room. */
+    /* Phones: just the star, in a round button in the header's corner. Its
+       label stays for screen readers, and the star is filled once saved. */
     @media (max-width: 600px) {
-        .swimmer-head { flex-wrap: wrap; }
-        .fav-btn { margin-left: 76px; }
-        .fav-note { text-align: left; }
+        .fav-btn { justify-content: center; width: 44px; height: 44px; padding: 0; }
+        .fav-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .fav-btn svg { width: 22px; height: 22px; }
     }
 
     /* The season's team totals, shown until a swimmer is picked. */
