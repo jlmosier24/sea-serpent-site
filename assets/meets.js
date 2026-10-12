@@ -612,10 +612,10 @@
     }
 
     // At a championship, where places are across every flight: the place
-    // within the swimmer's own flight too, like "1st in B flight".
+    // within the swimmer's own flight too, like "1st in B group".
     function flightNote(row) {
         if (!row.flight || row.flightPlace == null) return "";
-        return `<span class="results-flight">${ordinal(row.flightPlace)} in ${escapeHtml(row.flight)} flight</span>`;
+        return `<span class="results-flight">${ordinal(row.flightPlace)} in ${escapeHtml(row.flight)} group</span>`;
     }
 
     // "Doe, Jane; Poe, Sam; ...": "; " between swimmers, since each name has a
