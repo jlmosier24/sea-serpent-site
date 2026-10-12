@@ -601,9 +601,9 @@ function showFavoriteNote(button, text) {
 }
 
 /* ---------------- Season totals ---------------- */
-// The team's season so far, shown until a swimmer is picked: meets with
-// results, swims (no-shows left out), personal bests, time dropped off
-// seed times, 1st places, and badges held.
+// The team's season so far, shown until a swimmer is picked: its record,
+// swims (no-shows left out), personal bests, time dropped off seed times,
+// 1st places, and badges held.
 
 // 4521.3 -> "1:15:21", 176.29 -> "2:56", 42.5 -> "42.5s".
 function fmtTotalDropped(seconds) {
@@ -616,14 +616,31 @@ function fmtTotalDropped(seconds) {
 }
 let seasonReady = false;
 
+// The season's regular meets as a record, "5–1" (a tied meet adds a third
+// number, "5–1–1"), and the championship's result under it when there is
+// one, like "5th at Division Finals". Null without any scored meets.
+function seasonRecord(allMeets, year) {
+    const meets = allMeets.filter(m => m.date.startsWith(year));
+    const results = meets.map(Meets.outcome).filter(Boolean);
+    if (!results.length) return null;
+    const count = result => results.filter(r => r === result).length;
+    const ties = count('tie');
+    const record = [count('win'), count('loss'), ...(ties ? [ties] : [])].join('–');
+    const finals = meets.map(m => [m, Meets.championshipStanding(m)]).find(([, standing]) => standing);
+    const caption = finals ? `${finals[1].ours.place === 1 ? 'Champions' : Meets.ordinal(finals[1].ours.place)} at ${finals[0].title}` : '';
+    return { record, caption };
+}
+
 async function showSeason(badgesEarned) {
-    const meets = (await meetsReady).filter(m => m.summary);
+    const allMeets = await meetsReady;
+    const meets = allMeets.filter(m => m.summary);
     if (!meets.length) return;
     const year = meets.map(m => m.date.slice(0, 4)).sort().pop();
     const season = meets.filter(m => m.date.startsWith(year));
     const total = key => season.reduce((sum, m) => sum + (m.summary[key] || 0), 0);
+    const record = seasonRecord(allMeets, year);
     const tiles = [
-        ['Meets', season.length],
+        record ? ['Record', record.record, record.caption] : ['Meets', season.length],
         ['Swims', total('swims') - total('noShows')],
         ['Personal bests', total('personalBests')],
         ['Time dropped', fmtTotalDropped(total('timeDropped'))],
@@ -631,7 +648,7 @@ async function showSeason(badgesEarned) {
         ...(badgesEarned != null ? [['Badges earned', badgesEarned]] : [])
     ];
     document.getElementById('seasonHeading').textContent = `${year} season`;
-    document.getElementById('seasonTiles').innerHTML = tiles.map(([label, value]) => `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value">${typeof value === 'number' ? value.toLocaleString('en-US') : value}</p></div>`).join('');
+    document.getElementById('seasonTiles').innerHTML = tiles.map(([label, value, caption]) => `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value">${typeof value === 'number' ? value.toLocaleString('en-US') : escapeHtml(value)}</p>${caption ? `<p class="stat-caption">${escapeHtml(caption)}</p>` : ''}</div>`).join('');
     seasonReady = true;
     // Hidden while a swimmer is picked (their address has ?swimmer=).
     document.getElementById('seasonCard').hidden = new URLSearchParams(location.search).has('swimmer');
