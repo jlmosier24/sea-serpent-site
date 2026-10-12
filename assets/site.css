@@ -379,6 +379,9 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 /* A finished meet: green, or gray-green after a loss (never red). */
 .result-card .pill { font-size: 14px; }
 .result-chip { padding: 6px 14px; border-radius: var(--radius-round); background: #fff; color: var(--brand); font-size: 13px; font-weight: 700; }
+/* The labels side by side at the top of a meet card (date, forecast, result)
+   share one height, each keeping its own colors and text size. */
+.card-top .pill, .card-top .forecast, .card-top .result-chip { display: inline-flex; align-items: center; height: 34px; padding-top: 0; padding-bottom: 0; }
 .result-card.loss .result-chip { background: #E6EAE5; color: #2F3A33; }
 /* A championship: its place among the teams, or gold for winning it. */
 .result-card.championship .result-chip { text-transform: none; }
