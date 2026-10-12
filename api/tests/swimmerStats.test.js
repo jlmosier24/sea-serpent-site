@@ -39,7 +39,8 @@ addSwim("Roe, Rita", "Test Seahawks", "m1", 3, "Girls 9-10 25m Freestyle", 1, 18
 test("with no name, it lists Spotswood's swimmers only, sorted", async () => {
     const res = await call(swimmerStats, { query: {} });
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { swimmers: ["Doe, Jane", "O'Moe, Kim"] });
+    // With each swimmer's age; there's no badge count until badges are worked out.
+    assert.deepEqual(res.body, { swimmers: ["Doe, Jane", "O'Moe, Kim"], ages: { "Doe, Jane": 9, "O'Moe, Kim": 9 }, badgesEarned: null });
 });
 
 test("before any import saves the list, the first request gathers it from the results and saves it", async () => {
@@ -89,7 +90,13 @@ test("the list is read from the saved row, and each badge update saves it again"
         swimmers: [{ name: "Doe, Jane" }, { name: "Relay, Only" }, { name: "Poe, Sam" }, { name: "O'Moe, Kim" }]
     }, "m2"));
     await recomputeBadges({ resultsTable: results, relayTable: relays, meetsTable: meets, badgesTable: badges });
-    assert.deepEqual((await call(swimmerStats, { query: {} })).body.swimmers, ["Doe, Jane", "O'Moe, Kim", "Poe, Sam"]);
+    const listed = (await call(swimmerStats, { query: {} })).body;
+    assert.deepEqual(listed.swimmers, ["Doe, Jane", "O'Moe, Kim", "Poe, Sam"]);
+    assert.deepEqual(listed.ages, { "Doe, Jane": 9, "O'Moe, Kim": 9, "Poe, Sam": 9 });
+    // Every badge the team holds, relay-only swimmers' included.
+    const held = badges.all().filter(r => r.partitionKey === "swimmer").reduce((total, r) => total + JSON.parse(r.badgesJson).length, 0);
+    assert.equal(listed.badgesEarned, held);
+    assert.ok(held > 0);
 
     // Someone whose only swims are gone (their meet deleted) drops off at the next update.
     await results.deleteEntity("Poe, Sam", "m2__9");

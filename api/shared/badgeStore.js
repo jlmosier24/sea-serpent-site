@@ -39,7 +39,11 @@ async function recomputeBadges({ resultsTable, relayTable, meetsTable, badgesTab
     }
     const everyone = teamBadges(swims, relays);
 
-    await saveSwimmerNames(badgesTable, swimmerNames(swims)); // also creates the table the first time
+    // Also creates the table the first time.
+    await saveSwimmerNames(badgesTable, swimmerNames(swims), {
+        ages: swimmerAges(swims),
+        badgesEarned: everyone.reduce((total, e) => total + e.badges.length, 0)
+    });
     await forEachInBatches(everyone, e => badgesTable.upsertEntity({
         partitionKey: PARTITION_KEY,
         rowKey: rowKeyFor(e.name),
@@ -62,20 +66,48 @@ function swimmerNames(swims) {
     return [...new Set(swims.map(swim => swim.name))].sort((a, b) => a.localeCompare(b));
 }
 
-async function saveSwimmerNames(badgesTable, names) {
-    await badgesTable.createTable(); // no-op once it exists
-    await badgesTable.upsertEntity({ partitionKey: NAMES_PARTITION_KEY, rowKey: NAMES_ROW_KEY, namesJson: JSON.stringify(names) }, "Replace");
+// Each swimmer's age: the oldest on record, so this season's.
+function swimmerAges(swims) {
+    const ages = {};
+    for (const swim of swims) {
+        if (swim.age != null && !(swim.age <= ages[swim.name])) ages[swim.name] = swim.age;
+    }
+    return ages;
 }
 
-// The saved list of names, or null before one has been saved.
-async function readSwimmerNames(badgesTable) {
+// Saved with the names: each swimmer's age (for the search's age groups) and
+// how many badges the team holds in all (for the Stats page's season totals,
+// null when not worked out).
+async function saveSwimmerNames(badgesTable, names, { ages = {}, badgesEarned = null } = {}) {
+    await badgesTable.createTable(); // no-op once it exists
+    await badgesTable.upsertEntity({
+        partitionKey: NAMES_PARTITION_KEY,
+        rowKey: NAMES_ROW_KEY,
+        namesJson: JSON.stringify(names),
+        agesJson: JSON.stringify(ages),
+        ...(badgesEarned != null ? { badgesEarned } : {})
+    }, "Replace");
+}
+
+// The saved list: { swimmers, ages, badgesEarned }, or null before one has been saved.
+async function readSwimmerList(badgesTable) {
     try {
         const entity = await badgesTable.getEntity(NAMES_PARTITION_KEY, NAMES_ROW_KEY);
-        return JSON.parse(entity.namesJson || "[]");
+        return {
+            swimmers: JSON.parse(entity.namesJson || "[]"),
+            ages: JSON.parse(entity.agesJson || "{}"),
+            badgesEarned: entity.badgesEarned != null ? entity.badgesEarned : null
+        };
     } catch (e) {
         if (e.statusCode === 404) return null;
         throw e;
     }
+}
+
+// Just the saved names, or null before they've been saved.
+async function readSwimmerNames(badgesTable) {
+    const list = await readSwimmerList(badgesTable);
+    return list && list.swimmers;
 }
 
 // One swimmer's saved badges (already in display order) and totals, or none
@@ -90,4 +122,4 @@ async function readSwimmerBadges(badgesTable, name) {
     }
 }
 
-module.exports = { getBadgesTable, recomputeBadges, readSwimmerBadges, saveSwimmerNames, readSwimmerNames, PARTITION_KEY };
+module.exports = { getBadgesTable, recomputeBadges, readSwimmerBadges, saveSwimmerNames, readSwimmerNames, readSwimmerList, PARTITION_KEY };

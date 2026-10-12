@@ -137,12 +137,16 @@ async function listMeetRelayEntities(table, meetId) {
 // Results now holds both teams' rows (see meetResultsParser.js), so this
 // filters by team; swimmer-stats tracking is Spotswood-only by design, even
 // though the opposing team's rows are in the same table for resultsByMeet.
+// Every Spotswood swimmer's name, sorted, and their age (the oldest one on
+// record, so this season's), for the swimmer search.
 async function listSwimmerNames(table) {
-    const names = new Set();
+    const ages = {};
     for await (const entity of table.listEntities()) {
-        if (isSpotswoodTeam(entity.team)) names.add(entity.partitionKey);
+        if (!isSpotswoodTeam(entity.team)) continue;
+        const name = entity.partitionKey;
+        if (!(name in ages) || (entity.age || 0) > (ages[name] || 0)) ages[name] = entity.age || null;
     }
-    return [...names].sort((a, b) => a.localeCompare(b));
+    return { names: Object.keys(ages).sort((a, b) => a.localeCompare(b)), ages };
 }
 
 module.exports = {

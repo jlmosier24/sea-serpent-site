@@ -17,7 +17,45 @@
     .stats-stack { display: flex; flex-direction: column; gap: 22px; padding-bottom: 80px; }
     .stats-list { display: flex; flex-direction: column; gap: 22px; }
     .picker-label { display: block; margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
-    .swimmer-select { padding: 16px 18px; font-size: 18px; border-radius: 16px; }
+    /* Swimmer search: type part of a name; matches are grouped by age group.
+       Focusing the empty box lists everyone. */
+    .search { position: relative; }
+    .search > svg { position: absolute; left: 16px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .search .input { padding: 16px 48px 16px 46px; font-size: 18px; border-radius: 16px; }
+    .search-clear { position: absolute; right: 8px; top: 50%; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); transform: translateY(-50%); cursor: pointer; }
+    .search-clear:hover { background: var(--soft); color: var(--ink); }
+    .search-clear svg { width: 18px; height: 18px; }
+    .matches { max-height: 340px; margin: 10px 0 0; padding: 6px; overflow-y: auto; border: 1px solid var(--soft-border); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(16,36,15,.08); }
+    .match-group { margin: 8px 10px 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .match { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 12px; font-size: 16px; cursor: pointer; }
+    .match[aria-selected="true"], .match:hover { background: var(--soft); }
+    .match mark { background: none; color: var(--brand); font-weight: 700; }
+    .match-none { margin: 0; padding: 12px 10px; color: var(--muted); }
+    .name-avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; border: 1px solid var(--soft-border); border-radius: 50%; background: var(--soft); color: var(--brand); font-size: 13px; font-weight: 700; }
+
+    /* Favorites, saved on this device (the star on a swimmer's header). */
+    .favorites { margin-top: 18px; }
+    .fav-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .fav-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 5px; border: 1px solid var(--soft-border); border-radius: var(--radius-round); background: var(--soft); color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .fav-chip:hover { border-color: var(--brand); }
+    .fav-chip .name-avatar { width: 28px; height: 28px; font-size: 11px; background: #fff; }
+    .fav-btn { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 7px; margin-left: auto; align-self: flex-start; padding: 8px 14px; border: 1.5px solid rgba(255,255,255,.7); border-radius: var(--radius-round); background: transparent; color: #fff; font: inherit; font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+    .fav-btn:hover { background: rgba(255,255,255,.12); }
+    .fav-btn[aria-pressed="true"] { border-color: #fff; background: #fff; color: var(--brand); }
+    .fav-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .fav-note { margin: 8px 0 0; font-size: 14px; opacity: .9; text-align: right; }
+    /* Phones: the star goes under the name (past the 60px avatar and its gap) so the name keeps its room. */
+    @media (max-width: 600px) {
+        .swimmer-head { flex-wrap: wrap; }
+        .fav-btn { margin-left: 76px; }
+        .fav-note { text-align: left; }
+    }
+
+    /* The season's team totals, shown until a swimmer is picked. */
+    .season-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .season-tiles .stat-label { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .season-tiles .stat-value { margin: 2px 0 0; font-family: var(--font-head); font-size: 26px; font-weight: 700; }
+    @media (max-width: 600px) { .season-tiles { grid-template-columns: repeat(2, 1fr); } }
     .loading, .empty { margin: 0; padding: 24px 0; color: var(--muted-on-page); text-align: center; }
 
     /* The swimmer's green header card, at full page width. */
@@ -165,8 +203,21 @@
 
     <div class="stats-stack">
         <section class="card">
-            <label class="picker-label" for="swimmerSelect">Swimmer</label>
-            <select class="input swimmer-select" id="swimmerSelect"><option value="">Loading swimmers…</option></select>
+            <label class="picker-label" for="swimmerSearch">Find a swimmer</label>
+            <div class="search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <input class="input" id="swimmerSearch" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="swimmerMatches" placeholder="Loading swimmers…" autocomplete="off" spellcheck="false" disabled>
+                <button type="button" class="search-clear" id="searchClear" aria-label="Clear the search" hidden><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+            </div>
+            <div class="matches" id="swimmerMatches" role="listbox" aria-label="Swimmers" hidden></div>
+            <div class="favorites" id="favorites" hidden>
+                <p class="picker-label" id="favoritesLabel">Favorites</p>
+                <div class="fav-chips" id="favoriteChips" role="list" aria-labelledby="favoritesLabel"></div>
+            </div>
+        </section>
+        <section class="card" id="seasonCard" aria-labelledby="seasonHeading" hidden>
+            <div class="card-head"><h2 id="seasonHeading"></h2></div>
+            <div class="season-tiles" id="seasonTiles"></div>
         </section>
         <div class="stats-list" id="swimmerContent"></div>
         <p class="sr-only" id="swimmerStatus" role="status"></p>
@@ -209,7 +260,7 @@ let meetsById = {};
 const meetsReady = fetch('/api/meets')
     .then(res => (res.ok ? res.json() : []))
     .catch(() => [])
-    .then(meets => { meetsById = Object.fromEntries(meets.map(m => [m.id, m])); });
+    .then(meets => { meetsById = Object.fromEntries(meets.map(m => [m.id, m])); return meets; });
 
 /* ---------------- Header card ---------------- */
 function swimmerHeader(season) {
@@ -222,6 +273,7 @@ function swimmerHeader(season) {
                     <h2 id="swimmerName">${escapeHtml(displayName(season.name))}</h2>
                     ${about ? `<p>${escapeHtml(about)}</p>` : ''}
                 </div>
+                ${favoriteButton(season.name)}
             </div>
             ${badgesHtml(season.badges || [])}
             ${firstMeetWelcome(season)}
@@ -515,6 +567,7 @@ async function loadSwimmer(name) {
     const status = document.getElementById('swimmerStatus');
     shownSeason = null;
     document.title = name ? `${displayName(name)} | Stats | Spotswood Sea Serpents` : 'Stats | Spotswood Sea Serpents';
+    document.getElementById('seasonCard').hidden = !!name || !seasonReady;
     if (!name) {
         box.innerHTML = '';
         status.textContent = '';
@@ -550,41 +603,235 @@ document.getElementById('swimmerContent').addEventListener('click', (event) => {
     if (tile && shownSeason) openBadge(shownSeason.badges[tile.dataset.badge], tile);
     const more = event.target.closest('.show-all');
     if (more) showAllBadges(more);
+    const star = event.target.closest('.fav-btn');
+    if (star) toggleFavorite(star);
 });
 
-/* ---------------- Swimmer dropdown ---------------- */
-// A pick loads on this page and goes into the address, so a swimmer's stats
-// can be bookmarked or shared (the home page's dropdown links here the same way).
-const select = document.getElementById('swimmerSelect');
-let pickTimer = null;
-select.addEventListener('change', () => {
-    // Arrow keys step through the names one at a time; load once they pause.
-    clearTimeout(pickTimer);
-    pickTimer = setTimeout(() => {
-        history.replaceState(null, '', select.value ? `?swimmer=${encodeURIComponent(select.value)}` : location.pathname);
-        loadSwimmer(select.value);
-    }, 150);
+/* ---------------- Swimmer search ---------------- */
+// Type part of a name (first or last) and the matches show, grouped by age
+// group; focusing the empty box lists everyone. Arrow keys move through the
+// list and Enter opens one. A pick loads on this page and goes into the
+// address, so a swimmer's stats can be bookmarked or shared (the home page's
+// dropdown links here the same way).
+const search = document.getElementById('swimmerSearch');
+const matchesBox = document.getElementById('swimmerMatches');
+const AGE_GROUPS = [[6, '6 & under'], [8, '7-8'], [10, '9-10'], [12, '11-12'], [14, '13-14'], [Infinity, '15-18']];
+let swimmers = [];
+let ages = {};
+let shownMatches = [];
+let activeMatch = -1;
+
+function ageGroup(name) {
+    const age = ages[name];
+    return age == null ? 'Swimmers' : AGE_GROUPS.find(([upTo]) => age <= upTo)[1];
+}
+
+// "Lu" in "Lucy Loe" -> "<mark>Lu</mark>cy Loe", escaped.
+function highlight(text, query) {
+    const at = query ? text.toLowerCase().indexOf(query.toLowerCase()) : -1;
+    if (at < 0) return escapeHtml(text);
+    return escapeHtml(text.slice(0, at)) + `<mark>${escapeHtml(text.slice(at, at + query.length))}</mark>` + escapeHtml(text.slice(at + query.length));
+}
+
+function showMatches() {
+    const query = search.value.trim();
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+    // Every word typed has to be in the name, in either order ("lu loe", "loe lu").
+    const found = swimmers.filter(name => words.every(w => displayName(name).toLowerCase().includes(w)));
+    const order = AGE_GROUPS.map(([, label]) => label).concat('Swimmers');
+    shownMatches = found.sort((a, b) => order.indexOf(ageGroup(a)) - order.indexOf(ageGroup(b)) || a.localeCompare(b));
+    activeMatch = query && shownMatches.length ? 0 : -1;
+    let lastGroup = null;
+    matchesBox.innerHTML = shownMatches.length
+        ? shownMatches.map((name, i) => {
+            const group = ageGroup(name);
+            const heading = group !== lastGroup ? `<p class="match-group" role="presentation">${escapeHtml(group)}</p>` : '';
+            lastGroup = group;
+            return `${heading}<div class="match" role="option" id="match${i}" data-index="${i}" aria-selected="${i === activeMatch}"><span class="name-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><span>${highlight(displayName(name), words.length === 1 ? query : '')}</span></div>`;
+        }).join('')
+        : '<p class="match-none">No swimmers match that.</p>';
+    setOpen(true);
+    updateActive();
+}
+
+function setOpen(open) {
+    matchesBox.hidden = !open;
+    search.setAttribute('aria-expanded', String(open));
+    if (!open) search.removeAttribute('aria-activedescendant');
+}
+
+function updateActive() {
+    matchesBox.querySelectorAll('.match').forEach(el => el.setAttribute('aria-selected', String(Number(el.dataset.index) === activeMatch)));
+    const active = document.getElementById(`match${activeMatch}`);
+    if (active) {
+        search.setAttribute('aria-activedescendant', active.id);
+        active.scrollIntoView({ block: 'nearest' });
+    } else {
+        search.removeAttribute('aria-activedescendant');
+    }
+}
+
+function pickSwimmer(name) {
+    search.value = name ? displayName(name) : '';
+    document.getElementById('searchClear').hidden = !name;
+    setOpen(false);
+    history.replaceState(null, '', name ? `?swimmer=${encodeURIComponent(name)}` : location.pathname);
+    loadSwimmer(name);
+}
+
+search.addEventListener('input', () => {
+    document.getElementById('searchClear').hidden = !search.value;
+    showMatches();
 });
+search.addEventListener('focus', showMatches);
+search.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (matchesBox.hidden) showMatches();
+        if (!shownMatches.length) return;
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        activeMatch = (activeMatch + step + shownMatches.length) % shownMatches.length;
+        updateActive();
+    } else if (event.key === 'Enter') {
+        if (activeMatch >= 0 && !matchesBox.hidden) {
+            event.preventDefault();
+            pickSwimmer(shownMatches[activeMatch]);
+        }
+    } else if (event.key === 'Escape' && !matchesBox.hidden) {
+        event.preventDefault();
+        setOpen(false);
+    }
+});
+// A press on a name picks it before the box loses focus and closes the list.
+matchesBox.addEventListener('pointerdown', (event) => event.preventDefault());
+matchesBox.addEventListener('click', (event) => {
+    const match = event.target.closest('.match');
+    if (match) pickSwimmer(shownMatches[Number(match.dataset.index)]);
+});
+search.addEventListener('blur', () => setOpen(false));
+document.getElementById('searchClear').addEventListener('click', () => {
+    pickSwimmer('');
+    search.focus();
+});
+
+/* ---------------- Favorites ---------------- */
+// Swimmers starred on their header, saved in this browser only (nothing
+// is sent anywhere), listed under the search to open in one tap.
+const FAVORITES_KEY = 'seaSerpents.favorites';
+const FAVORITES_MAX = 8;
+const STAR = filled => `<svg viewBox="0 0 24 24" fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>`;
+
+function readFavorites() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]');
+        return Array.isArray(saved) ? saved.filter(n => typeof n === 'string') : [];
+    } catch (e) {
+        return [];
+    }
+}
+function saveFavorites(list) {
+    try {
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify(list));
+        return true;
+    } catch (e) {
+        return false; // private browsing or storage turned off: the star just doesn't stick
+    }
+}
+
+function favoriteButton(name) {
+    const on = readFavorites().includes(name);
+    return `<button type="button" class="fav-btn" data-name="${escapeHtml(name)}" aria-pressed="${on}">${STAR(on)}<span>${on ? 'Favorite' : 'Add to favorites'}</span></button>`;
+}
+
+function toggleFavorite(button) {
+    const name = button.dataset.name;
+    let list = readFavorites();
+    const on = list.includes(name);
+    if (!on && list.length >= FAVORITES_MAX) {
+        document.getElementById('swimmerStatus').textContent = `You can save up to ${FAVORITES_MAX} favorites. Remove one first.`;
+        showFavoriteNote(button, `Up to ${FAVORITES_MAX} favorites. Remove one to add another.`);
+        return;
+    }
+    list = on ? list.filter(n => n !== name) : [...list, name];
+    if (!saveFavorites(list)) {
+        showFavoriteNote(button, "This browser isn't saving favorites.");
+        return;
+    }
+    button.outerHTML = favoriteButton(name);
+    document.querySelector('.fav-btn').focus();
+    document.getElementById('swimmerStatus').textContent = on ? `${displayName(name)} removed from favorites.` : `${displayName(name)} added to favorites.`;
+    renderFavorites();
+}
+
+function showFavoriteNote(button, text) {
+    const head = button.closest('.swimmer-hero');
+    let note = head.querySelector('.fav-note');
+    if (!note) {
+        note = document.createElement('p');
+        note.className = 'fav-note';
+        head.querySelector('.swimmer-head').after(note);
+    }
+    note.textContent = text;
+}
+
+function renderFavorites() {
+    const list = readFavorites().filter(name => swimmers.includes(name));
+    document.getElementById('favorites').hidden = !list.length;
+    document.getElementById('favoriteChips').innerHTML = list.map(name => `
+        <span role="listitem"><button type="button" class="fav-chip" data-name="${escapeHtml(name)}"><span class="name-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span>${escapeHtml(displayName(name))}</button></span>`).join('');
+}
+
+document.getElementById('favoriteChips').addEventListener('click', (event) => {
+    const chip = event.target.closest('.fav-chip');
+    if (chip) pickSwimmer(chip.dataset.name);
+});
+
+/* ---------------- Season totals ---------------- */
+// The team's season so far, shown until a swimmer is picked: meets with
+// results, swims (no-shows left out), personal bests, and badges held.
+let seasonReady = false;
+
+async function showSeason(badgesEarned) {
+    const meets = (await meetsReady).filter(m => m.summary);
+    if (!meets.length) return;
+    const year = meets.map(m => m.date.slice(0, 4)).sort().pop();
+    const season = meets.filter(m => m.date.startsWith(year));
+    const total = key => season.reduce((sum, m) => sum + (m.summary[key] || 0), 0);
+    const tiles = [
+        ['Meets', season.length],
+        ['Swims', total('swims') - total('noShows')],
+        ['Personal bests', total('personalBests')],
+        ...(badgesEarned != null ? [['Badges earned', badgesEarned]] : [])
+    ];
+    document.getElementById('seasonHeading').textContent = `${year} season`;
+    document.getElementById('seasonTiles').innerHTML = tiles.map(([label, value]) => `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value">${value.toLocaleString('en-US')}</p></div>`).join('');
+    seasonReady = true;
+    // Hidden while a swimmer is picked (their address has ?swimmer=).
+    document.getElementById('seasonCard').hidden = new URLSearchParams(location.search).has('swimmer');
+}
 
 (async function () {
     try {
         const res = await fetch('/api/swimmerStats');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { swimmers } = await res.json();
-        if (!swimmers.length) {
-            select.innerHTML = '<option value="">No swimmers on record yet</option>';
-            return;
-        }
-        select.innerHTML = '<option value="">Choose a swimmer…</option>' + swimmers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        const list = await res.json();
+        swimmers = list.swimmers;
+        ages = list.ages || {};
+        search.disabled = false;
+        search.placeholder = swimmers.length ? 'Type a name…' : 'No swimmers on record yet';
+        if (!swimmers.length) search.disabled = true;
+        renderFavorites();
         const preset = new URLSearchParams(location.search).get('swimmer');
         if (preset && swimmers.includes(preset)) {
-            select.value = preset;
+            search.value = displayName(preset);
+            document.getElementById('searchClear').hidden = false;
             loadSwimmer(preset);
         } else if (preset) {
-            document.getElementById('swimmerContent').innerHTML = '<p class="empty">We couldn\'t find that swimmer. Pick one from the list above.</p>';
+            document.getElementById('swimmerContent').innerHTML = '<p class="empty">We couldn\'t find that swimmer. Search for them above.</p>';
         }
+        showSeason(list.badgesEarned);
     } catch (e) {
-        select.innerHTML = '<option value="">Couldn\'t load swimmers</option>';
+        search.placeholder = 'Couldn\'t load swimmers';
     }
 })();
 </script>
