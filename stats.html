@@ -706,7 +706,11 @@ search.addEventListener('keydown', (event) => {
 matchesBox.addEventListener('pointerdown', (event) => event.preventDefault());
 matchesBox.addEventListener('click', (event) => {
     const match = event.target.closest('.match');
-    if (match) pickSwimmer(shownMatches[Number(match.dataset.index)]);
+    if (!match) return;
+    pickSwimmer(shownMatches[Number(match.dataset.index)]);
+    // A tapped name is the end of the search: leaving the box closes a
+    // phone's keyboard, which would otherwise cover the swimmer's stats.
+    search.blur();
 });
 search.addEventListener('blur', () => setOpen(false));
 document.getElementById('searchClear').addEventListener('click', () => {
