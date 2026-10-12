@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/assets/site.css">
 <script src="/assets/site.js"></script>
 <script src="/assets/meets.js"></script>
+<script src="/assets/swimmers.js"></script>
 <script src="/assets/photos.js"></script>
 <style>
     /* Home page only. Cards, buttons, tiles, dialogs, and the meet cards come from /assets/site.css. */
@@ -31,7 +32,6 @@
     .meet-part + .meet-part { margin-top: 24px; }
     .part-label { margin: 0 0 10px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 
-    .swimmer-select { padding: 18px 20px; font-size: 18px; border-radius: 16px; }
 
     /* Photo card: the newest photos in rows (Photos.showRows, /assets/photos.js). */
     .photo-card { position: sticky; top: 64px; min-width: 0; }
@@ -60,8 +60,8 @@
     <div class="home-grid">
         <div class="home-stack">
             <section class="card" aria-labelledby="statsHeading">
-                <div class="card-head"><h2 id="statsHeading">Swimmer Stats</h2><a href="/stats.html" id="fullStatsLink">Full stats →</a></div>
-                <select class="input swimmer-select" id="swimmerSelect" aria-label="Choose a swimmer"><option value="">Loading swimmers…</option></select>
+                <div class="card-head"><h2 id="statsHeading">Swimmer Stats</h2><a href="/stats.html">Full stats →</a></div>
+                <div id="swimmerPicker"></div>
             </section>
 
             <section class="card" id="scheduleCard" aria-labelledby="scheduleHeading">
@@ -86,9 +86,6 @@
 </main>
 
 <script>
-/* ---------------- Helpers ---------------- */
-const { escapeHtml } = Meets;
-
 /* ---------------- Meets ---------------- */
 // The cards themselves are shared with the Schedule page (/assets/meets.js).
 
@@ -133,49 +130,32 @@ function renderLastMeet(m) {
     if (button) button.addEventListener('click', () => Meets.openResults(m, button));
 }
 
-/* ---------------- Swimmer dropdown ---------------- */
+/* ---------------- Swimmer search ---------------- */
+// The same search and Favorites as the Stats page (/assets/swimmers.js);
+// picking a swimmer opens their Stats page.
+const picker = Swimmers.mountSearch(document.getElementById('swimmerPicker'), {
+    onPick(name) {
+        if (name) location.href = `/stats.html?swimmer=${encodeURIComponent(name)}`;
+    }
+});
+
 async function loadSwimmers() {
-    const select = document.getElementById('swimmerSelect');
     try {
         const res = await fetch('/api/swimmerStats');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { swimmers } = await res.json();
-        select.innerHTML = swimmers.length
-            ? '<option value="">Choose a swimmer…</option>' + swimmers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('')
-            : '<option value="">No swimmers on record yet</option>';
+        picker.setList(await res.json());
     } catch (e) {
-        select.innerHTML = '<option value="">Couldn\'t load swimmers</option>';
+        picker.failed();
     }
 }
 
-function statsUrl(name) {
-    return name ? `/stats.html?swimmer=${encodeURIComponent(name)}` : '/stats.html';
-}
-
-// Picking a swimmer opens their Stats page. On Windows, arrow keys change a
-// closed dropdown as they go, so a keyboard pick waits for Enter instead of
-// leaving the page on the first key press. "Full stats" follows the pick either way.
-(function () {
-    const select = document.getElementById('swimmerSelect');
-    let pickedWithPointer = false;
-    select.addEventListener('pointerdown', () => { pickedWithPointer = true; });
-    select.addEventListener('keydown', (event) => {
-        pickedWithPointer = false;
-        // After the key's own work, which may have just chosen a name.
-        if (event.key === 'Enter') setTimeout(() => { if (select.value) location.href = statsUrl(select.value); }, 0);
-    });
-    select.addEventListener('change', () => {
-        document.getElementById('fullStatsLink').href = statsUrl(select.value);
-        if (pickedWithPointer && select.value) location.href = statsUrl(select.value);
-    });
-    // Back from a swimmer's page, the browser can show this page as it was left;
-    // start over so picking that same swimmer again still works.
-    window.addEventListener('pageshow', (event) => {
-        if (!event.persisted) return;
-        select.value = '';
-        document.getElementById('fullStatsLink').href = statsUrl('');
-    });
-})();
+// Back from a swimmer's page, the browser can show this page as it was left;
+// start the search over, and pick up any favorites changed there.
+window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) return;
+    picker.showName('');
+    picker.renderFavorites();
+});
 
 /* ---------------- Photo card ---------------- */
 // The newest photos as up to three full rows of whole photos; tapping one
