@@ -59,7 +59,13 @@
     const SEARCH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
     const CLEAR_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 
-    // "Lu" in "Lucy Loe" -> "<mark>Lu</mark>cy Loe", escaped.
+    // The list shows names last name first, as the results sheets do and in
+    // the order it's sorted, so a family's swimmers sit together: "Doe, Jane".
+    function listName(name) {
+        return name.replace(/\s*,\s*/, ", ");
+    }
+
+    // "Lu" in "Loe, Lucy" -> "Loe, <mark>Lu</mark>cy", escaped.
     function highlight(text, query) {
         const at = query ? text.toLowerCase().indexOf(query.toLowerCase()) : -1;
         if (at < 0) return escapeHtml(text);
@@ -116,7 +122,7 @@
             const words = query.toLowerCase().split(/\s+/).filter(Boolean);
             // Every word typed has to be in the name, in either order ("lu loe", "loe lu").
             shown = swimmers
-                .filter(name => words.every(w => displayName(name).toLowerCase().includes(w)))
+                .filter(name => words.every(w => listName(name).toLowerCase().includes(w)))
                 .sort((a, b) => GROUP_ORDER.indexOf(ageGroup(a)) - GROUP_ORDER.indexOf(ageGroup(b)) || a.localeCompare(b));
             active = query && shown.length ? 0 : -1;
             let lastGroup = null;
@@ -125,7 +131,7 @@
                     const group = ageGroup(name);
                     const heading = group !== lastGroup ? `<p class="match-group" role="presentation">${escapeHtml(group)}</p>` : "";
                     lastGroup = group;
-                    return `${heading}<div class="match" role="option" id="match${i}" data-index="${i}" aria-selected="${i === active}"><span class="name-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><span>${highlight(displayName(name), words.length === 1 ? query : "")}</span></div>`;
+                    return `${heading}<div class="match" role="option" id="match${i}" data-index="${i}" aria-selected="${i === active}"><span class="name-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><span>${highlight(listName(name), words.length === 1 ? query : "")}</span></div>`;
                 }).join("")
                 : '<p class="match-none">No swimmers match that.</p>';
             setOpen(true);
