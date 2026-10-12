@@ -384,8 +384,8 @@
     }
 
     // A championship: every team, best first, with Spotswood's row picked
-    // out and its place (or a gold CHAMPIONS) in the chip.
-    function standingsBanner(meet, { ours, of }) {
+    // out (its place is plain from the list), and a gold CHAMPIONS chip for a win.
+    function standingsBanner(meet, { ours }) {
         const won = ours.place === 1;
         const rows = meet.standings.map(r => `
             <li class="${r === ours ? "ours" : ""}">
@@ -397,7 +397,7 @@
             <div class="score-banner standings">
                 <div class="standings-head">
                     <p class="banner-label">Final team standings</p>
-                    <span class="banner-chip${won ? "" : " place"}">${won ? "CHAMPIONS" : `${ordinal(ours.place)} of ${of}`}</span>
+                    ${won ? '<span class="banner-chip">CHAMPIONS</span>' : ""}
                 </div>
                 <ol class="standings-list">${rows}</ol>
             </div>`;

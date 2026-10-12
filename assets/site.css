@@ -263,9 +263,8 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .score-banner.loss .banner-chip { background: #E6EAE5; color: #2F3A33; }
 /* A championship's banner: every team's standing, Spotswood's row picked out. */
 .score-banner.standings { display: block; }
-.standings-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.standings-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 34px; margin-bottom: 8px; }
 .standings-head .banner-label { margin: 0; }
-.banner-chip.place { background: #fff; color: var(--brand); }
 .standings-list { margin: 0; padding: 0; list-style: none; }
 .standings-list li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; font-size: 15px; }
 .standings-list li.ours { background: rgba(255,255,255,.16); font-weight: 700; }
