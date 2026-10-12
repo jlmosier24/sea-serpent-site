@@ -39,8 +39,8 @@ addSwim("Roe, Rita", "Test Seahawks", "m1", 3, "Girls 9-10 25m Freestyle", 1, 18
 test("with no name, it lists Spotswood's swimmers only, sorted", async () => {
     const res = await call(swimmerStats, { query: {} });
     assert.equal(res.status, 200);
-    // With each swimmer's age; there's no badge count until badges are worked out.
-    assert.deepEqual(res.body, { swimmers: ["Doe, Jane", "O'Moe, Kim"], ages: { "Doe, Jane": 9, "O'Moe, Kim": 9 }, badgesEarned: null });
+    // With each swimmer's age, and the badges held: none before badges are worked out.
+    assert.deepEqual(res.body, { swimmers: ["Doe, Jane", "O'Moe, Kim"], ages: { "Doe, Jane": 9, "O'Moe, Kim": 9 }, badgesEarned: 0 });
 });
 
 test("before any import saves the list, the first request gathers it from the results and saves it", async () => {
@@ -104,4 +104,12 @@ test("the list is read from the saved row, and each badge update saves it again"
     assert.deepEqual((await call(swimmerStats, { query: {} })).body.swimmers, ["Doe, Jane", "O'Moe, Kim"]);
     // The list's row isn't mistaken for a swimmer's badges.
     assert.equal((await call(swimmerStats, { query: { name: "Doe, Jane" } })).status, 200);
+});
+
+test("a list saved without a badge count gets one counted from the saved badges", async () => {
+    const { saveSwimmerNames } = require("../shared/badgeStore");
+    await saveSwimmerNames(badges, ["Doe, Jane", "O'Moe, Kim"], { ages: { "Doe, Jane": 9, "O'Moe, Kim": 9 } });
+    const held = badges.all().filter(r => r.partitionKey === "swimmer").reduce((total, r) => total + JSON.parse(r.badgesJson).length, 0);
+    assert.equal((await call(swimmerStats, { query: {} })).body.badgesEarned, held);
+    assert.equal((await readSwimmerNames(badges)).length, 2);
 });

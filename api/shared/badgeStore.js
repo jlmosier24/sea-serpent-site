@@ -104,6 +104,20 @@ async function readSwimmerList(badgesTable) {
     }
 }
 
+// How many badges the team holds, counted from every swimmer's saved badges.
+async function countBadges(badgesTable) {
+    let total = 0;
+    try {
+        for await (const entity of badgesTable.listEntities({ queryOptions: { filter: `PartitionKey eq '${PARTITION_KEY}'` } })) {
+            total += JSON.parse(entity.badgesJson || "[]").length;
+        }
+    } catch (e) {
+        if (e.statusCode === 404) return 0; // no badges worked out yet
+        throw e;
+    }
+    return total;
+}
+
 // Just the saved names, or null before they've been saved.
 async function readSwimmerNames(badgesTable) {
     const list = await readSwimmerList(badgesTable);
@@ -122,4 +136,4 @@ async function readSwimmerBadges(badgesTable, name) {
     }
 }
 
-module.exports = { getBadgesTable, recomputeBadges, readSwimmerBadges, saveSwimmerNames, readSwimmerNames, readSwimmerList, PARTITION_KEY };
+module.exports = { getBadgesTable, recomputeBadges, readSwimmerBadges, saveSwimmerNames, readSwimmerNames, readSwimmerList, countBadges, PARTITION_KEY };

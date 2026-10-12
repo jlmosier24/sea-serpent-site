@@ -3,15 +3,15 @@ const { getResultsTable, toResultDto, listSwimmerNames } = require("../shared/re
 const { getMeetsTable, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { isSpotswoodTeam } = require("../shared/meetResultsParser");
 const { swimmerSeason } = require("../shared/stats");
-const { getBadgesTable, readSwimmerBadges, readSwimmerList, saveSwimmerNames } = require("../shared/badgeStore");
+const { getBadgesTable, readSwimmerBadges, readSwimmerList, saveSwimmerNames, countBadges } = require("../shared/badgeStore");
 
 // Reachable at /api/swimmerStats. Public, and Spotswood swimmers only.
 // - No ?name= : { swimmers: [...], ages: { name: age }, badgesEarned },
 //   every Spotswood swimmer's name ("Last, First") and age, for the swimmer
 //   pickers, and the team's badge count for the Stats page's season totals.
 //   The list is saved with the badges after each import or meet delete
-//   (shared/badgeStore.js); until the first one, the names and ages are
-//   gathered from every result once and saved, without a badge count.
+//   (shared/badgeStore.js); until the first one, the names, ages, and badge
+//   count are gathered once and saved.
 // - ?name=... : that swimmer's season for the Stats page (shared/stats.js
 //   swimmerSeason): their badges (saved by shared/badgeStore.js) and each
 //   event's swims with their changes and personal bests.
@@ -23,10 +23,11 @@ module.exports = async function (context, req) {
         if (!name) {
             const badgesTable = getBadgesTable();
             let list = await readSwimmerList(badgesTable);
-            // A list saved before ages were saved with it is gathered again too.
-            if (!list || (list.swimmers.length && !Object.keys(list.ages).length)) {
+            // A list saved before ages and the badge count were saved with it
+            // is gathered again too.
+            if (!list || (list.swimmers.length && !Object.keys(list.ages).length) || list.badgesEarned == null) {
                 const { names, ages } = await listSwimmerNames(resultsTable);
-                list = { swimmers: names, ages, badgesEarned: list ? list.badgesEarned : null };
+                list = { swimmers: names, ages, badgesEarned: await countBadges(badgesTable) };
                 try {
                     await saveSwimmerNames(badgesTable, names, { ages, badgesEarned: list.badgesEarned });
                 } catch (e) {
