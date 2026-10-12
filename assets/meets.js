@@ -341,6 +341,8 @@
     }
 
     function scoreBanner(meet) {
+        const standing = championshipStanding(meet);
+        if (standing) return standingsBanner(meet, standing);
         const result = outcome(meet);
         if (!result) return "";
         return `
@@ -351,6 +353,26 @@
                     <p class="banner-them">${escapeHtml(meet.opponent)} ${escapeHtml(meet.opponentScore)}</p>
                 </div>
                 <span class="banner-chip">${OUTCOME_CHIPS[result]}</span>
+            </div>`;
+    }
+
+    // A championship: every team, best first, with Spotswood's row picked
+    // out and its place (or a gold CHAMPIONS) in the chip.
+    function standingsBanner(meet, { ours, of }) {
+        const won = ours.place === 1;
+        const rows = meet.standings.map(r => `
+            <li class="${r === ours ? "ours" : ""}">
+                <span class="standing-place">${escapeHtml(r.place)}</span>
+                <span class="standing-team">${escapeHtml(r.team)}${r.place === 1 ? TROPHY : ""}</span>
+                <span class="standing-score">${escapeHtml(r.score)}</span>
+            </li>`).join("");
+        return `
+            <div class="score-banner standings">
+                <div class="standings-head">
+                    <p class="banner-label">Final team standings</p>
+                    <span class="banner-chip${won ? "" : " place"}">${won ? "CHAMPIONS" : `${ordinal(ours.place)} of ${of}`}</span>
+                </div>
+                <ol class="standings-list">${rows}</ol>
             </div>`;
     }
 
@@ -554,12 +576,19 @@
             : '<th scope="col">Place</th><th scope="col">Swimmer</th><th scope="col">Team</th><th scope="col" class="r">Time</th>';
         const rows = event.rows.map(row => event.relay
             ? `<tr><td>${escapeHtml(row.place ?? "")}</td><td>${escapeHtml(row.team)} (${escapeHtml(row.relayLetter)})</td><td>${relaySwimmers(row.swimmers || [])}</td><td class="r">${resultTime(row)}</td></tr>`
-            : `<tr><td>${escapeHtml(row.place ?? "")}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.team)}</td><td class="r">${resultTime(row)}</td></tr>`).join("");
+            : `<tr><td>${escapeHtml(row.place ?? "")}</td><td>${escapeHtml(row.name)}${flightNote(row)}</td><td>${escapeHtml(row.team)}</td><td class="r">${resultTime(row)}</td></tr>`).join("");
         return `
             <section class="event-results">
                 <h3 id="${id}"><span class="event-number">#${escapeHtml(event.eventNumber)}</span> ${escapeHtml(event.eventName)}</h3>
                 <table class="results-table" aria-labelledby="${id}"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
             </section>`;
+    }
+
+    // At a championship, where places are across every flight: the place
+    // within the swimmer's own flight too, like "1st in B flight".
+    function flightNote(row) {
+        if (!row.flight || row.flightPlace == null) return "";
+        return `<span class="results-flight">${ordinal(row.flightPlace)} in ${escapeHtml(row.flight)} flight</span>`;
     }
 
     // "Doe, Jane; Poe, Sam; ...": "; " between swimmers, since each name has a
