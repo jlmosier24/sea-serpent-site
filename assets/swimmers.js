@@ -153,7 +153,23 @@
             clear.hidden = !search.value;
             showMatches();
         });
-        search.addEventListener("focus", () => { if (swimmers.length) showMatches(); });
+        search.addEventListener("focus", () => {
+            if (swimmers.length) showMatches();
+            bringToTop();
+        });
+
+        // On a phone, the keyboard takes the bottom half of the screen, so the
+        // card with the search moves to the top, leaving the list room above
+        // the keyboard. It waits a moment for the keyboard to come up.
+        function bringToTop() {
+            if (!matchMedia("(max-width: 600px) and (pointer: coarse)").matches) return;
+            const card = box.closest(".card") || box;
+            setTimeout(() => {
+                const top = card.getBoundingClientRect().top + window.scrollY - 12;
+                const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+                window.scrollTo({ top: Math.max(0, top), behavior: smooth ? "smooth" : "auto" });
+            }, 250);
+        }
         search.addEventListener("keydown", (event) => {
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                 event.preventDefault();
