@@ -40,7 +40,9 @@ function toResultEntity(row, meetId) {
         // A championship's flight ("A", "B"...) and the place within it;
         // `place` there is across every flight (championship.js).
         flight: row.flight || "",
-        flightPlace: row.flightPlace != null ? row.flightPlace : null
+        flightPlace: row.flightPlace != null ? row.flightPlace : null,
+        // Set at import when this swim set a new team record (teamRecords.js).
+        teamRecord: !!row.teamRecord
     };
 }
 
@@ -62,7 +64,8 @@ function toResultDto(entity) {
         points: entity.points,
         dqReason: entity.dqReason,
         flight: entity.flight || "",
-        flightPlace: entity.flightPlace != null ? entity.flightPlace : null
+        flightPlace: entity.flightPlace != null ? entity.flightPlace : null,
+        teamRecord: !!entity.teamRecord
     };
 }
 
@@ -92,7 +95,8 @@ function toRelayResultEntity(row, meetId) {
         officialSeconds: row.officialSeconds,
         points: row.points || 0,
         dqReason: row.dqReason || "",
-        swimmersJson: JSON.stringify(row.swimmers || [])
+        swimmersJson: JSON.stringify(row.swimmers || []),
+        teamRecord: !!row.teamRecord
     };
 }
 
@@ -114,7 +118,8 @@ function toRelayResultDto(entity) {
         officialSeconds: entity.officialSeconds,
         points: entity.points,
         dqReason: entity.dqReason || "",
-        swimmers
+        swimmers,
+        teamRecord: !!entity.teamRecord
     };
 }
 

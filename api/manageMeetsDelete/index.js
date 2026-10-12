@@ -3,6 +3,7 @@ const { getResultsTable, getRelayResultsTable, listMeetResultEntities, listMeetR
 const { getResultsPdfContainer, isSheetForMeet } = require("../shared/resultsPdfContainer");
 const { forEachInBatches } = require("../shared/batches");
 const { getBadgesTable, recomputeBadges } = require("../shared/badgeStore");
+const { getRecordsTable, restoreRecordsSetAt } = require("../shared/teamRecords");
 
 // Reachable at /api/manageMeetsDelete?id=... Admin only (the /api/manage*
 // rule in staticwebapp.config.json). Deleting a meet also deletes its
@@ -39,6 +40,13 @@ module.exports = async function (context, req) {
         } catch (e) {
             const status = e.statusCode || (e.response && e.response.status);
             if (status !== 404) throw e;
+        }
+
+        // A team record the meet set goes back to the one it replaced.
+        try {
+            await restoreRecordsSetAt(getRecordsTable(), id);
+        } catch (e) {
+            context.log.error("Failed to restore team records:", e);
         }
 
         // The deleted meet's swims no longer count toward anyone's badges.

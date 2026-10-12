@@ -3,6 +3,7 @@ const { getResultsTable, toResultDto, listSwimmerNames } = require("../shared/re
 const { getMeetsTable, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { isSpotswoodTeam } = require("../shared/meetResultsParser");
 const { swimmerSeason } = require("../shared/stats");
+const { getRecordsTable, listRecords, keyForEvent } = require("../shared/teamRecords");
 const { getBadgesTable, readSwimmerBadges, readSwimmerList, saveSwimmerNames, countBadges } = require("../shared/badgeStore");
 
 // Reachable at /api/swimmerStats. Public, and Spotswood swimmers only.
@@ -14,7 +15,9 @@ const { getBadgesTable, readSwimmerBadges, readSwimmerList, saveSwimmerNames, co
 //   count are gathered once and saved.
 // - ?name=... : that swimmer's season for the Stats page (shared/stats.js
 //   swimmerSeason): their badges (saved by shared/badgeStore.js) and each
-//   event's swims with their changes and personal bests.
+//   event's swims with their changes and personal bests, plus the event's
+//   team record ({ time, seconds, year, mine }; mine when this swimmer set it
+//   here and still holds it).
 module.exports = async function (context, req) {
     const name = (req.query.name || "").trim();
 
@@ -57,7 +60,23 @@ module.exports = async function (context, req) {
             return;
         }
 
-        context.res = { status: 200, body: swimmerSeason(name, swims, await readSwimmerBadges(getBadgesTable(), name)) };
+        const season = swimmerSeason(name, swims, await readSwimmerBadges(getBadgesTable(), name));
+        let records = new Map();
+        try {
+            records = await listRecords(getRecordsTable());
+        } catch (e) {
+            context.log.error("Failed to load the team records:", e); // the page still shows without them
+        }
+        season.events.forEach(event => {
+            const record = records.get(keyForEvent(event.eventName));
+            event.record = record ? {
+                time: record.time,
+                seconds: record.seconds,
+                year: record.year,
+                mine: event.swims.some(s => s.teamRecord && s.officialSeconds === record.seconds)
+            } : null;
+        });
+        context.res = { status: 200, body: season };
     } catch (e) {
         context.log.error("Failed to load swimmer stats:", e);
         context.res = { status: 500, body: "Error: " + e.message };

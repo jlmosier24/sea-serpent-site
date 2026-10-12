@@ -12,6 +12,7 @@ function resetStore() {
     store.results = new FakeTable();
     store.relays = new FakeTable();
     store.badges = new FakeTable();
+    store.records = new FakeTable();
     store.sheets = new FakeContainer();
 }
 resetStore();
@@ -20,6 +21,7 @@ Object.assign(require("../shared/meetsTable"), { getMeetsTable: () => store.meet
 Object.assign(require("../shared/resultsTable"), { getResultsTable: () => store.results, getRelayResultsTable: () => store.relays });
 Object.assign(require("../shared/resultsPdfContainer"), { getResultsPdfContainer: () => store.sheets });
 Object.assign(require("../shared/badgeStore"), { getBadgesTable: () => store.badges });
+Object.assign(require("../shared/teamRecords"), { getRecordsTable: () => store.records });
 // The "PDF" here is the sheet's text, so reading it is decoding it.
 Object.assign(require("../shared/pdfText"), { extractPdfText: async buffer => buffer.toString("utf8") });
 

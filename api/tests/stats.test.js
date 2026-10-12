@@ -198,7 +198,7 @@ test("swimmerSeason: age and season from the latest meet, meets swum, saved badg
     assert.equal(result.meetsSwum, 6);
     assert.deepEqual(result.badges, badges);
     assert.deepEqual(result.events.map(e => e.eventName), ["50m Free", "50m Back"]);
-    assert.deepEqual(Object.keys(result.events[0].swims[0]).sort(), ["change", "meetDate", "meetId", "officialSeconds", "officialTime", "personalBest", "place", "status"]);
+    assert.deepEqual(Object.keys(result.events[0].swims[0]).sort(), ["change", "meetDate", "meetId", "officialSeconds", "officialTime", "personalBest", "place", "status", "teamRecord"]);
     assert.deepEqual(result.events[1].swims.map(s => s.status), ["OK", "NS"]);
 
     // Before any badges have been worked out. Meets swum leaves out m6, a

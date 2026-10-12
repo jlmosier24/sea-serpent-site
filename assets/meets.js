@@ -297,6 +297,7 @@
                     <p class="score-row us"><span>Spotswood ${escapeHtml(meet.teamScore)}</span>${result === "win" ? TROPHY : ""}</p>
                     <p class="score-row them"><span>${escapeHtml(meet.opponent)} ${escapeHtml(meet.opponentScore)}</span>${result === "loss" ? TROPHY : ""}</p>` : ""}
                 ${s ? `<p class="quick-stats"><b>${s.firstPlaces}</b> ${s.firstPlaces === 1 ? "first place" : "first places"}<span class="sep" aria-hidden="true"></span><b>${s.relayWins}</b> ${s.relayWins === 1 ? "relay win" : "relay wins"}</p>` : ""}
+                ${recordPill(s)}
                 <div class="btn-row">
                     ${s ? `<button type="button" class="btn on-dark" data-meet-stats="${escapeHtml(meet.id)}">${icon("chart")}See team stats</button>` : ""}
                     <a class="btn ghost-on-dark" href="/gallery.html?meet=${encodeURIComponent(meet.id)}">${icon("camera")}View photos</a>
@@ -320,11 +321,39 @@
                 <p class="score-row us"><span>Spotswood ${escapeHtml(ours.score)}</span>${won ? TROPHY : ""}</p>
                 ${other ? `<p class="score-row them"><span>${escapeHtml(other.team)} ${escapeHtml(other.score)}</span>${other.place === 1 ? TROPHY : ""}</p>` : ""}
                 ${s ? `<p class="quick-stats"><b>${s.firstPlaces}</b> ${s.firstPlaces === 1 ? "first place" : "first places"}<span class="sep" aria-hidden="true"></span><b>${s.relayWins}</b> ${s.relayWins === 1 ? "relay win" : "relay wins"}</p>` : ""}
+                ${recordPill(s)}
                 <div class="btn-row">
                     ${s ? `<button type="button" class="btn on-dark" data-meet-stats="${escapeHtml(meet.id)}">${icon("chart")}See team stats</button>` : ""}
                     <a class="btn ghost-on-dark" href="/gallery.html?meet=${encodeURIComponent(meet.id)}">${icon("camera")}View photos</a>
                 </div>
             </article>`;
+    }
+
+    /* ---------- Team records ---------- */
+    // A medal, so a record reads apart from the trophy of a win.
+    const RECORD_ICON_PATHS = '<circle cx="12" cy="15" r="6"/><path d="M8.6 10 6 3h4l2 4.5M15.4 10 18 3h-4l-2 4.5"/><path d="M12 12.3l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z"/>';
+    const RECORD_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RECORD_ICON_PATHS}</svg>`;
+
+    // The gold pill on a meet's card when Spotswood set team records there.
+    function recordPill(s) {
+        const n = s && s.newRecords ? s.newRecords.length : 0;
+        return n ? `<p class="meet-record">${RECORD_ICON}${plural(n, "new team record", "new team records")}</p>` : "";
+    }
+
+    // The popup's card: who set each record, the event, the old record, and the new time.
+    function recordsCard(s) {
+        const records = s.newRecords || [];
+        if (!records.length) return "";
+        const rows = records.map(r => {
+            const [group, event] = String(r.label).split(" · ");
+            const who = r.kind === "relay"
+                ? `${escapeHtml((r.swimmers || []).map(displayName).join(", ") || "Spotswood")} <span class="hl-old">(relay)</span>`
+                : escapeHtml(displayName(r.name));
+            const old = r.old ? ` · <span class="hl-old">old record ${escapeHtml(r.old.time)}${r.old.year ? ` (${escapeHtml(r.old.year)})` : ""}</span>` : "";
+            return `
+                <li><div class="hl-who"><p class="hl-name">${who}</p><p class="hl-line"><b>${escapeHtml(group)}</b> · ${escapeHtml(event || "")}${old}</p></div><span class="hl-value">${escapeHtml(r.time)}</span></li>`;
+        });
+        return highlightCard(records.length === 1 ? "New team record" : "New team records", `<span class="hl-icon">${RECORD_ICON}</span>`, rows);
     }
 
     /* ---------- Meet results popup ---------- */
@@ -359,7 +388,7 @@
         dialog.querySelector("#meetDialogTitle").textContent = meet.title;
         dialog.querySelector("#meetDialogWhen").textContent = `${fmtDate(meet.date)} · Final`;
         const body = dialog.querySelector("#meetDialogBody");
-        body.innerHTML = scoreBanner(meet) + statTiles(s) + seedCard(s) + pointsCard(s) + highlightCards(s) + `
+        body.innerHTML = scoreBanner(meet) + recordsCard(s) + statTiles(s) + seedCard(s) + pointsCard(s) + highlightCards(s) + `
             <button type="button" class="btn primary block view-all">View all swimmer results</button>`;
         body.querySelector(".view-all").addEventListener("click", (event) => openAllResults(meet, event.currentTarget));
         setUpPointsCard(body, s);
@@ -634,6 +663,7 @@
     window.Meets = {
         escapeHtml, fmtDate, fmtClock, fmtSeconds, easternToday, displayName, initials, shortEventName, plural,
         hasScore, hasResults, outcome, OUTCOME_CHIPS, splitMeets,
-        showUpcoming, resultCard, openResults, openAllResults, ordinal, championshipStanding
+        showUpcoming, resultCard, openResults, openAllResults, ordinal, championshipStanding,
+        RECORD_ICON, RECORD_ICON_PATHS
     };
 })();

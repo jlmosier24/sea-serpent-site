@@ -7,10 +7,12 @@ const { FakeTable, call } = require("./fakes");
 const meets = new FakeTable();
 const results = new FakeTable();
 const badges = new FakeTable();
+const records = new FakeTable();
 // The Function destructures these getters when it loads, so swap them in first.
 Object.assign(require("../shared/meetsTable"), { getMeetsTable: () => meets });
 Object.assign(require("../shared/resultsTable"), { getResultsTable: () => results });
 Object.assign(require("../shared/badgeStore"), { getBadgesTable: () => badges });
+Object.assign(require("../shared/teamRecords"), { getRecordsTable: () => records });
 const swimmerStats = require("../swimmerStats/index.js");
 
 const { PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
@@ -112,4 +114,20 @@ test("a list saved without a badge count gets one counted from the saved badges"
     const held = badges.all().filter(r => r.partitionKey === "swimmer").reduce((total, r) => total + JSON.parse(r.badgesJson).length, 0);
     assert.equal((await call(swimmerStats, { query: {} })).body.badgesEarned, held);
     assert.equal((await readSwimmerNames(badges)).length, 2);
+});
+
+test("each event carries its team record, marked as the swimmer's own when they set it here", async () => {
+    const { toRecordEntity } = require("../shared/teamRecords");
+    records.upsertEntity(toRecordEntity({ key: "m|girls|9-10|25|Free", time: "19.90", seconds: 19.9, year: 2026, setAtMeet: "m2" }));
+    records.upsertEntity(toRecordEntity({ key: "m|girls|9-10|25|Back", time: "18.00", seconds: 18, year: 2015 }));
+    const row = results.rows.get(results.key("Doe, Jane", "m2__3"));
+    row.teamRecord = true;
+    try {
+        const jane = (await call(swimmerStats, { query: { name: "Doe, Jane" } })).body;
+        assert.deepEqual(jane.events.find(e => e.eventName === "Girls 9-10 25m Freestyle").record, { time: "19.90", seconds: 19.9, year: 2026, mine: true });
+        const kim = (await call(swimmerStats, { query: { name: "O'Moe, Kim" } })).body;
+        assert.deepEqual(kim.events[0].record, { time: "18.00", seconds: 18, year: 2015, mine: false });
+    } finally {
+        row.teamRecord = false;
+    }
 });

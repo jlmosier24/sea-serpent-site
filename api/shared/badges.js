@@ -35,12 +35,13 @@ const BADGE_INFO = {
     anchor: { name: "Anchor", description: "Swam the final leg of a relay.", listLabel: "Relays" },
     rounded: { name: "Well-Rounded", description: "Swam all four strokes." },
     attendance: { name: "Meet Attendance", description: "Showed up and swam at meets.", listLabel: "Meets" },
-    dropper: { name: "Time Dropper", description: "Total time dropped across the season.", listLabel: "Drops" }
+    dropper: { name: "Time Dropper", description: "Total time dropped across the season.", listLabel: "Drops" },
+    record: { name: "Record Breaker", description: "Set a new team record, in an event or a relay.", listLabel: "Records" }
 };
 
 // Display order (update 4, section E): New ones first, then this fixed
 // ranking, rarest first, with First Splash always last.
-const BADGE_RANK = ["triple", "champion", "barrier", "podium", "scorer", "dropper", "streak", "anchor", "distance", "relay", "rounded", "pb", "attendance", "splash"];
+const BADGE_RANK = ["record", "triple", "champion", "barrier", "podium", "scorer", "dropper", "streak", "anchor", "distance", "relay", "rounded", "pb", "attendance", "splash"];
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 function longDate(isoDate) {
@@ -191,6 +192,7 @@ function swimmerBadges(swims, legs) {
                 once.barrier = { meetId, sub: barrier === 60 ? "Under 1:00" : `Under ${barrier}s`, detail: `${event}: ${comingIn.time} → ${swim.officialTime}` };
             }
             if (!earlier || swim.officialSeconds < earlier.seconds) best.set(swim.eventName, { seconds: swim.officialSeconds, time: swim.officialTime });
+            if (swim.teamRecord) lists.record.push({ meetId, title: event, sub: `${date} · ${swim.officialTime}` });
             if (hasRealSeed(swim) && swim.officialSeconds < swim.seedSeconds) {
                 const dropped = round2(swim.seedSeconds - swim.officialSeconds);
                 lists.dropper.push({ meetId, title: event, sub: date, value: `−${seconds(dropped)}s`, amount: dropped });
@@ -229,6 +231,7 @@ function swimmerBadges(swims, legs) {
             legMetersHere += legMeters(leg.eventName);
             const row = { meetId, title: relayTitle(leg.eventName), sub: date };
             lists.relay.push(row);
+            if (leg.teamRecord && leg.status === "OK") lists.record.push({ meetId, title: relayTitle(leg.eventName), sub: `${date} · ${leg.officialTime}` });
             // The final leg of a complete lineup (four 25-length legs on a 100 relay).
             // A 125 relay lists only four of its five swimmers, so its 4th isn't the anchor.
             const distance = eventDistance(leg.eventName);
@@ -274,7 +277,8 @@ function swimmerBadges(swims, legs) {
         relay: [lists.relay.length > 0, count(lists.relay)],
         anchor: [lists.anchor.length > 0, count(lists.anchor)],
         attendance: [lists.attendance.length >= ATTENDANCE_MEETS, count(lists.attendance)],
-        dropper: [timeDropped >= DROPPER_SECONDS, `${seconds(timeDropped)}s`]
+        dropper: [timeDropped >= DROPPER_SECONDS, `${seconds(timeDropped)}s`],
+        record: [lists.record.length > 0, count(lists.record)]
     };
 
     const badge = (id, meetId, fields) => ({
@@ -313,7 +317,8 @@ function swimmerBadges(swims, legs) {
         triples: lists.triple.length,
         relayLegs: lists.relay.length,
         anchors: lists.anchor.length,
-        meetsSwum: lists.attendance.length
+        meetsSwum: lists.attendance.length,
+        teamRecords: lists.record.length
     };
     return { badges: rankBadges(badges), totals };
 }
@@ -343,6 +348,8 @@ function teamBadges(swims, relays) {
             eventName: relay.eventName,
             status: relay.status,
             place: relay.place,
+            officialTime: relay.officialTime,
+            teamRecord: !!relay.teamRecord,
             leg: i + 1,
             listed: relay.swimmers.length
         }));

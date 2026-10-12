@@ -12,6 +12,7 @@ function resetStore() {
     store.relays = new FakeTable();
     store.settings = new FakeTable();
     store.badges = new FakeTable();
+    store.records = new FakeTable();
     store.sheets = new FakeContainer();
 }
 resetStore();
@@ -22,6 +23,7 @@ Object.assign(require("../shared/resultsTable"), { getResultsTable: () => store.
 Object.assign(require("../shared/settingsTable"), { getSettingsTable: () => store.settings });
 Object.assign(require("../shared/resultsPdfContainer"), { getResultsPdfContainer: () => store.sheets });
 Object.assign(require("../shared/badgeStore"), { getBadgesTable: () => store.badges });
+Object.assign(require("../shared/teamRecords"), { getRecordsTable: () => store.records });
 // The "PDF" in these tests is just a sample sheet's text, so reading it is decoding it.
 Object.assign(require("../shared/pdfText"), { extractPdfText: async buffer => buffer.toString("utf8") });
 
@@ -138,7 +140,7 @@ test("the import preview reports the sheet's date, Spotswood's counts, and the s
     resetStore();
     const res = await call(previewResults, { body: { dataBase64: asUpload(sheetText()) } });
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { sheetDate: "2026-07-13", swims: 5, relays: 2, swimmers: 5, teamScore: { us: 525, them: 511, source: "sheet" }, championship: false, unreadLines: [] });
+    assert.deepEqual(res.body, { sheetDate: "2026-07-13", swims: 5, relays: 2, swimmers: 5, teamScore: { us: 525, them: 511, source: "sheet" }, championship: false, newRecords: [], unreadLines: [] });
     assert.equal((await call(previewResults, { body: {} })).status, 400);
     assert.equal(store.results.all().length, 0, "a preview saves nothing");
 });

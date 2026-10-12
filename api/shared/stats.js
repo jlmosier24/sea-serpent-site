@@ -281,7 +281,8 @@ function swimmerSeason(name, swims, earned = {}) {
                 officialTime: s.officialTime,
                 officialSeconds: s.officialSeconds,
                 change: s.change,
-                personalBest: s.personalBest
+                personalBest: s.personalBest,
+                teamRecord: !!s.teamRecord
             }))
         }))
     };

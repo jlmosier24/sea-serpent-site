@@ -1,6 +1,8 @@
 const { readResultsSheet } = require("../shared/resultsSheet");
 const { meetSummary, teamScore } = require("../shared/stats");
 const { isChampionshipSheet, withOverallPlaces } = require("../shared/championship");
+const { isSpotswoodTeam } = require("../shared/meetResultsParser");
+const { getRecordsTable, listRecords, newRecordsAtMeet, recordSummary } = require("../shared/teamRecords");
 
 // Reachable at /api/importMeetResultsPreview. Admin only (route rules in
 // staticwebapp.config.json). Reads an uploaded results PDF and reports what
@@ -12,7 +14,11 @@ module.exports = async function (context, req) {
     try {
         const { parsed } = await readResultsSheet((req.body || {}).dataBase64);
         const championship = isChampionshipSheet(parsed);
-        const summary = meetSummary(championship ? withOverallPlaces(parsed.individual) : parsed.individual, parsed.relays);
+        const individual = championship ? withOverallPlaces(parsed.individual) : parsed.individual;
+        const summary = meetSummary(individual, parsed.relays);
+        // The team records it would set (the meet's own earlier import doesn't count against it).
+        const records = await listRecords(getRecordsTable());
+        const newRecords = newRecordsAtMeet({ individual, relays: parsed.relays }, records, (req.body || {}).meetId || "", isSpotswoodTeam).map(recordSummary);
         context.res = {
             status: 200,
             body: {
@@ -22,6 +28,7 @@ module.exports = async function (context, req) {
                 swimmers: summary.swimmers,
                 teamScore: teamScore(parsed), // for a championship, with Spotswood's place among the teams
                 championship,
+                newRecords,
                 unreadLines: parsed.unparsedLines
             }
         };

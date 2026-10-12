@@ -134,6 +134,20 @@
     .change.slower { color: var(--muted); font-weight: 500; }
     .pb-tag { padding: 1px 7px; border: 1px solid var(--gold-border); border-radius: 10px; background: var(--gold-tint); color: var(--gold-text); font-size: 11px; font-weight: 700; }
     .swim-status { color: var(--muted); font-weight: 600; }
+    /* Team records: the gold tag on a record swim, and the box under an event's
+       name -- gold for the record holder, the soft tint with a bar when close. */
+    .record-tag { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 6px; border-radius: 10px; background: var(--gold); color: var(--gold-ink); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .record-tag svg { width: 12px; height: 12px; }
+    .record-line { display: flex; flex-direction: column; gap: 6px; margin: 2px 0 14px; padding: 12px 14px; border: 1px solid var(--soft-border); border-radius: 16px; background: var(--soft); }
+    .record-line.held { border-color: var(--gold-border); background: var(--gold-tint); }
+    .record-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
+    .record-top b { font-family: var(--font-head); }
+    .record-top svg { width: 16px; height: 16px; vertical-align: -3px; margin-right: 4px; }
+    .held .record-top { color: var(--gold-text); }
+    .record-away { font-weight: 700; color: var(--brand); white-space: nowrap; }
+    .record-bar { position: relative; height: 8px; border-radius: 4px; background: #fff; border: 1px solid var(--soft-border); overflow: hidden; }
+    .record-bar span { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--brand); }
+    .record-note { font-size: 13px; color: var(--muted); }
     .place { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; border-radius: 50%; font-weight: 600; }
     .place.podium { background: var(--gold); color: var(--gold-ink); font-weight: 700; }
 
@@ -254,7 +268,8 @@ const BADGE_ICONS = {
     relay: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
     anchor: '<path d="M12 8v13M8 12h8M5 15a7 7 0 0 0 14 0M12 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>',
     rounded: '<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 3v18M3 12h18"/>',
-    dropper: '<path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/>'
+    dropper: '<path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/>',
+    record: Meets.RECORD_ICON_PATHS
 };
 const BADGES_SHOWN = { wide: 10, phone: 6 }; // matches the nth-child rules in the styles above
 
@@ -266,7 +281,7 @@ function badgeDisc(badge) {
 }
 
 // The pill and sub-label as they'd be read aloud: "×5" is "5 wins" or "5 times", "Under 1:00" is "under 1 minute".
-const COUNT_WORDS = { streak: 'meets in a row', pb: 'personal bests', podium: 'top-3 finishes', champion: 'wins', triple: 'meets', relay: 'relays', anchor: 'relays anchored', attendance: 'meets' };
+const COUNT_WORDS = { streak: 'meets in a row', pb: 'personal bests', podium: 'top-3 finishes', champion: 'wins', triple: 'meets', relay: 'relays', anchor: 'relays anchored', attendance: 'meets', record: 'team records' };
 function spokenPill(badge) {
     if (!badge.pill) return '';
     const count = badge.pill.replace(/^×/, '');
@@ -364,6 +379,7 @@ function openBadge(badge, opener) {
 // "How badges work", from the update 4 badge mockup's rules table: the badge,
 // when it's earned, and what its pill shows.
 const BADGE_RULES = [
+    ['record', 'Record Breaker', 'Set a new team record, in an event or a relay: faster than the record the team had before that meet.', 'Pill: count'],
     ['splash', 'First Splash', 'Swam in a meet.', ''],
     ['pb', 'Personal Best', 'A swim faster than the previous best in that event. The first timed swim in an event never counts.', 'Pill: count'],
     ['streak', 'PB Streak', 'Personal bests at 2 or more meets in a row (meets the swimmer swam in).', 'Pill: meets in a row'],
@@ -412,12 +428,40 @@ function eventCard(event, index) {
                 <h3 id="event-${index}">${escapeHtml(event.eventName)}</h3>
                 ${event.seasonBestSeconds != null ? `<span class="season-best">Season best ${escapeHtml(fmtSeconds(event.seasonBestSeconds))}</span>` : ''}
             </div>
+            ${recordLine(event)}
             ${timedSwims(event).length > 1 ? `<div class="inset chart-box" data-event="${index}" aria-hidden="true"></div>` : ''}
             <table class="swims">
                 <thead><tr><th scope="col">Meet</th><th scope="col">Opponent</th><th scope="col">Time</th><th scope="col" class="r">Place</th></tr></thead>
                 <tbody>${event.swims.map(swimRow).join('')}</tbody>
             </table>
         </section>`;
+}
+
+// The event's team record: a gold box when this swimmer holds it, or how
+// close their season best is when it's within 5%.
+const RECORD_CLOSE = 0.05;
+function recordLine(event) {
+    const record = event.record;
+    const best = event.seasonBestSeconds;
+    if (!record || best == null) return '';
+    if (record.mine) {
+        const swim = event.swims.find(s => s.teamRecord && s.officialSeconds === record.seconds);
+        return `
+            <div class="record-line held">
+                <div class="record-top"><span>${Meets.RECORD_ICON}<b>Team record holder</b></span><b>${escapeHtml(record.time)}</b></div>
+                ${swim ? `<span class="record-note">Set ${escapeHtml(fmtDate(swim.meetDate))}</span>` : ''}
+            </div>`;
+    }
+    if (best > record.seconds * (1 + RECORD_CLOSE)) return '';
+    const away = Math.max(0, best - record.seconds);
+    const percent = Math.min(100, (record.seconds / best) * 100);
+    const awayText = away > 0 ? `${away.toFixed(2)}s away` : 'At the record';
+    return `
+        <div class="record-line">
+            <div class="record-top"><span>Team record <b>${escapeHtml(record.time)}</b></span><span class="record-away">${awayText}</span></div>
+            <div class="record-bar" role="img" aria-label="${escapeHtml(`Season best ${fmtSeconds(best)}, ${away > 0 ? `${away.toFixed(2)} seconds off the team record` : 'at the team record'}`)}"><span style="width:${percent.toFixed(1)}%"></span></div>
+            ${record.year ? `<span class="record-note">Record set in ${escapeHtml(record.year)}</span>` : ''}
+        </div>`;
 }
 
 function swimRow(swim) {
@@ -432,14 +476,15 @@ function swimRow(swim) {
     return `<tr><td><span class="swim-date">${escapeHtml(fmtDate(swim.meetDate))}</span>${under}</td><td>${opponentHtml}</td><td>${timeCell(swim)}</td><td class="r">${placeCell(swim)}</td></tr>`;
 }
 
-// Time, then the change from the previous swim in this event, then a PB tag.
+// Time, then the change from the previous swim in this event, then a PB tag and a Team record tag.
 // A DQ, no-show, or did-not-finish shows that instead; an exhibition swim
 // isn't scored, so it gets no change or PB.
 function timeCell(swim) {
     if (swim.status === 'EXH') return `<div class="time-cell"><span class="time">${escapeHtml(swim.officialTime)}</span><span class="badge">Exhibition</span></div>`;
     if (swim.status !== 'OK') return `<span class="swim-status">${escapeHtml(STATUS_TEXT[swim.status] || swim.status)}</span>`;
     const pb = swim.personalBest ? '<span class="pb-tag"><span aria-hidden="true">PB</span><span class="sr-only">Personal best</span></span>' : '';
-    return `<div class="time-cell"><span class="time">${escapeHtml(swim.officialTime)}</span>${changeHtml(swim.change)}${pb}</div>`;
+    const record = swim.teamRecord ? `<span class="record-tag">${Meets.RECORD_ICON}Team record</span>` : '';
+    return `<div class="time-cell"><span class="time">${escapeHtml(swim.officialTime)}</span>${changeHtml(swim.change)}${pb}${record}</div>`;
 }
 
 function changeHtml(change) {

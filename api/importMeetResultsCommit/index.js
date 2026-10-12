@@ -10,6 +10,8 @@ const { isChampionshipSheet, withOverallPlaces, standings } = require("../shared
 const { markConvertedSeeds } = require("../shared/seeds");
 const { forEachInBatches } = require("../shared/batches");
 const { getBadgesTable, recomputeBadges } = require("../shared/badgeStore");
+const { isSpotswoodTeam } = require("../shared/meetResultsParser");
+const { getRecordsTable, listRecords, newRecordsAtMeet, recordSummary, saveMeetRecords } = require("../shared/teamRecords");
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 function fmtDate(iso) {
@@ -52,7 +54,7 @@ async function replaceMeetRows(table, entities, existing) {
 // they read). The sheet's date must match the meet's unless importAnyway is
 // set -- the dialog asks first, and this enforces it.
 module.exports = async function (context, req) {
-    const { meetId, fileName, dataBase64, importAnyway } = req.body || {};
+    const { meetId, fileName, dataBase64, importAnyway, updateRecords } = req.body || {};
     if (!meetId) {
         context.res = { status: 400, body: "Missing meetId." };
         return;
@@ -98,7 +100,15 @@ module.exports = async function (context, req) {
         const earlier = await resultsBefore(resultsTable, meetsTable, meetEntity.date);
         // A championship's swimmers are placed by time across every flight.
         const championship = meetEntity.meetType === "championship" || isChampionshipSheet(parsed);
-        const individual = markConvertedSeeds(championship ? withOverallPlaces(parsed.individual) : parsed.individual, earlier);
+        const placed = markConvertedSeeds(championship ? withOverallPlaces(parsed.individual) : parsed.individual, earlier);
+
+        // Swims and relays faster than a team record are marked as setting one.
+        const recordsTable = getRecordsTable();
+        const records = await listRecords(recordsTable);
+        const found = newRecordsAtMeet({ individual: placed, relays: parsed.relays }, records, meetId, isSpotswoodTeam);
+        const setRecord = new Set(found.map(f => f.row));
+        const individual = placed.map(row => (setRecord.has(row) ? { ...row, teamRecord: true } : row));
+        const relays = parsed.relays.map(row => (setRecord.has(row) ? { ...row, teamRecord: true } : row));
 
         await getResultsPdfContainer().getBlockBlobClient(sheetBlobName(meetId)).uploadData(buffer, {
             blobHTTPHeaders: { blobContentType: "application/pdf" }
@@ -106,13 +116,15 @@ module.exports = async function (context, req) {
 
         const removed =
             await replaceMeetRows(resultsTable, individual.map(row => toResultEntity(row, meetId)), await listMeetResultEntities(resultsTable, meetId)) +
-            await replaceMeetRows(relayTable, parsed.relays.map(row => toRelayResultEntity(row, meetId)), await listMeetRelayEntities(relayTable, meetId));
+            await replaceMeetRows(relayTable, relays.map(row => toRelayResultEntity(row, meetId)), await listMeetRelayEntities(relayTable, meetId));
 
         // A score the admin typed in is never replaced by an import. The
         // meet's numbers are saved with it for the home page's results popup.
         const scoreKept = meetEntity.scoreSource === "manual";
         const score = teamScore(parsed);
-        const summary = meetSummary(individual, parsed.relays, earlier);
+        const summary = { ...meetSummary(individual, relays, earlier), newRecords: found.map(recordSummary) };
+        // The stored records take the new ones unless the admin said not to.
+        if (updateRecords !== false) await saveMeetRecords(recordsTable, records, found, meetId, meetEntity.date);
         const update = {
             partitionKey: MEET_PARTITION_KEY,
             rowKey: meetId,
@@ -153,6 +165,8 @@ module.exports = async function (context, req) {
                 teamScore: scoreKept
                     ? { us: meetEntity.teamScore, them: meetEntity.opponentScore, source: "manual" }
                     : score,
+                newRecords: summary.newRecords,
+                recordsUpdated: updateRecords !== false,
                 badgesUpdated
             }
         };
