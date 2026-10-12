@@ -272,6 +272,12 @@
             <div id="recordsUpload"></div>
         </div>
         <div class="card">
+            <h2>Records set this season</h2>
+            <p class="field-help" style="margin:0 0 14px">For records set at meets imported before the records were loaded. Each record from this season is matched to the Spotswood swim or relay with exactly its time, which then gets the Team record tag, the Record Breaker badge, and its meet's record pill. Safe to run again.</p>
+            <button type="button" class="btn primary" id="recordsMatchBtn">Match this season's records</button>
+            <div id="recordsMatchResult" role="status"></div>
+        </div>
+        <div class="card">
             <h2 id="recordsListTitle" tabindex="-1">Team records</h2>
             <div id="recordsList"><p class="empty">Loading…</p></div>
         </div>
@@ -1096,7 +1102,7 @@ function recordsBox(newRecords, checked) {
     if (!newRecords || !newRecords.length) return '';
     const who = r => r.name ? displayName(r.name) : `${r.team} relay`;
     return `<div class="note-box records-box"><strong class="records-title">${ICON_RECORD}${plural(newRecords.length, 'new team record')}</strong>
-        <ul>${newRecords.map(r => `<li>${escapeHtml(r.label)}: ${escapeHtml(who(r))}, ${escapeHtml(r.time)} (was ${escapeHtml(r.old.time)}${r.old.year ? `, ${r.old.year}` : ''})</li>`).join('')}</ul>
+        <ul>${newRecords.map(r => `<li>${escapeHtml(r.label)}: ${escapeHtml(who(r))}, ${escapeHtml(r.time)}${r.old ? ` (was ${escapeHtml(r.old.time)}${r.old.year ? `, ${r.old.year}` : ''})` : ''}</li>`).join('')}</ul>
         <label class="check"><input type="checkbox" id="importUpdateRecords"${checked ? ' checked' : ''}>Update the team records with ${newRecords.length === 1 ? 'it' : 'them'}</label></div>
         <p class="field-help" style="margin:0 0 14px">The swim is marked as a team record either way; this only changes the stored record later swims are compared with.</p>`;
 }
@@ -1185,6 +1191,30 @@ async function saveRecordsUpload() {
     }
     renderRecordsUpload();
 }
+
+// Ties this season's records to the swims that set them (/api/manageRecordsMatch).
+$('recordsMatchBtn').addEventListener('click', async () => {
+    const button = $('recordsMatchBtn');
+    const box = $('recordsMatchResult');
+    button.disabled = true;
+    button.textContent = 'Matching…';
+    box.innerHTML = '';
+    try {
+        const r = await postJson('/api/manageRecordsMatch', {});
+        const list = (rows, line) => rows.length ? `<ul style="margin:6px 0 0;padding-left:20px">${rows.map(x => `<li>${line(x)}</li>`).join('')}</ul>` : '';
+        const label = x => `${escapeHtml(x.label)}: ${escapeHtml(x.time)}`;
+        box.innerHTML = !r.season ? '<p class="note-box neutral" style="margin:14px 0 0">No meets have results yet.</p>' : `
+            <div class="note-box ok" style="margin:14px 0 0"><strong>${plural(r.matched.length, 'record')} matched</strong> from ${r.season}.${list(r.matched, x => `${label(x)}, ${escapeHtml(fmtDate(x.meetDate))}`)}</div>
+            ${r.alreadyMarked.length ? `<div class="note-box neutral" style="margin:10px 0 0"><strong>Already marked:</strong> ${plural(r.alreadyMarked.length, 'record')}.${list(r.alreadyMarked, label)}</div>` : ''}
+            ${r.notMatched.length ? `<div class="note-box warn" style="margin:10px 0 0"><strong>Not matched:</strong> ${plural(r.notMatched.length, 'record')}.${list(r.notMatched, x => `${label(x)} (${escapeHtml(x.reason)})`)}</div>` : ''}
+            ${r.badgesUpdated === false ? '<p class="field-error" role="alert">The badges couldn\'t be updated. Run this again.</p>' : ''}`;
+        if (r.matched.length) loadRecords();
+    } catch (e) {
+        box.innerHTML = `<p class="field-error" role="alert" style="margin-top:10px">${ICON_ALERT}Couldn't match the records. Please try again.</p>`;
+    }
+    button.disabled = false;
+    button.textContent = "Match this season's records";
+});
 
 async function loadRecords() {
     const box = $('recordsList');

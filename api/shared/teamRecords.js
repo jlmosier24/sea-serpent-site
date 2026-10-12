@@ -162,11 +162,15 @@ async function listRecords(table) {
 
 /* ---------- New records at a meet ---------- */
 // What each record was before this meet: a record this meet set (on an
-// earlier import of it) counts as the one it replaced.
+// earlier import of it) counts as the one it replaced. One matched to this
+// meet's swim afterwards (manageRecordsMatch), with no record before it
+// known, is marked `matched`: that swim's own time still sets it.
 function recordBefore(record, meetId) {
     if (!record) return null;
-    return record.setAtMeet === meetId && record.previous ? record.previous : record;
+    if (record.setAtMeet !== meetId) return record;
+    return record.previous || { ...record, matched: true };
 }
+const sameTime = (a, b) => Math.abs(a - b) < 0.005;
 
 // The swims and relays at a meet that set a new team record: Spotswood,
 // legal and timed, strictly faster than the record coming in; when two beat
@@ -178,10 +182,10 @@ function newRecordsAtMeet({ individual, relays }, records, meetId, isOurs) {
         if (row.status !== "OK" || row.officialSeconds == null || !isOurs(row.team)) return;
         const key = keyForEvent(row.eventName);
         const old = key && recordBefore(records.get(key), meetId);
-        if (!old || !(row.officialSeconds < old.seconds)) return;
+        if (!old || !(row.officialSeconds < old.seconds || (old.matched && sameTime(row.officialSeconds, old.seconds)))) return;
         const current = best.get(key);
         if (!current || row.officialSeconds < current.row.officialSeconds) {
-            best.set(key, { key, kind, row, old: { time: old.time, seconds: old.seconds, year: old.year } });
+            best.set(key, { key, kind, row, old: old.matched ? null : { time: old.time, seconds: old.seconds, year: old.year } });
         }
     };
     individual.forEach(row => consider(row, "swim"));
@@ -218,7 +222,7 @@ async function saveMeetRecords(table, records, found, meetId, meetDate) {
         await table.upsertEntity(toRecordEntity({
             key: f.key, time: f.row.officialTime, seconds: f.row.officialSeconds, year, converted: false,
             setAtMeet: meetId,
-            previous: { time: before.time, seconds: before.seconds, year: before.year, converted: !!before.converted }
+            previous: before.matched ? null : { time: before.time, seconds: before.seconds, year: before.year, converted: !!before.converted }
         }), "Replace");
     }
     for (const record of records.values()) {
@@ -233,8 +237,12 @@ async function restoreRecordsSetAt(table, meetId) {
     }
 }
 
+// One with no record before it known stays, just no longer tied to the meet.
 async function restoreRecord(table, record) {
-    if (!record.previous) return;
+    if (!record.previous) {
+        await table.upsertEntity(toRecordEntity({ ...record, setAtMeet: "", previous: null }), "Replace");
+        return;
+    }
     const p = record.previous;
     await table.upsertEntity(toRecordEntity({ key: record.key, time: p.time, seconds: p.seconds, year: p.year, converted: p.converted }), "Replace");
 }
@@ -242,5 +250,5 @@ async function restoreRecord(table, record) {
 module.exports = {
     getRecordsTable, PARTITION_KEY, recordKey, keyForEvent, describeKey, compareKeys, normalizeAgeGroup,
     parseRecordsPage, toRecordEntity, toRecordDto, listRecords, newRecordsAtMeet, recordBefore,
-    recordSummary, saveMeetRecords, restoreRecordsSetAt
+    recordSummary, saveMeetRecords, restoreRecordsSetAt, sameTime
 };

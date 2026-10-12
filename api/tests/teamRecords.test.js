@@ -30,6 +30,7 @@ const listRecordsFn = require("../manageRecordsList/index.js");
 const previewResults = require("../importMeetResultsPreview/index.js");
 const commitResults = require("../importMeetResultsCommit/index.js");
 const deleteMeet = require("../manageMeetsDelete/index.js");
+const matchRecords = require("../manageRecordsMatch/index.js");
 const { sheetText } = require("./sampleSheet");
 
 // One record, as the page lays it out: year, holder names, time ("*" when converted).
@@ -153,4 +154,61 @@ test("loading the page again keeps a faster record set here that SwimTopia doesn
     assert.deepEqual(res.body.changes.keptFromSite.map(k => [k.label, k.time, k.pageTime]), [["8 & Under girls · 25 Free", "24.50", "24.80"], ["8 & Under girls · 100 Free Relay", "1:45.88", "1:50.00"]]);
     assert.equal((await storedRecord("m|girls|8 & under|25|Free")).time, "24.50");
     assert.equal((await call(uploadRecords, { body: {} })).status, 400);
+});
+
+// The page once SwimTopia lists this season's records: the sample sheet's
+// 24.50 and 1:45.88, a converted one, and one no swim here has.
+const SEASON_PAGE = `<html><body><p>Records displayed in course (pool length): <strong>Short Course Meters (25m)</strong></p>
+    ${group("8 &amp; Under", [
+        row("25 Free", ["2026", "Doe, Jane", "24.50", false], ["2026", "New, Ned", "21.90", true]),
+        row("100 Free Relay", ["2026", "J. Doe, S. Poe, K. Koe, L. Loe", "1:45.88", false], ["2026", "E. Five, F. Six, G. Seven, H. Eight", "1:39.00", false])
+    ])}
+</body></html>`;
+
+test("records loaded after their meet was imported are matched to the swims that set them", async () => {
+    resetStore();
+    await addMeet("m");
+    await call(commitResults, { body: { meetId: "m", dataBase64: upload(sheetText()), fileName: "results.pdf" } });
+    assert.equal(store.results.all().filter(r => r.teamRecord).length, 0, "no records loaded yet, so nothing is marked");
+    await call(uploadRecords, { body: { html: SEASON_PAGE, save: true } });
+
+    const res = await call(matchRecords, {});
+    assert.equal(res.status, 200);
+    assert.equal(res.body.season, 2026);
+    assert.deepEqual(res.body.matched.map(r => [r.label, r.time, r.meetDate]), [
+        ["8 & Under girls · 25 Free", "24.50", "2026-07-13"],
+        ["8 & Under girls · 100 Free Relay", "1:45.88", "2026-07-13"]
+    ]);
+    assert.deepEqual(res.body.notMatched.map(r => [r.label, r.reason]), [
+        ["8 & Under boys · 25 Free", "Converted from a yards time"],
+        ["8 & Under boys · 100 Free Relay", "No swim this season with this time"]
+    ]);
+    assert.deepEqual(store.results.all().filter(r => r.teamRecord).map(r => r.partitionKey), ["Doe, Jane"]);
+    assert.deepEqual(store.relays.all().filter(r => r.teamRecord).map(r => `${r.team} ${r.relayLetter}`), ["Spotswood A"]);
+    const summary = JSON.parse((await store.meets.getEntity("meet", "m")).summaryJson);
+    assert.deepEqual(summary.newRecords.map(r => [r.name || r.team, r.time, r.old]), [["Doe, Jane", "24.50", null], ["Spotswood (A)", "1:45.88", null]]);
+    assert.equal(summary.swims > 0, true, "the rest of the meet's numbers stay");
+    const badges = JSON.parse((await store.badges.getEntity("swimmer", encodeURIComponent("Doe, Jane"))).badgesJson);
+    assert.equal(badges[0].id, "record");
+    assert.equal((await storedRecord("m|girls|8 & under|25|Free")).setAtMeet, "m");
+
+    // Again: nothing new to match.
+    const again = await call(matchRecords, {});
+    assert.deepEqual([again.body.matched.length, again.body.alreadyMarked.length], [0, 2]);
+
+    // Re-importing the meet keeps its matched records marked, with no old record known.
+    const reimport = await call(commitResults, { body: { meetId: "m", dataBase64: upload(sheetText()), fileName: "results.pdf" } });
+    assert.deepEqual(reimport.body.newRecords.map(r => [r.time, r.old]), [["24.50", null], ["1:45.88", null]]);
+    const record = await storedRecord("m|girls|8 & under|25|Free");
+    assert.deepEqual([record.time, record.setAtMeet], ["24.50", "m"]);
+
+    // Loading the page again keeps them tied to the meet.
+    const reload = await call(uploadRecords, { body: { html: SEASON_PAGE, save: true } });
+    assert.deepEqual(reload.body.changes.keptFromSite, []);
+    assert.equal((await storedRecord("m|girls|8 & under|100|Free Relay")).setAtMeet, "m");
+
+    // Deleting the meet leaves the records, no longer tied to it.
+    await call(deleteMeet, { query: { id: "m" } });
+    const kept = await storedRecord("m|girls|8 & under|25|Free");
+    assert.deepEqual([kept.time, kept.setAtMeet], ["24.50", ""]);
 });

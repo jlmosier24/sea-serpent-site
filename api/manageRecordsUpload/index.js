@@ -8,8 +8,8 @@ const MAX_PAGE_BYTES = 3 * 1024 * 1024;
 // from a saved SwimTopia "Team Records" page -- events, times, years, and
 // the converted-time mark, never names -- and says what saving would change;
 // with save, it saves them. A record set here at an import that's faster
-// than the page's is kept (SwimTopia may not have it yet), and so is any
-// stored record the page doesn't list.
+// than the page's (SwimTopia may not have it yet), or the same, is kept, and
+// so is any stored record the page doesn't list.
 module.exports = async function (context, req) {
     const { html, save } = req.body || {};
     if (typeof html !== "string" || !html || html.length > MAX_PAGE_BYTES) {
@@ -28,8 +28,11 @@ module.exports = async function (context, req) {
         const toSave = [];
         for (const record of parsed.records) {
             const current = stored.get(record.key);
-            if (current && current.setAtMeet && current.seconds < record.seconds) {
-                changes.keptFromSite.push({ label: describeKey(record.key), time: current.time, pageTime: record.time });
+            // A record set here stays when it's faster, or the same record
+            // (so it stays tied to the meet that set it).
+            if (current && current.setAtMeet && current.seconds <= record.seconds) {
+                if (current.seconds < record.seconds) changes.keptFromSite.push({ label: describeKey(record.key), time: current.time, pageTime: record.time });
+                else changes.unchanged++;
                 continue;
             }
             if (!current) changes.added++;
