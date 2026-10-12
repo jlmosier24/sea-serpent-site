@@ -36,7 +36,11 @@ function toResultEntity(row, meetId) {
         seedConverted: !!row.seedConverted,
         officialSeconds: row.officialSeconds,
         points: row.points || 0,
-        dqReason: row.dqReason || ""
+        dqReason: row.dqReason || "",
+        // A championship's flight ("A", "B"...) and the place within it;
+        // `place` there is across every flight (championship.js).
+        flight: row.flight || "",
+        flightPlace: row.flightPlace != null ? row.flightPlace : null
     };
 }
 
@@ -56,7 +60,9 @@ function toResultDto(entity) {
         seedConverted: !!entity.seedConverted,
         officialSeconds: entity.officialSeconds,
         points: entity.points,
-        dqReason: entity.dqReason
+        dqReason: entity.dqReason,
+        flight: entity.flight || "",
+        flightPlace: entity.flightPlace != null ? entity.flightPlace : null
     };
 }
 

@@ -28,7 +28,12 @@
 //   Page header: "Results <meet name> — Jul 13, 2026 Page 1 of 23" -- the
 //                sheet's date, which the importer checks against the meet.
 //   Team Scores: an optional last page ("1 Spotswood S 525") with the
-//                sheet's own team totals.
+//                sheet's own team totals, in Men, Women, and Combined tables.
+//   Flights    : a championship meet splits each event into flights, each
+//                starting with a line like "A    A" (places restart in each
+//                and each is scored on its own); its relays start "R Relays".
+//                Its Team Scores page has a table set per flight, then
+//                "Relays" and "Overall" ones, each under a line of its own.
 // A trailing "*" on a place marks a tie, which is also why points can be a
 // decimal ("3.5") -- tied swimmers split the points for their places.
 // Page headers/footers can fall in the middle of an event across a page
@@ -57,7 +62,11 @@ const FOOTER_RE = /^SwimTopia Meet Maestro/i;
 const DQ_REASON_RE = /^DQ:\s*(.*)$/;
 const DQ_CONTINUATION_RE = /^\d{1,2}[A-Z]\s+\S/;
 const TEAM_SCORES_START_RE = /^Team Scores\b/i;
-const TEAM_SCORE_ROW_RE = /^\d+\s+(.+?)\s+[A-Z]{1,4}\s+(\d+(?:\.\d+)?)$/;
+const TEAM_SCORE_ROW_RE = /^(\d+)\s+(.+?)\s+[A-Z]{1,4}\s+(\d+(?:\.\d+)?)$/;
+const TEAM_SCORE_TABLE_RE = /^(Men|Women|Combined)\s+Team Scores\b/i;
+const TEAM_SCORE_SECTION_RE = /^(?:[A-Z]|Relays|Overall)$/;
+const FLIGHT_RE = /^([A-Z])\s+\1$/;
+const RELAY_FLIGHT_RE = /^R\s+Relays$/;
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 
 // A name is normally "Last, First", but a generational suffix can add a
@@ -133,6 +142,10 @@ function parseMeetResultsText(rawText) {
     let inTeamScores = false;
     let sheetDate = null;
     let sheetTeamScores = null;
+    let flight = null;        // the championship flight the rows below are in
+    let scoreSection = null;  // "A", "Relays", "Overall"... on a championship's Team Scores page
+    let scoreTable = null;    // the Team Scores table being read
+    const teamScoreTables = [];
     const individual = [];
     const relays = [];
     const unparsedLines = [];
@@ -164,9 +177,18 @@ function parseMeetResultsText(rawText) {
             dqReasonRow = null;
             pendingRelay = null;
             inTeamScores = false;
+            flight = null;
             continue;
         }
         if (COLUMN_HEADER_RE.test(line)) continue;
+        if (currentEvent && !inTeamScores) {
+            const flightMatch = line.match(FLIGHT_RE);
+            if (flightMatch) {
+                flight = flightMatch[1];
+                continue;
+            }
+            if (RELAY_FLIGHT_RE.test(line)) continue;
+        }
 
         // The summary page's own lines ("Combined Team Scores...", "Rank Team
         // Combined", "Total 1036") aren't results, so only its team rows count.
@@ -176,8 +198,22 @@ function parseMeetResultsText(rawText) {
             continue;
         }
         if (inTeamScores) {
+            if (TEAM_SCORE_SECTION_RE.test(line)) {
+                scoreSection = line;
+                continue;
+            }
+            const tableMatch = line.match(TEAM_SCORE_TABLE_RE);
+            if (tableMatch) {
+                scoreTable = { section: scoreSection, group: tableMatch[1].toLowerCase(), rows: [] };
+                teamScoreTables.push(scoreTable);
+                continue;
+            }
             const scoreMatch = line.match(TEAM_SCORE_ROW_RE);
-            if (scoreMatch) sheetTeamScores[scoreMatch[1]] = parseFloat(scoreMatch[2]);
+            if (scoreMatch) {
+                const [, rank, team, score] = scoreMatch;
+                sheetTeamScores[team] = parseFloat(score);
+                if (scoreTable) scoreTable.rows.push({ rank: parseInt(rank, 10), team, score: parseFloat(score) });
+            }
             continue;
         }
 
@@ -214,7 +250,8 @@ function parseMeetResultsText(rawText) {
                     officialSeconds: timeToSeconds(official),
                     points: points ? parseFloat(points) : 0,
                     dqReason: null,
-                    swimmers: []
+                    swimmers: [],
+                    flight
                 };
                 pendingRelay = row;
                 startRow(row);
@@ -245,7 +282,8 @@ function parseMeetResultsText(rawText) {
                     seedSeconds: timeToSeconds(seed),
                     officialSeconds: timeToSeconds(official),
                     points: points ? parseFloat(points) : 0,
-                    dqReason: null
+                    dqReason: null,
+                    flight
                 };
                 startRow(row);
                 individual.push(row);
@@ -261,7 +299,12 @@ function parseMeetResultsText(rawText) {
         unparsedLines.push(line);
     }
 
-    return { individual, relays, unparsedLines, teamPoints, sheetDate, sheetTeamScores };
+    // With tables per section (a championship), the team totals are the
+    // Overall Combined ones rather than whichever table came last.
+    const overall = teamScoreTables.find(t => t.section === "Overall" && t.group === "combined");
+    if (overall) sheetTeamScores = Object.fromEntries(overall.rows.map(r => [r.team, r.score]));
+
+    return { individual, relays, unparsedLines, teamPoints, sheetDate, sheetTeamScores, teamScoreTables };
 }
 
 module.exports = { parseMeetResultsText, timeToSeconds, isSpotswoodTeam, normalizeName };

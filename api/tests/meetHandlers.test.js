@@ -138,7 +138,7 @@ test("the import preview reports the sheet's date, Spotswood's counts, and the s
     resetStore();
     const res = await call(previewResults, { body: { dataBase64: asUpload(sheetText()) } });
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { sheetDate: "2026-07-13", swims: 5, relays: 2, swimmers: 5, teamScore: { us: 525, them: 511, source: "sheet" }, unreadLines: [] });
+    assert.deepEqual(res.body, { sheetDate: "2026-07-13", swims: 5, relays: 2, swimmers: 5, teamScore: { us: 525, them: 511, source: "sheet" }, championship: false, unreadLines: [] });
     assert.equal((await call(previewResults, { body: {} })).status, 400);
     assert.equal(store.results.all().length, 0, "a preview saves nothing");
 });

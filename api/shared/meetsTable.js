@@ -33,7 +33,9 @@ function toMeetDto(entity) {
     const oldTitle = (entity.title || "").match(OLD_TITLE_RE);
     const homeAway = entity.homeAway || (oldTitle && oldTitle[1].toLowerCase() === "at" ? "away" : "home");
     const shortName = entity.shortName || (oldTitle ? oldTitle[2].trim() : "") || autoShortName(entity.opponent);
-    const hasScore = entity.teamScore != null && entity.opponentScore != null;
+    // A championship has every team's standing instead of one opponent's score.
+    const championship = entity.meetType === "championship";
+    const hasScore = entity.teamScore != null && (championship || entity.opponentScore != null);
     return {
         id: entity.rowKey,
         title: entity.shortName ? meetTitle(homeAway, entity.shortName) : (entity.title || meetTitle(homeAway, shortName)),
@@ -51,7 +53,10 @@ function toMeetDto(entity) {
         // Added up from the sheet's points on import (see importMeetResultsCommit),
         // or typed in by the admin. Scores from before scoreSource existed all came from imports.
         teamScore: hasScore ? entity.teamScore : null,
-        opponentScore: hasScore ? entity.opponentScore : null,
+        opponentScore: hasScore && !championship ? entity.opponentScore : null,
+        meetType: championship ? "championship" : "dual",
+        // A championship's teams, best first: [{ team, score, place }], from the sheet.
+        standings: championship ? parseJson(entity.standingsJson, []) : null,
         scoreSource: hasScore ? (entity.scoreSource || "import") : null,
         // Likewise, every older meet that has a score had its results imported.
         resultsImported: entity.resultsImported != null ? !!entity.resultsImported : hasScore,
@@ -61,6 +66,15 @@ function toMeetDto(entity) {
         // at import so the home page can show them without reading every result.
         summary: parseSummary(entity.summaryJson)
     };
+}
+
+function parseJson(json, fallback) {
+    if (!json) return fallback;
+    try {
+        return JSON.parse(json);
+    } catch (e) {
+        return fallback;
+    }
 }
 
 function parseSummary(json) {
@@ -141,6 +155,9 @@ function buildMeetEntity(body, rowKey, existingEntity) {
         entity.lastImportAt = existing.lastImportAt;
         if (existingEntity.summaryJson) entity.summaryJson = existingEntity.summaryJson;
     }
+    // Set by a championship's import; carried over until the form can set it.
+    if (existingEntity && existingEntity.meetType) entity.meetType = existingEntity.meetType;
+    if (existingEntity && existingEntity.standingsJson) entity.standingsJson = existingEntity.standingsJson;
     return { entity };
 }
 

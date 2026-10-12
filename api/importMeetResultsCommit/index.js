@@ -6,6 +6,7 @@ const {
 const { getMeetsTable, toMeetDto, listMeets, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { readResultsSheet } = require("../shared/resultsSheet");
 const { meetSummary, teamScore } = require("../shared/stats");
+const { isChampionshipSheet, withOverallPlaces, standings } = require("../shared/championship");
 const { markConvertedSeeds } = require("../shared/seeds");
 const { forEachInBatches } = require("../shared/batches");
 const { getBadgesTable, recomputeBadges } = require("../shared/badgeStore");
@@ -95,7 +96,9 @@ module.exports = async function (context, req) {
         const resultsTable = getResultsTable();
         const relayTable = getRelayResultsTable();
         const earlier = await resultsBefore(resultsTable, meetsTable, meetEntity.date);
-        const individual = markConvertedSeeds(parsed.individual, earlier);
+        // A championship's swimmers are placed by time across every flight.
+        const championship = meetEntity.meetType === "championship" || isChampionshipSheet(parsed);
+        const individual = markConvertedSeeds(championship ? withOverallPlaces(parsed.individual) : parsed.individual, earlier);
 
         await getResultsPdfContainer().getBlockBlobClient(sheetBlobName(meetId)).uploadData(buffer, {
             blobHTTPHeaders: { blobContentType: "application/pdf" }
@@ -118,7 +121,13 @@ module.exports = async function (context, req) {
             lastImportAt: new Date().toISOString(),
             summaryJson: JSON.stringify(summary)
         };
-        if (score && !scoreKept) Object.assign(update, { teamScore: score.us, opponentScore: score.them, scoreSource: "import" });
+        if (championship) {
+            update.meetType = "championship";
+            update.standingsJson = JSON.stringify(standings(parsed));
+            if (score && !scoreKept) Object.assign(update, { teamScore: score.us, scoreSource: "import" });
+        } else if (score && !scoreKept) {
+            Object.assign(update, { teamScore: score.us, opponentScore: score.them, scoreSource: "import" });
+        }
         await meetsTable.updateEntity(update, "Merge");
 
         // Badges compare teammates, so everyone's are worked out again. A failure

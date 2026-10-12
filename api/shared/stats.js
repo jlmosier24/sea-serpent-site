@@ -4,6 +4,7 @@
 // pages show Spotswood swimmers only, so meet numbers count only theirs.
 const { isSpotswoodTeam } = require("./meetResultsParser");
 const { hasRealSeed } = require("./seeds");
+const { isChampionshipSheet, standings, ourStanding } = require("./championship");
 
 function isScored(swim) {
     return swim.status === "OK";
@@ -201,6 +202,13 @@ function meetSummary(individual, relays, earlier = []) {
 // otherwise every team's points added up. Spotswood on one side, every other
 // team on the other.
 function teamScore(parsed) {
+    if (isChampionshipSheet(parsed)) {
+        // A championship: Spotswood's score and place among every team.
+        const ours = ourStanding(standings(parsed));
+        if (!ours) return null;
+        const hasSheet = parsed.sheetTeamScores && Object.keys(parsed.sheetTeamScores).length;
+        return { us: ours.score, them: null, place: ours.place, of: ours.of, source: hasSheet ? "sheet" : "points" };
+    }
     const totals = parsed.sheetTeamScores && Object.keys(parsed.sheetTeamScores).length ? parsed.sheetTeamScores : parsed.teamPoints;
     if (!totals || !Object.keys(totals).length) return null;
     let us = 0;
