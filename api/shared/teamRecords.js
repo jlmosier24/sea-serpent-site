@@ -73,8 +73,9 @@ const decode = text => String(text)
 // The page lists one pool length ("Short Course Meters (25m)"), then an
 // age-group table per group: a header (Girls · 6 & Under · Boys) and a row
 // per event with the girls' record, the event, and the boys' record. Each
-// record has a year, holder names (not kept), and a time, marked "*" when
-// it was converted from another pool length.
+// record has a year, its holder (a swimmer, "Last, First", or a relay's
+// swimmers), and a time, marked "*" when it was converted from another pool
+// length. Holders are for the admin page only; public pages never show them.
 function parseRecordsPage(html) {
     const text = String(html || "");
     const courseMatch = text.match(/(Short|Long) Course (Meters|Yards)/);
@@ -98,6 +99,7 @@ function parseRecordsPage(html) {
                 if (!side) return;
                 const timeMatch = side.match(/class="[^"]*record-row__time[^"]*"[^>]*>([\s\S]*?)<\/div>/);
                 const yearMatch = side.match(/class="[^"]*record-row__year[^"]*"[^>]*>([\s\S]*?)<\/div>/);
+                const namesMatch = side.match(/class="[^"]*record-row__names[^"]*"[^>]*>([\s\S]*?)<\/div>/);
                 const timeText = timeMatch ? decode(timeMatch[1]) : "";
                 const time = (timeText.match(/\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2}/) || [])[0];
                 if (!time) return;
@@ -107,12 +109,25 @@ function parseRecordsPage(html) {
                     time,
                     seconds: timeToSeconds(time),
                     year,
-                    converted: timeText.includes("*")
+                    converted: timeText.includes("*"),
+                    holder: holderName(namesMatch ? decode(namesMatch[1]) : "", /Relay$/.test(em[2]))
                 });
             });
         }
     }
     return records.length ? { course, records } : { records: [], problem: "No records were found on that page." };
+}
+
+// A holder as people read it: "Doe, Jane" -> "Jane Doe"; a relay's swimmers
+// as listed ("J. Doe, S. Poe, ...").
+function holderName(text, relay) {
+    if (relay) return text;
+    const parts = text.split(",").map(p => p.trim()).filter(Boolean);
+    return parts.length < 2 ? text : [parts[parts.length - 1], ...parts.slice(0, -1)].join(" ");
+}
+// Who set a record at a meet here: the swimmer, or the relay's swimmers.
+function holderOf(kind, row) {
+    return kind === "relay" ? (row.swimmers || []).map(s => holderName(s.name || s, false)).join(", ") : holderName(row.name || "", false);
 }
 
 /* ---------- Stored records ---------- */
@@ -125,6 +140,7 @@ function toRecordEntity(record) {
         seconds: record.seconds,
         year: record.year,
         converted: !!record.converted,
+        holder: record.holder || "",
         // Set by an import here: the meet, and the record it replaced, so a
         // re-import of that meet still compares against the old one.
         setAtMeet: record.setAtMeet || "",
@@ -141,6 +157,7 @@ function toRecordDto(entity) {
         seconds: entity.seconds,
         year: entity.year != null ? entity.year : null,
         converted: !!entity.converted,
+        holder: entity.holder || "",
         setAtMeet: entity.setAtMeet || "",
         previous
     };
@@ -221,8 +238,9 @@ async function saveMeetRecords(table, records, found, meetId, meetDate) {
         const before = recordBefore(records.get(f.key), meetId);
         await table.upsertEntity(toRecordEntity({
             key: f.key, time: f.row.officialTime, seconds: f.row.officialSeconds, year, converted: false,
+            holder: holderOf(f.kind, f.row),
             setAtMeet: meetId,
-            previous: before.matched ? null : { time: before.time, seconds: before.seconds, year: before.year, converted: !!before.converted }
+            previous: before.matched ? null : { time: before.time, seconds: before.seconds, year: before.year, converted: !!before.converted, holder: before.holder || "" }
         }), "Replace");
     }
     for (const record of records.values()) {
@@ -244,11 +262,11 @@ async function restoreRecord(table, record) {
         return;
     }
     const p = record.previous;
-    await table.upsertEntity(toRecordEntity({ key: record.key, time: p.time, seconds: p.seconds, year: p.year, converted: p.converted }), "Replace");
+    await table.upsertEntity(toRecordEntity({ key: record.key, time: p.time, seconds: p.seconds, year: p.year, converted: p.converted, holder: p.holder }), "Replace");
 }
 
 module.exports = {
     getRecordsTable, PARTITION_KEY, recordKey, keyForEvent, describeKey, compareKeys, normalizeAgeGroup,
     parseRecordsPage, toRecordEntity, toRecordDto, listRecords, newRecordsAtMeet, recordBefore,
-    recordSummary, saveMeetRecords, restoreRecordsSetAt, sameTime
+    recordSummary, saveMeetRecords, restoreRecordsSetAt, sameTime, holderOf
 };

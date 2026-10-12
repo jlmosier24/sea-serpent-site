@@ -3,7 +3,7 @@ const { getMeetsTable, listMeets, PARTITION_KEY: MEET_PARTITION_KEY } = require(
 const { getBadgesTable, recomputeBadges } = require("../shared/badgeStore");
 const { isSpotswoodTeam } = require("../shared/meetResultsParser");
 const {
-    getRecordsTable, listRecords, toRecordEntity, keyForEvent, describeKey, compareKeys, recordSummary, sameTime
+    getRecordsTable, listRecords, toRecordEntity, keyForEvent, describeKey, compareKeys, recordSummary, sameTime, holderOf
 } = require("../shared/teamRecords");
 
 // Reachable at /api/manageRecordsMatch. Admin only (the /api/manage* rule in
@@ -56,7 +56,7 @@ module.exports = async function (context) {
         const summaries = new Map(); // meet id -> its updated summary
         for (const f of found.values()) {
             await f.table.updateEntity({ partitionKey: f.entity.partitionKey, rowKey: f.entity.rowKey, teamRecord: true }, "Merge");
-            await recordsTable.upsertEntity(toRecordEntity({ ...f.record, setAtMeet: f.meet.id, previous: null }), "Replace");
+            await recordsTable.upsertEntity(toRecordEntity({ ...f.record, holder: holderOf(f.kind, { ...f.dto, name: f.entity.partitionKey }), setAtMeet: f.meet.id, previous: null }), "Replace");
             const summary = summaries.get(f.meet.id) || { ...(f.meet.summary || {}) };
             const added = recordSummary({ key: f.key, kind: f.kind, row: { ...f.dto, name: f.entity.partitionKey }, old: null });
             summary.newRecords = [...(summary.newRecords || []).filter(r => r.key !== f.key), added];

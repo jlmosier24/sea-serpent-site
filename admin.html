@@ -100,7 +100,8 @@
     .records-box .check { margin: 0; color: var(--ink); }
 
     /* Records tab */
-    .records-table td:nth-child(2), .records-table th:nth-child(2) { white-space: nowrap; }
+    .records-table td:nth-child(3), .records-table th:nth-child(3) { white-space: nowrap; }
+    @media (max-width: 600px) { .records-table th, .records-table td { padding: 8px 4px; font-size: 13px; } }
     .set-here { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--gold-tint); border: 1px solid var(--gold-border); color: var(--gold-text); font-size: 12px; font-weight: 700; }
     .stat-tile.attention { background: var(--gold-tint); border-color: var(--gold-border); }
     .stat-value.small { font-size: 18px; line-height: 1.3; }
@@ -268,7 +269,7 @@
     <section class="stack" id="tab-records" role="tabpanel" aria-labelledby="tabBtn-records" hidden>
         <div class="card">
             <h2>Load team records</h2>
-            <p class="field-help" style="margin:0 0 14px">On SwimTopia, open the team's Team Records page, save it (File, then Save Page As), and drop the saved page here. Only events, times, and years are read, never names. A record set at a meet imported here stays when it's faster than the page's.</p>
+            <p class="field-help" style="margin:0 0 14px">On SwimTopia, open the team's Team Records page, save it (File, then Save Page As), and drop the saved page here. Events, times, years, and record holders are read; holders show only here, never on public pages. A record set at a meet imported here stays when it's faster than the page's.</p>
             <div id="recordsUpload"></div>
         </div>
         <div class="card">
@@ -1225,8 +1226,8 @@ async function loadRecords() {
         box.innerHTML = '<p class="empty">No team records yet. Load the Team Records page above.</p>';
         return;
     }
-    box.innerHTML = `<table class="records-table"><thead><tr><th>Event</th><th>Time</th><th>Year</th></tr></thead><tbody>
-        ${records.map(r => `<tr><td>${escapeHtml(r.label)}</td><td>${escapeHtml(r.time)}${r.converted ? ' <span title="Converted from yards" aria-label="converted from yards">*</span>' : ''}${r.setAtMeet ? '<span class="set-here">Set here</span>' : ''}</td><td>${r.year || ''}</td></tr>`).join('')}
+    box.innerHTML = `<table class="records-table"><thead><tr><th>Event</th><th>Holder</th><th>Time</th><th>Year</th></tr></thead><tbody>
+        ${records.map(r => `<tr><td>${escapeHtml(r.label)}</td><td>${escapeHtml(r.holder || '')}</td><td>${escapeHtml(r.time)}${r.converted ? ' <span title="Converted from yards" aria-label="converted from yards">*</span>' : ''}${r.setAtMeet ? '<span class="set-here">Set here</span>' : ''}</td><td>${r.year || ''}</td></tr>`).join('')}
         </tbody></table>
         <p class="field-help" style="margin:10px 0 0">* Converted from a yards time. “Set here” marks a record set at a meet imported on this site.</p>`;
 }

@@ -52,7 +52,7 @@ const PAGE = `<html><body><h2>Team Records</h2><p>Records displayed in course (p
     ${group("9&ndash;10", [row("25 Fly", ["2010", "Fly, Fay", "16.36", false], ["2012", "Wing, Will", "16.12", false])])}
 </body></html>`;
 
-test("the records page is read: course, events by gender and age group, times, years, converted marks, and no names", () => {
+test("the records page is read: course, events by gender and age group, times, years, converted marks, and holders", () => {
     const parsed = parseRecordsPage(PAGE);
     assert.equal(parsed.course, "m");
     assert.deepEqual(parsed.records.map(r => [r.key, r.time, r.year, r.converted]), [
@@ -64,7 +64,7 @@ test("the records page is read: course, events by gender and age group, times, y
         ["m|boys|9-10|25|Fly", "16.12", 2012, false]
     ]);
     assert.equal(parsed.records[2].seconds, 110);
-    assert.ok(!JSON.stringify(parsed).includes("Olive"), "holders' names aren't kept");
+    assert.deepEqual(parsed.records.map(r => r.holder), ["Olive Old", "Pete Past", "A. One, B. Two, C. Three, D. Four", "E. Five, F. Six, G. Seven, H. Eight", "Fay Fly", "Will Wing"]);
     assert.equal(parseRecordsPage("<p>Something else</p>").records.length, 0);
 });
 
@@ -110,7 +110,8 @@ test("an import marks the swims and relays that set a team record, and saves the
     assert.deepEqual(summary.newRecords[1].swimmers, ["Doe, Jane", "Poe, Sam", "Koe, Kim", "Loe, Liz"]);
 
     // The stored record is the new one, set this year at this meet.
-    assert.deepEqual(await storedRecord("m|girls|8 & under|25|Free"), { key: "m|girls|8 & under|25|Free", label: "8 & Under girls · 25 Free", time: "24.50", year: 2026, converted: false, setAtMeet: "m" });
+    assert.deepEqual(await storedRecord("m|girls|8 & under|25|Free"), { key: "m|girls|8 & under|25|Free", label: "8 & Under girls · 25 Free", time: "24.50", year: 2026, converted: false, holder: "Jane Doe", setAtMeet: "m" });
+    assert.equal((await storedRecord("m|girls|8 & under|100|Free Relay")).holder, "Jane Doe, Sam Poe, Kim Koe, Liz Loe");
 
     // The swimmer earns Record Breaker, listing the swim and the relay.
     const badges = JSON.parse((await store.badges.getEntity("swimmer", encodeURIComponent("Doe, Jane"))).badgesJson);
@@ -132,7 +133,7 @@ test("a corrected sheet that no longer sets a record puts the old one back; so d
 
     await call(deleteMeet, { query: { id: "m" } });
     const relay = await storedRecord("m|girls|8 & under|100|Free Relay");
-    assert.deepEqual([relay.time, relay.year, relay.converted, relay.setAtMeet], ["1:50.00", 1999, true, ""]);
+    assert.deepEqual([relay.time, relay.year, relay.converted, relay.holder, relay.setAtMeet], ["1:50.00", 1999, true, "A. One, B. Two, C. Three, D. Four", ""]);
 });
 
 test("an import told not to update the records marks the swims but leaves the records", async () => {
@@ -190,7 +191,7 @@ test("records loaded after their meet was imported are matched to the swims that
     assert.equal(summary.swims > 0, true, "the rest of the meet's numbers stay");
     const badges = JSON.parse((await store.badges.getEntity("swimmer", encodeURIComponent("Doe, Jane"))).badgesJson);
     assert.equal(badges[0].id, "record");
-    assert.equal((await storedRecord("m|girls|8 & under|25|Free")).setAtMeet, "m");
+    assert.deepEqual(await storedRecord("m|girls|8 & under|25|Free").then(r => [r.setAtMeet, r.holder]), ["m", "Jane Doe"]);
 
     // Again: nothing new to match.
     const again = await call(matchRecords, {});

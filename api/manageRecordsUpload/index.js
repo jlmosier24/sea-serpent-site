@@ -5,9 +5,9 @@ const MAX_PAGE_BYTES = 3 * 1024 * 1024;
 
 // Reachable at /api/manageRecordsUpload. Admin only (the /api/manage* rule
 // in staticwebapp.config.json). Body: { html, save }. Reads the team records
-// from a saved SwimTopia "Team Records" page -- events, times, years, and
-// the converted-time mark, never names -- and says what saving would change;
-// with save, it saves them. A record set here at an import that's faster
+// from a saved SwimTopia "Team Records" page -- events, times, years, the
+// converted-time mark, and holders (shown on the admin page only) -- and
+// says what saving would change; with save, it saves them. A record set here at an import that's faster
 // than the page's (SwimTopia may not have it yet), or the same, is kept, and
 // so is any stored record the page doesn't list.
 module.exports = async function (context, req) {
@@ -36,7 +36,7 @@ module.exports = async function (context, req) {
                 continue;
             }
             if (!current) changes.added++;
-            else if (current.seconds !== record.seconds || current.year !== record.year || current.converted !== record.converted) changes.changed++;
+            else if (current.seconds !== record.seconds || current.year !== record.year || current.converted !== record.converted || current.holder !== record.holder) changes.changed++;
             else changes.unchanged++;
             toSave.push(record);
         }
