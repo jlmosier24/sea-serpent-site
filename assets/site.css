@@ -300,6 +300,8 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 
 /* Highlight cards: Triple winners (or Top point scorers), then Biggest time drops. */
 .hl-card { margin-top: 12px; padding: 16px; border-radius: 20px; }
+/* The new team records card sits above the stat tiles. */
+.hl-card + .stat-grid { margin-top: 12px; }
 .hl-card-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .hl-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 22px; height: 22px; border: 1.5px solid var(--gold-border); border-radius: 50%; background: var(--gold-tint); color: var(--gold-text); }
 .hl-icon svg { width: 13px; height: 13px; }
