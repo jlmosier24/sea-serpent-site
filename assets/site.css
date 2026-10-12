@@ -415,7 +415,7 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .search-clear { position: absolute; right: 8px; top: 50%; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); transform: translateY(-50%); cursor: pointer; }
 .search-clear:hover { background: var(--soft); color: var(--ink); }
 .search-clear svg { width: 18px; height: 18px; }
-.matches { max-height: 340px; margin: 10px 0 0; padding: 6px; overflow-y: auto; border: 1px solid var(--soft-border); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(16,36,15,.08); }
+.matches { position: relative; max-height: 340px; margin: 10px 0 0; padding: 6px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--soft-border); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(16,36,15,.08); }
 .match-group { margin: 8px 10px 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .match { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 12px; font-size: 16px; cursor: pointer; }
 .match[aria-selected="true"], .match:hover { background: var(--soft); }

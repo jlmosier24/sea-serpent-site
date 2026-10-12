@@ -104,14 +104,36 @@
             matchesBox.hidden = !open;
             search.setAttribute("aria-expanded", String(open));
             if (!open) search.removeAttribute("aria-activedescendant");
+            else fitList();
         }
+
+        // The list only runs as far as the part of the screen you can see: on
+        // a phone, that stops at the top of the keyboard (the visual viewport's
+        // bottom), and the list scrolls inside that space.
+        const LIST_MAX = 340;
+        const LIST_MIN = 120;
+        function fitList() {
+            if (matchesBox.hidden) return;
+            const view = window.visualViewport;
+            const bottom = view ? view.offsetTop + view.height : window.innerHeight;
+            const room = bottom - matchesBox.getBoundingClientRect().top - 12;
+            matchesBox.style.maxHeight = `${Math.max(LIST_MIN, Math.min(LIST_MAX, Math.floor(room)))}px`;
+        }
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener("resize", fitList);
+            window.visualViewport.addEventListener("scroll", fitList);
+        }
+        window.addEventListener("scroll", fitList, { passive: true });
 
         function updateActive() {
             matchesBox.querySelectorAll(".match").forEach(el => el.setAttribute("aria-selected", String(Number(el.dataset.index) === active)));
             const option = box.querySelector(`#match${active}`);
             if (option) {
                 search.setAttribute("aria-activedescendant", option.id);
-                option.scrollIntoView({ block: "nearest" });
+                // Scroll the list, never the page, to keep the chosen name in view.
+                const top = option.offsetTop; // from the list's top (it's positioned)
+                if (top < matchesBox.scrollTop) matchesBox.scrollTop = top - 6;
+                else if (top + option.offsetHeight > matchesBox.scrollTop + matchesBox.clientHeight) matchesBox.scrollTop = top + option.offsetHeight - matchesBox.clientHeight + 6;
             } else {
                 search.removeAttribute("aria-activedescendant");
             }
