@@ -123,6 +123,8 @@ module.exports = async function (context, req) {
         };
         if (championship) {
             update.meetType = "championship";
+            // Set up as a regular meet: its opponent box held the meet's name.
+            if (meetEntity.meetType !== "championship") Object.assign(update, { shortName: meetEntity.opponent, title: meetEntity.opponent, homeAway: "" });
             update.standingsJson = JSON.stringify(standings(parsed));
             if (score && !scoreKept) Object.assign(update, { teamScore: score.us, scoreSource: "import" });
         } else if (score && !scoreKept) {

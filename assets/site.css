@@ -366,6 +366,9 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .result-card .pill { font-size: 14px; }
 .result-chip { padding: 6px 14px; border-radius: var(--radius-round); background: #fff; color: var(--brand); font-size: 13px; font-weight: 700; }
 .result-card.loss .result-chip { background: #E6EAE5; color: #2F3A33; }
+/* A championship: its place among the teams, or gold for winning it. */
+.result-card.championship .result-chip { text-transform: none; }
+.result-card .result-chip.champion { background: var(--gold); color: var(--gold-ink); }
 .result-card h3 { font-size: 26px; line-height: 1.15; margin: 18px 0 10px; }
 .result-card .score-row { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 19px; }
 .result-card .score-row.us { font-weight: 700; }

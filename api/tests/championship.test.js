@@ -126,7 +126,8 @@ test("a flight win that isn't the best time isn't a first place in the meet's nu
 
 test("importing a championship saves overall places, flights, and the standings, with no opponent score", async () => {
     resetStore();
-    await call(saveMeet, { body: { opponent: "Division Finals", shortName: "Division Finals", homeAway: "away", date: "2026-07-26", time: "08:00" } });
+    // Set up as a regular meet: the sheet's flights are enough to make it a championship.
+    await call(saveMeet, { body: { opponent: "Division Finals", homeAway: "away", date: "2026-07-26", time: "08:00" } });
     const [meet] = store.meets.all();
     const upload = Buffer.from(SHEET_TEXT, "utf8").toString("base64");
 
@@ -140,14 +141,23 @@ test("importing a championship saves overall places, flights, and the standings,
     assert.deepEqual([loe.place, loe.flight, loe.flightPlace], [3, "B", 1]);
 
     const [listed] = (await call(publicMeets, {})).body;
-    assert.equal(listed.meetType, "championship");
+    assert.deepEqual([listed.meetType, listed.title, listed.homeAway], ["championship", "Division Finals", ""]);
     assert.equal(listed.teamScore, 26);
     assert.equal(listed.opponentScore, null);
     assert.deepEqual(listed.standings.map(r => r.team), ["Spotswood", "Sample Sharks", "Test Seahawks"]);
 
-    // Editing the meet keeps it a championship with its standings.
-    await call(saveMeet, { body: { id: meet.rowKey, opponent: "Division Finals", shortName: "Division Finals", homeAway: "away", date: "2026-07-26", time: "08:30" } });
+    // Editing it as a championship (the form now shows it as one) keeps its score and standings.
+    await call(saveMeet, { body: { id: meet.rowKey, meetType: "championship", opponent: "Division Finals", date: "2026-07-26", time: "08:30" } });
     const [edited] = (await call(publicMeets, {})).body;
-    assert.equal(edited.meetType, "championship");
-    assert.equal(edited.standings.length, 3);
+    assert.deepEqual([edited.meetType, edited.title, edited.homeAway, edited.teamScore, edited.standings.length], ["championship", "Division Finals", "", 26, 3]);
+});
+
+test("a championship is saved from the form with its name as the title, and needs a name", async () => {
+    resetStore();
+    const res = await call(saveMeet, { body: { meetType: "championship", opponent: "Division Finals", homeAway: "home", date: "2026-07-26", teamScore: "5", opponentScore: "4" } });
+    assert.equal(res.status, 200);
+    const [listed] = (await call(publicMeets, {})).body;
+    // No home or away, and no typed-in scores: those come from the sheet.
+    assert.deepEqual([listed.meetType, listed.title, listed.homeAway, listed.teamScore, listed.standings], ["championship", "Division Finals", "", null, []]);
+    assert.equal((await call(saveMeet, { body: { meetType: "championship", opponent: "", date: "2026-07-26" } })).body, "Enter the meet's name.");
 });

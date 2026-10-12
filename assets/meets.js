@@ -236,7 +236,27 @@
 
     // A past meet's card: green, or gray-green after a loss (never red).
     // "See team stats" carries data-meet-stats for the page to open the popup.
+    // 5 -> "5th"
+    function ordinal(n) {
+        const tens = n % 100;
+        const suffix = tens >= 11 && tens <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th");
+        return `${n}${suffix}`;
+    }
+
+    // A championship's standings: Spotswood's line, and the team to show
+    // under it -- the winner, or the runner-up when Spotswood won. Null
+    // before its results are in.
+    function championshipStanding(meet) {
+        const table = meet.meetType === "championship" ? meet.standings || [] : [];
+        const ours = table.find(r => /spotswood/i.test(r.team));
+        if (!ours) return null;
+        const other = table.find(r => r !== ours && r.place === (ours.place === 1 ? 2 : 1)) || table.find(r => r !== ours);
+        return { ours, other, of: table.length };
+    }
+
     function resultCard(meet) {
+        const standing = championshipStanding(meet);
+        if (standing) return championshipCard(meet, standing);
         const result = outcome(meet);
         const s = meet.summary;
         return `
@@ -249,6 +269,29 @@
                 ${result ? `
                     <p class="score-row us"><span>Spotswood ${escapeHtml(meet.teamScore)}</span>${result === "win" ? TROPHY : ""}</p>
                     <p class="score-row them"><span>${escapeHtml(meet.opponent)} ${escapeHtml(meet.opponentScore)}</span>${result === "loss" ? TROPHY : ""}</p>` : ""}
+                ${s ? `<p class="quick-stats"><b>${s.firstPlaces}</b> ${s.firstPlaces === 1 ? "first place" : "first places"}<span class="sep" aria-hidden="true"></span><b>${s.relayWins}</b> ${s.relayWins === 1 ? "relay win" : "relay wins"}</p>` : ""}
+                <div class="btn-row">
+                    ${s ? `<button type="button" class="btn on-dark" data-meet-stats="${escapeHtml(meet.id)}">${icon("chart")}See team stats</button>` : ""}
+                    <a class="btn ghost-on-dark" href="/gallery.html?meet=${encodeURIComponent(meet.id)}">${icon("camera")}View photos</a>
+                </div>
+            </article>`;
+    }
+
+    // A championship's card: Spotswood's place among the teams (gold for a
+    // win, as celebration), its score, and the winner's -- or, when Spotswood
+    // won, the runner-up's.
+    function championshipCard(meet, { ours, other, of }) {
+        const s = meet.summary;
+        const won = ours.place === 1;
+        return `
+            <article class="hero-card result-card championship">
+                <div class="card-top">
+                    <span class="pill">${escapeHtml(fmtDate(meet.date))} · Final</span>
+                    <span class="result-chip${won ? " champion" : ""}">${won ? "CHAMPIONS" : `${ordinal(ours.place)} of ${of}`}</span>
+                </div>
+                <h3>${escapeHtml(meet.title)}</h3>
+                <p class="score-row us"><span>Spotswood ${escapeHtml(ours.score)}</span>${won ? TROPHY : ""}</p>
+                ${other ? `<p class="score-row them"><span>${escapeHtml(other.team)} ${escapeHtml(other.score)}</span>${other.place === 1 ? TROPHY : ""}</p>` : ""}
                 ${s ? `<p class="quick-stats"><b>${s.firstPlaces}</b> ${s.firstPlaces === 1 ? "first place" : "first places"}<span class="sep" aria-hidden="true"></span><b>${s.relayWins}</b> ${s.relayWins === 1 ? "relay win" : "relay wins"}</p>` : ""}
                 <div class="btn-row">
                     ${s ? `<button type="button" class="btn on-dark" data-meet-stats="${escapeHtml(meet.id)}">${icon("chart")}See team stats</button>` : ""}
@@ -535,6 +578,6 @@
     window.Meets = {
         escapeHtml, fmtDate, fmtClock, fmtSeconds, easternToday, displayName, initials, shortEventName, plural,
         hasScore, hasResults, outcome, OUTCOME_CHIPS, splitMeets,
-        showUpcoming, resultCard, openResults, openAllResults
+        showUpcoming, resultCard, openResults, openAllResults, ordinal, championshipStanding
     };
 })();

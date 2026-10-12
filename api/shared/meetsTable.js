@@ -30,15 +30,17 @@ function meetTitle(homeAway, shortName) {
 const OLD_TITLE_RE = /^\s*(vs\.?|at)\s+(.+)$/i;
 
 function toMeetDto(entity) {
-    const oldTitle = (entity.title || "").match(OLD_TITLE_RE);
-    const homeAway = entity.homeAway || (oldTitle && oldTitle[1].toLowerCase() === "at" ? "away" : "home");
-    const shortName = entity.shortName || (oldTitle ? oldTitle[2].trim() : "") || autoShortName(entity.opponent);
-    // A championship has every team's standing instead of one opponent's score.
+    // A championship has a name of its own ("Division Finals") instead of an
+    // opponent, home or away, and every team's standing instead of one
+    // opponent's score.
     const championship = entity.meetType === "championship";
+    const oldTitle = (entity.title || "").match(OLD_TITLE_RE);
+    const homeAway = championship ? "" : entity.homeAway || (oldTitle && oldTitle[1].toLowerCase() === "at" ? "away" : "home");
+    const shortName = entity.shortName || (oldTitle ? oldTitle[2].trim() : "") || autoShortName(entity.opponent);
     const hasScore = entity.teamScore != null && (championship || entity.opponentScore != null);
     return {
         id: entity.rowKey,
-        title: entity.shortName ? meetTitle(homeAway, entity.shortName) : (entity.title || meetTitle(homeAway, shortName)),
+        title: championship ? shortName : entity.shortName ? meetTitle(homeAway, entity.shortName) : (entity.title || meetTitle(homeAway, shortName)),
         opponent: entity.opponent || "",
         shortName,
         homeAway,
@@ -101,9 +103,11 @@ function parseScore(value) {
 // it. Saving replaces the whole record (so a cleared field really clears),
 // which means the import's own fields are carried over from the existing one.
 function buildMeetEntity(body, rowKey, existingEntity) {
+    const championship = body.meetType === "championship";
+    // A championship's name comes in the opponent box.
     const opponent = text(body.opponent);
     const date = text(body.date);
-    if (!opponent) return { error: "Enter the opponent's name." };
+    if (!opponent) return { error: championship ? "Enter the meet's name." : "Enter the opponent's name." };
     if (!DATE_RE.test(date)) return { error: "Pick a date." };
     const time = text(body.time);
     const warmUp = text(body.warmUp);
@@ -115,15 +119,16 @@ function buildMeetEntity(body, rowKey, existingEntity) {
     if (Number.isNaN(teamScore) || Number.isNaN(opponentScore)) return { error: "Scores must be whole numbers." };
     if ((teamScore == null) !== (opponentScore == null)) return { error: "Enter both scores, or leave both blank." };
 
-    const homeAway = body.homeAway === "away" ? "away" : "home";
-    const shortName = text(body.shortName) || autoShortName(opponent);
+    const homeAway = championship ? "" : body.homeAway === "away" ? "away" : "home";
+    const shortName = championship ? opponent : text(body.shortName) || autoShortName(opponent);
     const entity = {
         partitionKey: PARTITION_KEY,
         rowKey,
-        title: meetTitle(homeAway, shortName),
+        title: championship ? opponent : meetTitle(homeAway, shortName),
         opponent,
         shortName,
         homeAway,
+        meetType: championship ? "championship" : "dual",
         date,
         time,
         warmUp,
@@ -141,7 +146,14 @@ function buildMeetEntity(body, rowKey, existingEntity) {
     }
 
     const existing = existingEntity ? toMeetDto(existingEntity) : null;
-    if (teamScore != null) {
+    if (championship) {
+        // Its standings and score come from the results sheet; the form has no score boxes.
+        if (existing && existing.meetType === "championship" && existing.teamScore != null) {
+            entity.teamScore = existing.teamScore;
+            entity.scoreSource = existing.scoreSource;
+        }
+        if (existingEntity && existingEntity.standingsJson) entity.standingsJson = existingEntity.standingsJson;
+    } else if (teamScore != null) {
         entity.teamScore = teamScore;
         entity.opponentScore = opponentScore;
         // An unchanged score keeps its source. A new or edited one was typed
@@ -155,9 +167,6 @@ function buildMeetEntity(body, rowKey, existingEntity) {
         entity.lastImportAt = existing.lastImportAt;
         if (existingEntity.summaryJson) entity.summaryJson = existingEntity.summaryJson;
     }
-    // Set by a championship's import; carried over until the form can set it.
-    if (existingEntity && existingEntity.meetType) entity.meetType = existingEntity.meetType;
-    if (existingEntity && existingEntity.standingsJson) entity.standingsJson = existingEntity.standingsJson;
     return { entity };
 }
 

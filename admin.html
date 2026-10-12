@@ -166,16 +166,23 @@
             <h2 id="formTitle">Add a meet</h2>
             <form id="meetForm" novalidate>
                 <div class="form-grid">
+                    <div class="field full">
+                        <span class="field-label" id="meetTypeLabel">Meet type</span>
+                        <div class="seg" role="radiogroup" aria-labelledby="meetTypeLabel">
+                            <label><input type="radio" name="meetType" value="dual" checked><span>Regular meet</span></label>
+                            <label><input type="radio" name="meetType" value="championship"><span>Championship</span></label>
+                        </div>
+                    </div>
                     <div class="field">
-                        <label class="field-label" for="fOpponent">Opponent</label>
+                        <label class="field-label" for="fOpponent" id="opponentLabel">Opponent</label>
                         <input class="input" type="text" id="fOpponent" placeholder="e.g. Fawn Lake Fliers" autocomplete="off" aria-describedby="eOpponent">
                         <p class="field-error" id="eOpponent" role="alert" hidden></p>
                     </div>
-                    <div class="field">
+                    <div class="field" id="shortField">
                         <label class="field-label" for="fShort">Short name <span class="optional">(shown on cards)</span></label>
                         <input class="input" type="text" id="fShort" placeholder="e.g. Fawn Lake" autocomplete="off">
                     </div>
-                    <div class="field">
+                    <div class="field" id="homeAwayField">
                         <span class="field-label" id="homeAwayLabel">Home or away</span>
                         <div class="seg" role="radiogroup" aria-labelledby="homeAwayLabel">
                             <label><input type="radio" name="homeAway" value="home" checked><span>Home</span></label>
@@ -209,7 +216,8 @@
                         <div class="label-row"><label class="field-label" for="fNote">Note for parents <span class="optional">(optional)</span></label><span class="small muted" id="noteCount" aria-live="polite">0/120</span></div>
                         <textarea class="input" id="fNote" maxlength="120" rows="2" placeholder="e.g. Bring a towel and a chair."></textarea>
                     </div>
-                    <div class="field full">
+                    <p class="field-help full" id="championshipHelp" hidden>A championship's team standings and Spotswood's score come from its results sheet when it's imported.</p>
+                    <div class="field full" id="scoreField">
                         <span class="field-label" id="scoreLabel">Final score <span class="optional">(optional)</span></span>
                         <div class="score-row" role="group" aria-labelledby="scoreLabel">
                             <span class="team">Spotswood</span><input class="input" type="number" id="fTeamScore" min="0" step="1" inputmode="numeric" aria-label="Spotswood score">
@@ -386,12 +394,27 @@ function autoShortName(opponent) {
     const words = opponent.trim().split(/\s+/).filter(Boolean);
     return words.length > 1 ? words.slice(0, -1).join(' ') : (words[0] || '');
 }
-function isHome() { return document.querySelector('input[name="homeAway"]:checked').value === 'home'; }
+function isChampionship() { return document.querySelector('input[name="meetType"]:checked').value === 'championship'; }
+// A championship isn't home or away; for the home pool's venue, it's treated as away.
+function isHome() { return !isChampionship() && document.querySelector('input[name="homeAway"]:checked').value === 'home'; }
+const CHAMPIONSHIP_NAME = 'Division Finals';
+// A championship has a name instead of an opponent, and no short name, home or away, or score boxes.
+function updateMeetTypeFields() {
+    const championship = isChampionship();
+    $('opponentLabel').textContent = championship ? 'Meet name' : 'Opponent';
+    $('fOpponent').placeholder = championship ? `e.g. ${CHAMPIONSHIP_NAME}` : 'e.g. Fawn Lake Fliers';
+    ['shortField', 'homeAwayField', 'scoreField'].forEach(id => { $(id).hidden = championship; });
+    $('championshipHelp').hidden = !championship;
+}
 function meetState(m) { return m.resultsImported ? 'imported' : (m.date > todayIso ? 'upcoming' : 'needs'); }
 
 // A blank short name is filled in automatically on save, so the preview shows that one.
 function currentShortName() { return $('fShort').value.trim() || autoShortName($('fOpponent').value); }
 function updateTitlePreview() {
+    if (isChampionship()) {
+        $('titlePreview').textContent = $('fOpponent').value.trim() || '…';
+        return;
+    }
     const short = currentShortName();
     $('titlePreview').textContent = `${isHome() ? 'vs.' : 'at'} ${short || '…'}`;
     $('opponentScoreName').textContent = short || 'Opponent';
@@ -442,6 +465,17 @@ document.querySelectorAll('input[name="homeAway"]').forEach(radio => radio.addEv
         updateVenueHelp();
     }
 }));
+document.querySelectorAll('input[name="meetType"]').forEach(radio => radio.addEventListener('change', () => {
+    if (isChampionship() && !$('fOpponent').value.trim()) $('fOpponent').value = CHAMPIONSHIP_NAME;
+    updateMeetTypeFields();
+    updateTitlePreview();
+    showFieldError('eOpponent', '');
+    if (isHome()) applyPoolToForm();
+    else {
+        if (venueFromPool) { $('fVenue').value = ''; $('fAddress').value = ''; meetCoords = null; venueFromPool = false; }
+        updateVenueHelp();
+    }
+}));
 $('fVenue').addEventListener('input', () => { venueFromPool = false; updateVenueHelp(); });
 $('fAddress').addEventListener('input', () => { venueFromPool = false; updateVenueHelp(); });
 $('fAddress').addEventListener('change', updateVenueHelp);
@@ -461,6 +495,8 @@ function resetForm() {
     ['fOpponent', 'fShort', 'fDate', 'fWarmUp', 'fVenue', 'fAddress', 'fNote', 'fTeamScore', 'fOpponentScore'].forEach(id => { $(id).value = ''; });
     $('fTime').value = '18:00';
     document.querySelector('input[name="homeAway"][value="home"]').checked = true;
+    document.querySelector('input[name="meetType"][value="dual"]').checked = true;
+    updateMeetTypeFields();
     $('formTitle').textContent = 'Add a meet';
     $('saveBtn').textContent = 'Save meet';
     $('cancelEditBtn').hidden = true;
@@ -482,6 +518,8 @@ function editMeet(id, focusScore) {
     $('fOpponent').value = m.opponent;
     $('fShort').value = m.shortName;
     document.querySelector(`input[name="homeAway"][value="${m.homeAway === 'away' ? 'away' : 'home'}"]`).checked = true;
+    document.querySelector(`input[name="meetType"][value="${m.meetType === 'championship' ? 'championship' : 'dual'}"]`).checked = true;
+    updateMeetTypeFields();
     $('fDate').value = m.date || '';
     $('fWarmUp').value = m.warmUp || '';
     $('fTime').value = m.time || '';
@@ -500,7 +538,7 @@ function editMeet(id, focusScore) {
     updateNoteCount();
     updateVenueHelp();
     $('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setTimeout(() => $(focusScore ? 'fTeamScore' : 'fOpponent').focus({ preventScroll: true }), 300);
+    setTimeout(() => $(focusScore && !isChampionship() ? 'fTeamScore' : 'fOpponent').focus({ preventScroll: true }), 300);
 }
 
 let formMsgTimer = null;
@@ -515,7 +553,7 @@ $('meetForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const opponent = $('fOpponent').value.trim();
     const date = $('fDate').value;
-    showFieldError('eOpponent', opponent ? '' : "Enter the opponent's name.");
+    showFieldError('eOpponent', opponent ? '' : (isChampionship() ? "Enter the meet's name." : "Enter the opponent's name."));
     showFieldError('eDate', date ? '' : 'Pick a date.');
     if (!opponent || !date) {
         $(opponent ? 'fDate' : 'fOpponent').focus();
@@ -524,6 +562,7 @@ $('meetForm').addEventListener('submit', async (event) => {
     const wasEditing = !!editingId;
     const body = {
         id: editingId || undefined,
+        meetType: isChampionship() ? 'championship' : 'dual',
         opponent,
         shortName: $('fShort').value.trim(),
         homeAway: isHome() ? 'home' : 'away',
@@ -552,6 +591,10 @@ $('meetForm').addEventListener('submit', async (event) => {
 });
 
 function scoreText(m) {
+    if (m.meetType === 'championship') {
+        const ours = (m.standings || []).find(r => /spotswood/i.test(r.team));
+        return ours ? `${ordinal(ours.place)} of ${m.standings.length} · ${ours.score}` : '';
+    }
     if (m.teamScore == null) return '';
     const result = m.teamScore > m.opponentScore ? 'W' : m.teamScore < m.opponentScore ? 'L' : 'T';
     return `${result} ${m.teamScore}–${m.opponentScore}`;
@@ -573,13 +616,13 @@ function renderMeetList() {
     if (!meets.length) { list.innerHTML = '<p class="empty">No meets yet.</p>'; return; }
     list.innerHTML = meets.map(m => {
         const score = scoreText(m);
-        const scorePart = score ? ` · ${escapeHtml(score)}` : (meetState(m) !== 'upcoming' ? ` · <button type="button" class="link-btn" data-act="score" data-id="${escapeHtml(m.id)}">Add score</button>` : '');
+        const scorePart = score ? ` · ${escapeHtml(score)}` : (meetState(m) !== 'upcoming' && m.meetType !== 'championship' ? ` · <button type="button" class="link-btn" data-act="score" data-id="${escapeHtml(m.id)}">Add score</button>` : '');
         return `
             <div class="meet-row">
                 <div class="meet-when">${escapeHtml(fmtDate(m.date))}${m.time ? `<span class="sub">${escapeHtml(fmtTime(m.time))}</span>` : ''}</div>
                 <div>
                     <span class="meet-title">${escapeHtml(m.title)}</span>
-                    <span class="sub">${escapeHtml(m.opponent)}${scorePart}</span>
+                    <span class="sub">${m.meetType === 'championship' ? 'Championship' : escapeHtml(m.opponent)}${scorePart}</span>
                     ${m.note ? `<span class="note-line" title="Note for parents">${ICON_NOTE}<span>${escapeHtml(m.note)}</span></span>` : ''}
                 </div>
                 <div>${venueCell(m)}</div>
