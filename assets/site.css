@@ -367,6 +367,7 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .upcoming .card-top { flex-wrap: nowrap; }
 .upcoming .forecast { min-width: 0; }
 .forecast { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 10px; border: 1px solid var(--gold-border); border-radius: 20px; background: #fff; font-size: 14px; font-weight: 600; }
+.forecast span { white-space: nowrap; }
 .forecast svg { width: 20px; height: 20px; flex-shrink: 0; color: #D58B00; }
 .forecast svg.overcast { color: var(--muted); }
 .forecast.pending { color: var(--muted); font-size: 13px; font-weight: 500; }

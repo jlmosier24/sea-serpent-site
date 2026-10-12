@@ -146,6 +146,35 @@
         return icon("cloud", "overcast");
     }
 
+    // The forecast's gist in a word or two for the chip: "Chance Showers And
+    // Thunderstorms" -> "Storms", "Partly Sunny" -> "Partly cloudy". When the
+    // forecast changes through the day ("... then ..."), the most serious
+    // weather in it wins, since storms later in the day still matter for an
+    // evening meet; fog and haze, usually gone by then, come last. The note
+    // below the chip has the whole forecast. Anything not listed keeps its
+    // first two words.
+    const CONDITIONS = [
+        [/thunder|t-storm/i, "Storms"],
+        [/snow|sleet|flurr/i, "Snow"],
+        [/shower/i, "Showers"],
+        [/rain|drizzle/i, "Rain"],
+        [/partly/i, "Partly cloudy"],
+        [/cloudy|overcast/i, "Cloudy"],
+        [/sunny/i, "Sunny"],
+        [/clear/i, "Clear"],
+        [/hot/i, "Hot"],
+        [/wind|breez/i, "Windy"],
+        [/fog/i, "Fog"],
+        [/haze|smoke/i, "Haze"]
+    ];
+    function shortConditions(shortForecast) {
+        const text = (shortForecast || "").trim();
+        const match = CONDITIONS.find(([pattern]) => pattern.test(text));
+        if (match) return match[1];
+        const words = text.split(/\s+/).slice(0, 2).join(" ").toLowerCase();
+        return words.charAt(0).toUpperCase() + words.slice(1);
+    }
+
     // The card's forecast chip and note, or "Forecast soon" until the meet is
     // within a week. A meet with no map location gets neither.
     async function loadForecast(card, meet) {
@@ -162,9 +191,7 @@
             }
         }
         if (forecast && forecast.available) {
-            // "Chance Showers And Thunderstorms then Mostly Sunny" is a lot for a chip;
-            // the start of it fits, and the note below has the whole forecast.
-            const conditions = (forecast.shortForecast || "").split(/\s+then\s+/i)[0];
+            const conditions = shortConditions(forecast.shortForecast);
             const summary = [forecast.temperature != null && `${forecast.temperature}°`, conditions].filter(Boolean).join(" · ");
             chip.className = "forecast";
             chip.innerHTML = `${weatherIcon(forecast.shortForecast)}<span>${escapeHtml(summary)}</span>`;
