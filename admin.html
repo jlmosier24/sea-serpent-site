@@ -946,7 +946,9 @@ $('photoRemoveBtn').addEventListener('click', async () => {
         // The row (and its button) is gone, so focus lands on its table's heading.
         $(photo.status === 'pending' ? 'pendingTitle' : 'approvedTitle').focus();
     } catch (e) {
-        $('photoRemoveError').textContent = "Couldn't remove the photo. Please try again.";
+        // The server's reason, when it gave one, so a stuck photo can be looked into.
+        const reason = e.status === 500 && e.message ? ` (${e.message.replace(/^Error:\s*/, '').slice(0, 200)})` : '';
+        $('photoRemoveError').textContent = `Couldn't remove the photo. Please try again.${reason}`;
         $('photoRemoveError').hidden = false;
         $('photoRemoveBtn').disabled = false;
         $('photoRemoveBtn').textContent = label;

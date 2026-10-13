@@ -22,8 +22,13 @@ module.exports = async function (context, req) {
             // Not fatal -- falls back to trying the id as the blob name.
         }
 
-        await getGalleryContainer().getBlockBlobClient(blobName).deleteIfExists();
-        await table.deleteEntity(PARTITION_KEY, id);
+        // Snapshots too: Azure refuses to delete a file that has any.
+        await getGalleryContainer().getBlockBlobClient(blobName).deleteIfExists({ deleteSnapshots: "include" });
+        try {
+            await table.deleteEntity(PARTITION_KEY, id);
+        } catch (e) {
+            if (e.statusCode !== 404) throw e; // already gone is fine
+        }
 
         context.res = { status: 200, body: "Deleted" };
     } catch (e) {
