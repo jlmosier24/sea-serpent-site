@@ -18,8 +18,8 @@
     /* Lined up on the left with the header and the other pages, at its own narrower width (like the Schedule list). */
     .stats-stack { display: flex; flex-direction: column; gap: 22px; max-width: 932px; padding-bottom: 80px; }
     .stats-list { display: flex; flex-direction: column; gap: 22px; }
-    /* Leaderboards, shown until a swimmer is picked: age group chips, All /
-       Girls / Boys, an event, then each swimmer's best time this season. */
+    /* Leaderboards, shown until a swimmer is picked: age group chips, Girls /
+       Boys, an event, then each swimmer's best time this season. */
     .lb-groups { display: flex; gap: 8px; overflow-x: auto; margin: 0 -4px; padding: 2px 4px 4px; scrollbar-width: none; }
     .lb-groups::-webkit-scrollbar { display: none; }
     .lb-groups .chip { flex-shrink: 0; }
@@ -208,11 +208,10 @@
             <div class="card-head"><h2 id="boardsHeading">Leaderboards</h2><span class="small muted" id="boardsSeason"></span></div>
             <div class="lb-groups" id="boardsGroups" role="group" aria-label="Age group"></div>
             <div class="points-tabs lb-tabs" id="boardsTabs" role="tablist" aria-label="Swimmers">
-                <button type="button" role="tab" id="boardsTab-all" data-who="all" aria-controls="boardsPanel" aria-selected="true">All</button>
-                <button type="button" role="tab" id="boardsTab-girls" data-who="girls" aria-controls="boardsPanel" aria-selected="false" tabindex="-1">Girls</button>
+                <button type="button" role="tab" id="boardsTab-girls" data-who="girls" aria-controls="boardsPanel" aria-selected="true">Girls</button>
                 <button type="button" role="tab" id="boardsTab-boys" data-who="boys" aria-controls="boardsPanel" aria-selected="false" tabindex="-1">Boys</button>
             </div>
-            <div id="boardsPanel" role="tabpanel" aria-labelledby="boardsTab-all">
+            <div id="boardsPanel" role="tabpanel" aria-labelledby="boardsTab-girls">
                 <label class="lb-event"><span class="sr-only">Event</span><select id="boardsEvent"></select></label>
                 <div id="boardsList"></div>
             </div>
@@ -675,10 +674,10 @@ function showFavoriteNote(button, text) {
 
 /* ---------------- Leaderboards ---------------- */
 // Shown until a swimmer is picked: for an age group and an event, each
-// Spotswood swimmer's best time this season (/api/leaderboards), boys and
-// girls together under All. Names open that swimmer's stats here.
+// Spotswood swimmer's best time this season (/api/leaderboards), girls or
+// boys. Names open that swimmer's stats here.
 let boards = null;
-const boardsState = { group: null, who: 'all', event: null, expanded: false };
+const boardsState = { group: null, who: 'girls', event: null, expanded: false };
 const BOARD_SHOWN = 8;
 const STROKE_ORDER = ['Freestyle', 'Backstroke', 'Breaststroke', 'Butterfly', 'IM'];
 const FAV_STAR = '<svg class="lb-fav" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Favorite"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
@@ -719,7 +718,7 @@ async function loadBoards() {
 }
 
 function boardEvents() {
-    return boards.events.filter(e => e.group === boardsState.group && (boardsState.who === 'all' || e.gender === boardsState.who));
+    return boards.events.filter(e => e.group === boardsState.group && e.gender === boardsState.who);
 }
 
 function renderBoards() {
@@ -741,19 +740,15 @@ function renderBoards() {
 function renderBoardList(events) {
     const box = document.getElementById('boardsList');
     if (!events.length) {
-        box.innerHTML = `<p class="lb-note">No ${boardsState.who === 'all' ? '' : `${boardsState.who}' `}swims in this age group yet.</p>`;
+        box.innerHTML = `<p class="lb-note">No ${boardsState.who}' swims in this age group yet.</p>`;
         return;
     }
-    const all = boardsState.who === 'all';
-    const rows = events.flatMap(e => e.rows.map(r => ({ ...r, gender: e.gender })))
-        .sort((a, b) => a.seconds - b.seconds || a.name.localeCompare(b.name));
+    const rows = events.flatMap(e => e.rows).sort((a, b) => a.seconds - b.seconds || a.name.localeCompare(b.name));
     // A tie shares a place: 1, 2, 2, 4.
     rows.forEach((r, i) => { r.place = i && r.seconds === rows[i - 1].seconds ? rows[i - 1].place : i + 1; });
 
-    const withRecord = events.filter(e => e.record).sort((a, b) => a.gender.localeCompare(b.gender)).reverse(); // girls, then boys
-    const recordHtml = !withRecord.length ? '' : withRecord.length === 1 && !all
-        ? `Team record <b>${escapeHtml(withRecord[0].record.time)}</b>${withRecord[0].record.year ? ` · ${escapeHtml(withRecord[0].record.year)}` : ''}`
-        : `Team records: ${withRecord.map(e => `${e.gender} <b>${escapeHtml(e.record.time)}</b>`).join(' · ')}`;
+    const record = (events.find(e => e.record) || {}).record;
+    const recordHtml = record ? `Team record <b>${escapeHtml(record.time)}</b>${record.year ? ` · ${escapeHtml(record.year)}` : ''}` : '';
 
     const favorites = new Set(Swimmers.favorites());
     const shown = boardsState.expanded ? rows : rows.slice(0, BOARD_SHOWN);
@@ -761,7 +756,7 @@ function renderBoardList(events) {
         ${recordHtml ? `<div class="inset lb-record">${recordHtml}</div>` : ''}
         <ol class="lb-list">${shown.map(r => {
             const meet = meetsById[r.meetId];
-            const sub = [all && (r.gender === 'girls' ? 'Girl' : 'Boy'), r.meetDate && fmtDate(r.meetDate), meet && meet.title].filter(Boolean).join(' · ');
+            const sub = [r.meetDate && fmtDate(r.meetDate), meet && meet.title].filter(Boolean).join(' · ');
             const fav = favorites.has(r.name);
             return `
                 <li${fav ? ' class="fav"' : ''}>
@@ -774,7 +769,7 @@ function renderBoardList(events) {
                 </li>`;
         }).join('')}</ol>
         ${rows.length > shown.length ? `<button type="button" class="btn small lb-more">Show all ${rows.length} swimmers</button>` : ''}
-        <p class="lb-note">Each swimmer's best time this season, Spotswood only.</p>`;
+        <p class="lb-note">Each swimmer's best time this season.</p>`;
 }
 
 document.getElementById('boardsGroups').addEventListener('click', (event) => {
