@@ -1,8 +1,10 @@
 // A photo's own metadata (EXIF), read and removed on the server.
 //
 // readPhotoDate finds the day a photo was taken, in JPEG and HEIC/HEIF
-// files. Only the date is read: the location that phones also record there
-// is never looked at, kept, or passed on.
+// files, and readPhotoTakenAt the time too (kept only to put a meet's photos
+// in the order they were taken, and to spot one shared twice; never shown).
+// Only the date and time are read: the location that phones also record
+// there is never looked at, kept, or passed on.
 //
 // stripJpegMetadata removes every metadata segment from a JPEG before it's
 // stored, as a backstop to the browser's own re-encoding (which already
@@ -19,9 +21,19 @@ const MAX_EXIF_BYTES = 1024 * 1024;
 // "YYYY-MM-DD" on the camera's own clock (the local date, which is what a
 // meet date is), or null when the photo has no readable date.
 function readPhotoDate(buffer) {
+    return isoDate(readStamp(buffer));
+}
+
+// "YYYY-MM-DDTHH:MM:SS" on the camera's own clock, or null when the photo
+// has no readable date and time.
+function readPhotoTakenAt(buffer) {
+    return isoDateTime(readStamp(buffer));
+}
+
+function readStamp(buffer) {
     try {
-        if (isJpeg(buffer)) return jpegDate(buffer);
-        if (isHeif(buffer)) return heifDate(buffer);
+        if (isJpeg(buffer)) return jpegStamp(buffer);
+        if (isHeif(buffer)) return heifStamp(buffer);
     } catch (e) {
         // A damaged or cut-off file just has no readable date.
     }
@@ -52,10 +64,10 @@ function jpegSegments(b) {
     return { segments, scan: -1 };
 }
 
-function jpegDate(b) {
+function jpegStamp(b) {
     for (const s of jpegSegments(b).segments) {
         if (s.marker === 0xE1 && b.toString("latin1", s.start + 4, s.start + 10) === "Exif\0\0") {
-            return tiffDate(b, s.start + 10, s.end);
+            return tiffStamp(b, s.start + 10, s.end);
         }
     }
     return null;
@@ -124,7 +136,8 @@ function stripJpegMetadata(b) {
 
 /* ---------- EXIF (TIFF layout, shared by JPEG and HEIC) ---------- */
 
-function tiffDate(b, base, end) {
+// The EXIF date and time stamp, as written ("2026:07:13 18:42:07").
+function tiffStamp(b, base, end) {
     if (base < 0 || base + 8 > end) return null;
     const order = b.toString("latin1", base, base + 2);
     const le = order === "II";
@@ -158,7 +171,7 @@ function tiffDate(b, base, end) {
         }
     }
     if (!stamp && ifd0.has(TAG_DATE_TIME)) stamp = text(ifd0.get(TAG_DATE_TIME));
-    return isoDate(stamp);
+    return stamp;
 }
 
 // EXIF dates read "2026:07:13 18:42:07". A camera with no clock set writes zeros.
@@ -168,6 +181,13 @@ function isoDate(stamp) {
     const [, year, month, day] = m.map(Number);
     if (year < 1990 || month < 1 || month > 12 || day < 1 || day > 31) return null;
     return `${m[1]}-${m[2]}-${m[3]}`;
+}
+
+function isoDateTime(stamp) {
+    const date = isoDate(stamp);
+    const m = /^.{10}[ T](\d{2}):(\d{2}):(\d{2})/.exec(stamp || "");
+    if (!date || !m || +m[1] > 23 || +m[2] > 59 || +m[3] > 59) return null;
+    return `${date}T${m[1]}:${m[2]}:${m[3]}`;
 }
 
 /* ---------- HEIC / HEIF ---------- */
@@ -278,7 +298,7 @@ function itemData(b, iloc, idat, itemId) {
     return null;
 }
 
-function heifDate(b) {
+function heifStamp(b) {
     const meta = boxes(b, 0, b.length).find(box => box.type === "meta");
     if (!meta) return null;
     const children = boxes(b, meta.start + 4, meta.end);
@@ -290,7 +310,7 @@ function heifDate(b) {
     const data = itemData(b, iloc, children.find(box => box.type === "idat"), id);
     // The Exif item starts with where its TIFF header begins (usually after "Exif\0\0").
     if (!data || data.length < 4) return null;
-    return tiffDate(data, 4 + data.readUInt32BE(0), data.length);
+    return tiffStamp(data, 4 + data.readUInt32BE(0), data.length);
 }
 
-module.exports = { readPhotoDate, stripJpegMetadata, readJpegSize };
+module.exports = { readPhotoDate, readPhotoTakenAt, stripJpegMetadata, readJpegSize };

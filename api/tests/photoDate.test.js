@@ -7,6 +7,14 @@ const { tiffBlock, jpeg, heic, DATE_TAKEN, DATE_SAVED, DATE_CHANGED } = require(
 
 const taken = (date, more = {}) => tiffBlock({ exif: { [DATE_TAKEN]: `${date} 18:42:07` }, gps: true, ...more });
 
+test("the time taken comes with the date, and a stamp without a valid time has none", () => {
+    const { readPhotoTakenAt } = require("../shared/photoDate");
+    const { tiffBlock, jpeg, DATE_TAKEN } = require("./samplePhotos");
+    assert.equal(readPhotoTakenAt(jpeg({ tiff: tiffBlock({ exif: { [DATE_TAKEN]: "2026:07:13 18:42:07" } }) })), "2026-07-13T18:42:07");
+    assert.equal(readPhotoTakenAt(jpeg({ tiff: tiffBlock({ exif: { [DATE_TAKEN]: "2026:07:13 99:42:07" } }) })), null);
+    assert.equal(readPhotoTakenAt(jpeg()), null);
+});
+
 test("a JPEG's date taken, in either byte order", () => {
     assert.equal(readPhotoDate(jpeg({ tiff: taken("2026:07:13") })), "2026-07-13");
     assert.equal(readPhotoDate(jpeg({ tiff: taken("2026:06:24", { littleEndian: true }) })), "2026-06-24");

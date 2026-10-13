@@ -149,6 +149,11 @@
         #approvedTable tr { grid-template-columns: 64px 1fr auto; }
         #approvedTable td:last-child:not([colspan]) { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
     }
+    .dup-badge { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 2px 10px; border-radius: 999px; background: var(--gold-tint); border: 1px solid var(--gold-border); color: var(--gold-text); font-size: 12.5px; font-weight: 700; }
+    .dup-badge svg { width: 13px; height: 13px; }
+    .dup-line { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+    .dup-line img { width: 40px; height: 40px; flex-shrink: 0; object-fit: cover; border-radius: 6px; }
+    tr.is-dup { background: #FFFCF0; }
     .remove-photo { display: block; max-width: 100%; max-height: 220px; margin: 0 auto 14px; border-radius: 14px; }
     .thumb { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
     .thumb-open { display: block; padding: 0; border: none; border-radius: 8px; background: none; cursor: zoom-in; }
@@ -852,6 +857,16 @@ async function loadSettings() {
 /* ---------- Photos ---------- */
 // The thumbnails are too small to judge a photo by -- tapping one opens it full size.
 const galleryPhotosById = new Map();
+// A pending photo that looks like one already uploaded (the same time taken
+// and size, matched in manageGalleryList): the earlier copy and its status.
+const ICON_DUP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
+function duplicateLine(p) {
+    const d = p.duplicateOf;
+    if (!d) return '';
+    const what = d.status === 'approved' ? `already approved ${submittedDate(d)}` : `also waiting for review, sent ${submittedDate(d)}`;
+    return `<div class="dup-line"><img src="${escapeHtml(d.url)}" alt="">Same photo ${what}</div>`;
+}
+
 // Who shared a photo isn't kept; the day it came in is.
 function submittedDate(p) {
     return escapeHtml(new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }));
@@ -893,13 +908,15 @@ async function loadGallery() {
         const approved = photos.filter(p => p.status === 'approved');
 
         pendingBody.innerHTML = pending.length ? pending.map(p => `
-            <tr>
+            <tr${p.duplicateOf ? ' class="is-dup"' : ''}>
                 <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
-                <td>${submittedDate(p)}</td>
-                <td>${photoPlace(p)}</td>
-                <td><div class="row-actions">
+                <td>${submittedDate(p)}${p.duplicateOf ? `<div><span class="dup-badge">${ICON_DUP}Duplicate</span></div>` : ''}</td>
+                <td>${photoPlace(p)}${duplicateLine(p)}</td>
+                <td><div class="row-actions">${p.duplicateOf ? `
+                    <button type="button" class="btn small danger solid" onclick="rejectPhoto('${escapeHtml(p.id)}', this)">Reject duplicate</button>
+                    <button type="button" class="btn small" onclick="approvePhoto('${escapeHtml(p.id)}', this)">Approve anyway</button>` : `
                     <button type="button" class="btn small primary" onclick="approvePhoto('${escapeHtml(p.id)}', this)">Approve</button>
-                    <button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}', this)">Reject</button>
+                    <button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}', this)">Reject</button>`}
                 </div></td>
             </tr>
         `).join('') : '<tr><td colspan="4" class="muted">Nothing pending.</td></tr>';
@@ -939,7 +956,7 @@ function rejectPhoto(id, opener) {
     if (!photo) return;
     removingPhoto = photo;
     const pending = photo.status === 'pending';
-    $('photoRemoveTitle').textContent = pending ? 'Reject this photo?' : 'Remove this photo?';
+    $('photoRemoveTitle').textContent = photo.duplicateOf ? 'Reject this duplicate?' : pending ? 'Reject this photo?' : 'Remove this photo?';
     $('photoRemoveWhen').textContent = `Submitted ${new Date(photo.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;
     $('photoRemoveImg').src = photo.url;
     $('photoRemoveWarning').textContent = (pending ? "It won't be posted, and it's deleted." : "It comes off the site and is deleted.") + " This can't be undone.";

@@ -27,7 +27,7 @@ const adminList = require("../manageGalleryList/index.js");
 const { PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 
 const base64 = buffer => buffer.toString("base64");
-const original = date => jpeg({ tiff: tiffBlock({ exif: { [DATE_TAKEN]: `${date} 18:42:07` }, gps: true }) });
+const original = (date, time = "18:42:07") => jpeg({ tiff: tiffBlock({ exif: { [DATE_TAKEN]: `${date} ${time}` }, gps: true }) });
 // What the browser sends to be stored: a resized copy, which has no metadata of its own.
 const resized = jpeg({ width: 1200, height: 1600 });
 
@@ -149,4 +149,52 @@ test("a JPEG's size comes from its frame header, and only the start of the file 
     assert.deepEqual(readJpegSize(photo), { width: 4032, height: 3024 });
     assert.deepEqual(readJpegSize(photo.subarray(0, photo.indexOf(Buffer.from([0xFF, 0xDA])))), { width: 4032, height: 3024 });
     assert.equal(readJpegSize(Buffer.from("not a photo")), null);
+});
+
+async function uploadApproved(date, time, { approve = true, size = resized } = {}) {
+    const res = await call(upload, { body: { dataBase64: base64(size), originalBase64: base64(original(date, time)) } });
+    if (approve) await store.photos.updateEntity({ partitionKey: "photo", rowKey: res.body.id, status: "approved" }, "Merge");
+    return res.body.id;
+}
+
+test("the time taken is kept for ordering but never sent to a page", async () => {
+    resetStore();
+    const id = await uploadApproved("2026:07:13", "17:06:00", { approve: false });
+    assert.equal(store.photos.all()[0].takenAt, "2026-07-13T17:06:00");
+    const uploaded = await call(upload, { body: { dataBase64: base64(resized), originalBase64: base64(original("2026:07:13")) } });
+    assert.equal("takenAt" in uploaded.body, false);
+    await store.photos.updateEntity({ partitionKey: "photo", rowKey: id, status: "approved" }, "Merge");
+    const pub = await call(publicList, {});
+    const admin = await call(adminList, {});
+    assert.equal(JSON.stringify(pub.body).includes("17:06"), false);
+    assert.equal(JSON.stringify(admin.body).includes("17:06"), false);
+});
+
+test("the public list puts the newest day first and each day's photos in the order taken", async () => {
+    resetStore();
+    // Uploaded out of order: awards first, then warm-ups, then an earlier meet's photo.
+    const awards = await uploadApproved("2026:07:13", "20:12:00");
+    const warmups = await uploadApproved("2026:07:13", "17:06:00");
+    const relay = await uploadApproved("2026:07:13", "19:31:00");
+    const earlier = await uploadApproved("2026:07:08", "18:00:00");
+    // An older photo with a date but no time saved goes after that day's timed ones.
+    await store.photos.createEntity({ partitionKey: "photo", rowKey: "0-old", blobName: "0-old.jpg", status: "approved", submittedAt: "2026-07-14T00:00:00.000Z", takenDate: "2026-07-13" });
+    const res = await call(publicList, {});
+    assert.deepEqual(res.body.map(p => p.id), [warmups, relay, awards, "0-old", earlier]);
+});
+
+test("a pending photo with the same time taken and size as another is marked a duplicate", async () => {
+    resetStore();
+    const first = await uploadApproved("2026:07:13", "20:12:00");
+    const again = await uploadApproved("2026:07:13", "20:12:00", { approve: false });
+    const sameSecondOtherSize = await uploadApproved("2026:07:13", "20:12:00", { approve: false, size: jpeg({ width: 1600, height: 1200 }) });
+    const other = await uploadApproved("2026:07:13", "20:13:00", { approve: false });
+    const res = await call(adminList, {});
+    const byId = Object.fromEntries(res.body.map(p => [p.id, p]));
+    assert.deepEqual(Object.keys(byId[again].duplicateOf).sort(), ["id", "status", "submittedAt", "url"]);
+    assert.equal(byId[again].duplicateOf.id, first);
+    assert.equal(byId[again].duplicateOf.status, "approved");
+    assert.equal(byId[first].duplicateOf, undefined);
+    assert.equal(byId[sameSecondOtherSize].duplicateOf, undefined);
+    assert.equal(byId[other].duplicateOf, undefined);
 });

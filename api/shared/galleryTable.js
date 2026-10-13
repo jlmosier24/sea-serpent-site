@@ -44,4 +44,39 @@ function photoTag(takenDate, meets) {
     return { key: meet.id, label: `${MONTHS[month - 1]} ${day} · ${meet.shortName || meet.opponent}`, meetDate: meet.date };
 }
 
-module.exports = { getGalleryTable, toGalleryDto, sortNewestFirst, photoTag, PARTITION_KEY };
+// The public order: the newest day first, and within a day the order the
+// photos were taken (from each entity's private takenAt; one without it
+// follows, by when it came in). A photo with no date goes by the day it
+// came in. Takes [{ photo, entity }], returns the photos.
+function sortForGallery(items) {
+    const day = ({ photo }) => photo.takenDate || (photo.submittedAt || "").slice(0, 10);
+    return items.sort((a, b) =>
+        day(b).localeCompare(day(a))
+        || (a.entity.takenAt ? 0 : 1) - (b.entity.takenAt ? 0 : 1)
+        || (a.entity.takenAt || "").localeCompare(b.entity.takenAt || "")
+        || (a.photo.submittedAt || "").localeCompare(b.photo.submittedAt || "")
+    ).map(item => item.photo);
+}
+
+// A pending photo that looks like one already uploaded: the same date and
+// time taken, to the second, and the same size. Returns a map of pending
+// photo id -> the earlier photo (an approved one if there is one).
+function findDuplicates(items) {
+    const key = ({ entity }) => (entity.takenAt && entity.width && entity.height ? `${entity.takenAt}|${entity.width}x${entity.height}` : null);
+    const byKey = new Map();
+    for (const item of items) {
+        const k = key(item);
+        if (k) byKey.set(k, [...(byKey.get(k) || []), item]);
+    }
+    const duplicates = new Map();
+    for (const group of byKey.values()) {
+        if (group.length < 2) continue;
+        const rank = item => (item.photo.status === "approved" ? 0 : 1);
+        group.sort((a, b) => rank(a) - rank(b) || (a.photo.submittedAt || "").localeCompare(b.photo.submittedAt || ""));
+        const [first, ...rest] = group;
+        for (const item of rest) if (item.photo.status === "pending") duplicates.set(item.photo.id, first.photo);
+    }
+    return duplicates;
+}
+
+module.exports = { getGalleryTable, toGalleryDto, sortNewestFirst, sortForGallery, findDuplicates, photoTag, PARTITION_KEY };

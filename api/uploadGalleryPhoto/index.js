@@ -1,7 +1,7 @@
 const { getGalleryContainer } = require("../shared/galleryContainer");
 const { getGalleryTable, toGalleryDto, photoTag, PARTITION_KEY } = require("../shared/galleryTable");
 const { getMeetsTable, listMeets } = require("../shared/meetsTable");
-const { readPhotoDate, stripJpegMetadata, readJpegSize } = require("../shared/photoDate");
+const { readPhotoDate, readPhotoTakenAt, stripJpegMetadata, readJpegSize } = require("../shared/photoDate");
 const { fromBase64, MAX_ORIGINAL_BYTES, MAX_PHOTO_BYTES } = require("../shared/photoUpload");
 
 function generateId() {
@@ -16,7 +16,8 @@ function generateId() {
 //
 // The body carries two things: the browser's resized JPEG, which is what's
 // stored (with any metadata stripped, and its size noted), and the original photo's bytes, read
-// here only for the day it was taken and then dropped.
+// here only for when it was taken and then dropped. The time is kept for
+// ordering and spotting duplicates only; it's never sent to a page.
 module.exports = async function (context, req) {
     const body = req.body || {};
     const photo = fromBase64(body.dataBase64, MAX_PHOTO_BYTES);
@@ -31,6 +32,7 @@ module.exports = async function (context, req) {
     }
     const original = fromBase64(body.originalBase64, MAX_ORIGINAL_BYTES);
     const takenDate = original ? readPhotoDate(original) || "" : "";
+    const takenAt = original ? readPhotoTakenAt(original) || "" : "";
 
     const id = generateId();
     const blobName = `${id}.jpg`;
@@ -48,6 +50,7 @@ module.exports = async function (context, req) {
             status: "pending",
             submittedAt: new Date().toISOString(),
             takenDate,
+            takenAt,
             // Its size, so the Photos layouts can place it before it loads.
             ...readJpegSize(cleaned)
         };

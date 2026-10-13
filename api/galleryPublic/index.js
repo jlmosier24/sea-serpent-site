@@ -1,4 +1,4 @@
-const { getGalleryTable, toGalleryDto, sortNewestFirst, photoTag, PARTITION_KEY } = require("../shared/galleryTable");
+const { getGalleryTable, toGalleryDto, sortForGallery, photoTag, PARTITION_KEY } = require("../shared/galleryTable");
 const { getGalleryContainer, photoReadUrl, readStoredPhotoSize } = require("../shared/galleryContainer");
 const { getMeetsTable, listMeets } = require("../shared/meetsTable");
 
@@ -8,21 +8,26 @@ const { getMeetsTable, listMeets } = require("../shared/meetsTable");
 // meet, "Practice & other", or nothing when it has no date). A photo from
 // before sizes were noted on upload has its size read from its file the
 // first time it's listed, and saved, so later lists don't read it again.
+// Newest day first, each day's photos in the order they were taken; the
+// time itself is never sent.
 module.exports = async function (context, req) {
     try {
         const table = getGalleryTable();
         const container = getGalleryContainer();
         const meets = await listMeets(getMeetsTable());
         const photos = [];
+        const items = [];
         for await (const entity of table.listEntities({ queryOptions: { filter: `PartitionKey eq '${PARTITION_KEY}'` } })) {
             const dto = toGalleryDto(entity);
             if (dto.status !== "approved") continue;
-            photos.push({
+            const photo = {
                 ...dto,
                 url: await photoReadUrl(container, dto.blobName),
                 downloadUrl: await photoReadUrl(container, dto.blobName, `spotswood-sea-serpents-${dto.blobName}`),
                 tag: photoTag(dto.takenDate, meets)
-            });
+            };
+            photos.push(photo);
+            items.push({ photo, entity });
         }
         await Promise.all(photos.filter(p => !p.width || !p.height).map(async (photo) => {
             const size = await readStoredPhotoSize(container, photo.blobName);
@@ -34,7 +39,7 @@ module.exports = async function (context, req) {
                 context.log.error(`Failed to save photo ${photo.id}'s size:`, e);
             }
         }));
-        context.res = { status: 200, body: sortNewestFirst(photos) };
+        context.res = { status: 200, body: sortForGallery(items) };
     } catch (e) {
         context.log.error("Failed to list gallery photos:", e);
         context.res = { status: 500, body: "Error: " + e.message };
