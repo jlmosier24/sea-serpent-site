@@ -253,5 +253,5 @@
         };
     }
 
-    window.Swimmers = { mountSearch, favoriteButton, toggleFavorite };
+    window.Swimmers = { mountSearch, favoriteButton, toggleFavorite, favorites: readFavorites };
 })();

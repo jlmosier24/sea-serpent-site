@@ -18,11 +18,29 @@
     /* Lined up on the left with the header and the other pages, at its own narrower width (like the Schedule list). */
     .stats-stack { display: flex; flex-direction: column; gap: 22px; max-width: 932px; padding-bottom: 80px; }
     .stats-list { display: flex; flex-direction: column; gap: 22px; }
-    /* The season's team totals, shown until a swimmer is picked. */
-    .season-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .season-tiles .stat-label { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
-    .season-tiles .stat-value { margin: 2px 0 0; font-family: var(--font-head); font-size: 26px; font-weight: 700; }
-    @media (max-width: 600px) { .season-tiles { grid-template-columns: repeat(2, 1fr); } }
+    /* Leaderboards, shown until a swimmer is picked: age group chips, All /
+       Girls / Boys, an event, then each swimmer's best time this season. */
+    .lb-groups { display: flex; gap: 8px; overflow-x: auto; margin: 0 -4px; padding: 2px 4px 4px; scrollbar-width: none; }
+    .lb-groups::-webkit-scrollbar { display: none; }
+    .lb-groups .chip { flex-shrink: 0; }
+    .lb-tabs { margin-top: 12px; }
+    .lb-event { display: block; margin: 16px 0 0; }
+    .lb-event select { appearance: none; -webkit-appearance: none; width: 100%; padding: 11px 40px 11px 14px; border: 1px solid var(--card-border); border-radius: 14px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231A6B2E' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 18px; font: 600 16px Inter, sans-serif; color: var(--ink); cursor: pointer; }
+    .lb-record { margin: 14px 0 6px; padding: 10px 14px; border-radius: 14px; font-size: 14px; }
+    .lb-record b { font-family: var(--font-head); }
+    .lb-list { list-style: none; margin: 4px 0 0; padding: 0; }
+    .lb-list li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--card-border); }
+    .lb-list li:last-child { border-bottom: 0; }
+    .lb-list li.fav { margin: 0 -10px; padding: 11px 14px; border-radius: 14px; background: var(--soft); border: 1px solid var(--soft-border); }
+    .lb-place { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; font-weight: 700; font-size: 14px; color: var(--muted); }
+    .lb-place.podium { background: var(--gold); color: var(--gold-ink); }
+    .lb-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+    .lb-name:hover .lb-who { color: var(--brand); text-decoration: underline; }
+    .lb-fav { width: 15px; height: 15px; color: var(--gold); }
+    .lb-sub { margin: 1px 0 0; font-size: 13px; color: var(--muted); }
+    .lb-time { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .lb-more { display: flex; margin: 14px auto 0; }
+    .lb-note { margin: 12px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
     .loading, .empty { margin: 0; padding: 24px 0; color: var(--muted-on-page); text-align: center; }
 
     /* The swimmer's green header card, at full page width. */
@@ -186,9 +204,18 @@
         <section class="card">
             <div id="swimmerPicker"></div>
         </section>
-        <section class="card" id="seasonCard" aria-labelledby="seasonHeading" hidden>
-            <div class="card-head"><h2 id="seasonHeading"></h2></div>
-            <div class="season-tiles" id="seasonTiles"></div>
+        <section class="card" id="boardsCard" aria-labelledby="boardsHeading" hidden>
+            <div class="card-head"><h2 id="boardsHeading">Leaderboards</h2><span class="small muted" id="boardsSeason"></span></div>
+            <div class="lb-groups" id="boardsGroups" role="group" aria-label="Age group"></div>
+            <div class="points-tabs lb-tabs" id="boardsTabs" role="tablist" aria-label="Swimmers">
+                <button type="button" role="tab" id="boardsTab-all" data-who="all" aria-controls="boardsPanel" aria-selected="true">All</button>
+                <button type="button" role="tab" id="boardsTab-girls" data-who="girls" aria-controls="boardsPanel" aria-selected="false" tabindex="-1">Girls</button>
+                <button type="button" role="tab" id="boardsTab-boys" data-who="boys" aria-controls="boardsPanel" aria-selected="false" tabindex="-1">Boys</button>
+            </div>
+            <div id="boardsPanel" role="tabpanel" aria-labelledby="boardsTab-all">
+                <label class="lb-event"><span class="sr-only">Event</span><select id="boardsEvent"></select></label>
+                <div id="boardsList"></div>
+            </div>
         </section>
         <div class="stats-list" id="swimmerContent"></div>
         <p class="sr-only" id="swimmerStatus" role="status"></p>
@@ -569,7 +596,7 @@ async function loadSwimmer(name) {
     const status = document.getElementById('swimmerStatus');
     shownSeason = null;
     document.title = name ? `${displayName(name)} | Stats | Spotswood Sea Serpents` : 'Stats | Spotswood Sea Serpents';
-    document.getElementById('seasonCard').hidden = !!name || !seasonReady;
+    document.getElementById('boardsCard').hidden = !!name || !boards;
     if (!name) {
         box.innerHTML = '';
         status.textContent = '';
@@ -646,59 +673,153 @@ function showFavoriteNote(button, text) {
     note.textContent = text;
 }
 
-/* ---------------- Season totals ---------------- */
-// The team's season so far, shown until a swimmer is picked: its record,
-// swims (no-shows left out), personal bests, time dropped off seed times,
-// 1st places, and badges held.
+/* ---------------- Leaderboards ---------------- */
+// Shown until a swimmer is picked: for an age group and an event, each
+// Spotswood swimmer's best time this season (/api/leaderboards), boys and
+// girls together under All. Names open that swimmer's stats here.
+let boards = null;
+const boardsState = { group: null, who: 'all', event: null, expanded: false };
+const BOARD_SHOWN = 8;
+const STROKE_ORDER = ['Freestyle', 'Backstroke', 'Breaststroke', 'Butterfly', 'IM'];
+const FAV_STAR = '<svg class="lb-fav" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Favorite"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
 
-// 4521.3 -> "1:15:21", 176.29 -> "2:56", 42.5 -> "42.5s".
-function fmtTotalDropped(seconds) {
-    if (seconds < 60) return `${Math.round(seconds * 10) / 10}s`;
-    const whole = Math.round(seconds);
-    const h = Math.floor(whole / 3600);
-    const m = Math.floor((whole % 3600) / 60);
-    const sec = String(whole % 60).padStart(2, '0');
-    return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+// "8 & Under", "9-10" -> youngest first ("8 & Under" before "7-8", as SwimTopia lists them).
+function groupOrder(group) {
+    const ages = (group.match(/\d+/g) || []).map(Number);
+    return [ages.length ? ages[ages.length - 1] : 99, ages.length > 1 ? ages[0] : 0];
 }
-let seasonReady = false;
+function eventOrder(event) {
+    const [, distance, stroke] = event.match(/^(\d+)m\s+(.+)$/) || [];
+    return [STROKE_ORDER.indexOf(stroke), Number(distance)];
+}
+const byOrder = order => (a, b) => {
+    const x = order(a), y = order(b);
+    return x[0] - y[0] || x[1] - y[1];
+};
+const groupLabel = group => group.replace(/-/g, '–');
 
-// The season's regular meets as a record, "5–1" (a tied meet adds a third
-// number, "5–1–1"), and the championship's result under it when there is
-// one, like "5th at Division Finals". Null without any scored meets.
-function seasonRecord(allMeets, year) {
-    const meets = allMeets.filter(m => m.date.startsWith(year));
-    const results = meets.map(Meets.outcome).filter(Boolean);
-    if (!results.length) return null;
-    const count = result => results.filter(r => r === result).length;
-    const ties = count('tie');
-    const record = [count('win'), count('loss'), ...(ties ? [ties] : [])].join('–');
-    const finals = meets.map(m => [m, Meets.championshipStanding(m)]).find(([, standing]) => standing);
-    const caption = finals ? `${finals[1].ours.place === 1 ? 'Champions' : Meets.ordinal(finals[1].ours.place)} at ${finals[0].title}` : '';
-    return { record, caption };
+async function loadBoards() {
+    let data;
+    try {
+        const res = await fetch('/api/leaderboards');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+    } catch (e) {
+        return; // the rest of the page works without them
+    }
+    if (!data.events || !data.events.length) return;
+    await meetsReady; // for each swim's meet
+    boards = data;
+    const groups = [...new Set(boards.events.map(e => e.group))].sort(byOrder(groupOrder));
+    boardsState.group = groups[0];
+    document.getElementById('boardsSeason').textContent = boards.season ? `${boards.season} season` : '';
+    document.getElementById('boardsGroups').innerHTML = groups.map(g => `<button type="button" class="chip" data-group="${escapeHtml(g)}" aria-pressed="false">${escapeHtml(groupLabel(g))}</button>`).join('');
+    renderBoards();
+    document.getElementById('boardsCard').hidden = new URLSearchParams(location.search).has('swimmer');
 }
 
-async function showSeason(badgesEarned) {
-    const allMeets = await meetsReady;
-    const meets = allMeets.filter(m => m.summary);
-    if (!meets.length) return;
-    const year = meets.map(m => m.date.slice(0, 4)).sort().pop();
-    const season = meets.filter(m => m.date.startsWith(year));
-    const total = key => season.reduce((sum, m) => sum + (m.summary[key] || 0), 0);
-    const record = seasonRecord(allMeets, year);
-    const tiles = [
-        record ? ['Record', record.record, record.caption] : ['Meets', season.length],
-        ['Swims', total('swims') - total('noShows')],
-        ['Personal bests', total('personalBests')],
-        ['Time dropped', fmtTotalDropped(total('timeDropped'))],
-        ['1st places', total('firstPlaces')],
-        ...(badgesEarned != null ? [['Badges earned', badgesEarned]] : [])
-    ];
-    document.getElementById('seasonHeading').textContent = `${year} season`;
-    document.getElementById('seasonTiles').innerHTML = tiles.map(([label, value, caption]) => `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value">${typeof value === 'number' ? value.toLocaleString('en-US') : escapeHtml(value)}</p>${caption ? `<p class="stat-caption">${escapeHtml(caption)}</p>` : ''}</div>`).join('');
-    seasonReady = true;
-    // Hidden while a swimmer is picked (their address has ?swimmer=).
-    document.getElementById('seasonCard').hidden = new URLSearchParams(location.search).has('swimmer');
+function boardEvents() {
+    return boards.events.filter(e => e.group === boardsState.group && (boardsState.who === 'all' || e.gender === boardsState.who));
 }
+
+function renderBoards() {
+    document.querySelectorAll('#boardsGroups .chip').forEach(chip => chip.setAttribute('aria-pressed', String(chip.dataset.group === boardsState.group)));
+    document.querySelectorAll('#boardsTabs [role="tab"]').forEach(tab => {
+        const on = tab.dataset.who === boardsState.who;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+        if (on) document.getElementById('boardsPanel').setAttribute('aria-labelledby', tab.id);
+    });
+    const events = boardEvents();
+    const names = [...new Set(events.map(e => e.event))].sort(byOrder(eventOrder));
+    if (!names.includes(boardsState.event)) boardsState.event = names[0] || null;
+    document.querySelector('.lb-event').hidden = !names.length;
+    document.getElementById('boardsEvent').innerHTML = names.map(n => `<option${n === boardsState.event ? ' selected' : ''}>${escapeHtml(n)}</option>`).join('');
+    renderBoardList(events.filter(e => e.event === boardsState.event));
+}
+
+function renderBoardList(events) {
+    const box = document.getElementById('boardsList');
+    if (!events.length) {
+        box.innerHTML = `<p class="lb-note">No ${boardsState.who === 'all' ? '' : `${boardsState.who}' `}swims in this age group yet.</p>`;
+        return;
+    }
+    const all = boardsState.who === 'all';
+    const rows = events.flatMap(e => e.rows.map(r => ({ ...r, gender: e.gender })))
+        .sort((a, b) => a.seconds - b.seconds || a.name.localeCompare(b.name));
+    // A tie shares a place: 1, 2, 2, 4.
+    rows.forEach((r, i) => { r.place = i && r.seconds === rows[i - 1].seconds ? rows[i - 1].place : i + 1; });
+
+    const withRecord = events.filter(e => e.record).sort((a, b) => a.gender.localeCompare(b.gender)).reverse(); // girls, then boys
+    const recordHtml = !withRecord.length ? '' : withRecord.length === 1 && !all
+        ? `Team record <b>${escapeHtml(withRecord[0].record.time)}</b>${withRecord[0].record.year ? ` · ${escapeHtml(withRecord[0].record.year)}` : ''}`
+        : `Team records: ${withRecord.map(e => `${e.gender} <b>${escapeHtml(e.record.time)}</b>`).join(' · ')}`;
+
+    const favorites = new Set(Swimmers.favorites());
+    const shown = boardsState.expanded ? rows : rows.slice(0, BOARD_SHOWN);
+    box.innerHTML = `
+        ${recordHtml ? `<div class="inset lb-record">${recordHtml}</div>` : ''}
+        <ol class="lb-list">${shown.map(r => {
+            const meet = meetsById[r.meetId];
+            const sub = [all && (r.gender === 'girls' ? 'Girl' : 'Boy'), r.meetDate && fmtDate(r.meetDate), meet && meet.title].filter(Boolean).join(' · ');
+            const fav = favorites.has(r.name);
+            return `
+                <li${fav ? ' class="fav"' : ''}>
+                    <span class="lb-place${r.place <= 3 ? ' podium' : ''}"><span class="sr-only">Place </span>${r.place}</span>
+                    <div>
+                        <button type="button" class="lb-name" data-name="${escapeHtml(r.name)}">${fav ? FAV_STAR : ''}<span class="lb-who">${escapeHtml(displayName(r.name))}</span>${r.teamRecord ? `<span class="record-tag">${Meets.RECORD_ICON}Team record</span>` : ''}</button>
+                        ${sub ? `<p class="lb-sub">${escapeHtml(sub)}</p>` : ''}
+                    </div>
+                    <span class="lb-time">${escapeHtml(r.time)}</span>
+                </li>`;
+        }).join('')}</ol>
+        ${rows.length > shown.length ? `<button type="button" class="btn small lb-more">Show all ${rows.length} swimmers</button>` : ''}
+        <p class="lb-note">Each swimmer's best time this season, Spotswood only.</p>`;
+}
+
+document.getElementById('boardsGroups').addEventListener('click', (event) => {
+    const chip = event.target.closest('.chip');
+    if (!chip) return;
+    Object.assign(boardsState, { group: chip.dataset.group, expanded: false });
+    renderBoards();
+});
+const boardTabs = [...document.querySelectorAll('#boardsTabs [role="tab"]')];
+function pickWho(tab, focus) {
+    Object.assign(boardsState, { who: tab.dataset.who, expanded: false });
+    renderBoards();
+    if (focus) tab.focus();
+}
+document.getElementById('boardsTabs').addEventListener('click', (event) => {
+    const tab = event.target.closest('[role="tab"]');
+    if (tab) pickWho(tab);
+});
+// Arrow keys, Home, and End move between the tabs, the usual tab list pattern.
+document.getElementById('boardsTabs').addEventListener('keydown', (event) => {
+    const i = boardTabs.indexOf(document.activeElement);
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: boardTabs.length - 1 }[event.key];
+    if (i < 0 || next === undefined) return;
+    event.preventDefault();
+    pickWho(boardTabs[(next + boardTabs.length) % boardTabs.length], true);
+});
+document.getElementById('boardsEvent').addEventListener('change', (event) => {
+    Object.assign(boardsState, { event: event.target.value, expanded: false });
+    renderBoards();
+});
+document.getElementById('boardsList').addEventListener('click', (event) => {
+    const more = event.target.closest('.lb-more');
+    if (more) {
+        boardsState.expanded = true;
+        renderBoards();
+        return;
+    }
+    // A name opens that swimmer's stats, as if picked in the search.
+    const name = event.target.closest('.lb-name');
+    if (!name) return;
+    picker.showName(name.dataset.name);
+    history.replaceState(null, '', `?swimmer=${encodeURIComponent(name.dataset.name)}`);
+    loadSwimmer(name.dataset.name);
+    window.scrollTo({ top: 0 });
+});
 
 (async function () {
     try {
@@ -713,11 +834,11 @@ async function showSeason(badgesEarned) {
         } else if (preset) {
             document.getElementById('swimmerContent').innerHTML = '<p class="empty">We couldn\'t find that swimmer. Search for them above.</p>';
         }
-        showSeason(list.badgesEarned);
     } catch (e) {
         picker.failed();
     }
 })();
+loadBoards();
 </script>
 </body>
 </html>

@@ -4,6 +4,7 @@ const { listMeets } = require("./meetsTable");
 const { isSpotswoodTeam } = require("./meetResultsParser");
 const { teamBadges } = require("./badges");
 const { forEachInBatches } = require("./batches");
+const { buildLeaderboards, saveLeaderboards } = require("./leaderboards");
 
 // Every Spotswood swimmer's badges, worked out from all stored results each
 // time results are imported or a meet is deleted (a meet can change the
@@ -44,6 +45,8 @@ async function recomputeBadges({ resultsTable, relayTable, meetsTable, badgesTab
         ages: swimmerAges(swims),
         badgesEarned: everyone.reduce((total, e) => total + e.badges.length, 0)
     });
+    // The Stats page's leaderboards are saved in this table too (leaderboards.js).
+    await saveLeaderboards(badgesTable, buildLeaderboards(swims));
     await forEachInBatches(everyone, e => badgesTable.upsertEntity({
         partitionKey: PARTITION_KEY,
         rowKey: rowKeyFor(e.name),
