@@ -756,7 +756,10 @@ function renderBoardList(events) {
         ${recordHtml ? `<div class="inset lb-record">${recordHtml}</div>` : ''}
         <ol class="lb-list">${shown.map(r => {
             const meet = meetsById[r.meetId];
-            const sub = [r.meetDate && fmtDate(r.meetDate), meet && meet.title].filter(Boolean).join(' · ');
+            // "July 13 at Curtis Park", "July 8 vs. Massad"; a championship's
+            // title is its name, so it gets an "at": "July 26 at Division Finals".
+            const where = meet && meet.title ? (/^(vs\.|at) /.test(meet.title) ? meet.title : `at ${meet.title}`) : '';
+            const sub = [r.meetDate && fmtDate(r.meetDate), where].filter(Boolean).join(' ');
             const fav = favorites.has(r.name);
             return `
                 <li${fav ? ' class="fav"' : ''}>
