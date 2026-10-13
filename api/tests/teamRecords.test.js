@@ -208,6 +208,15 @@ test("records loaded after their meet was imported are matched to the swims that
     assert.deepEqual(reload.body.changes.keptFromSite, []);
     assert.equal((await storedRecord("m|girls|8 & under|100|Free Relay")).setAtMeet, "m");
 
+    // One matched before holders were saved gets the page's holder, still tied to the meet.
+    const { toRecordEntity } = require("../shared/teamRecords");
+    const relayRow = store.records.all().find(r => r.key === "m|girls|8 & under|100|Free Relay");
+    await store.records.upsertEntity(toRecordEntity({ ...relayRow, holder: "" }), "Replace");
+    const filled = await call(uploadRecords, { body: { html: SEASON_PAGE, save: true } });
+    assert.equal(filled.body.changes.changed, 1);
+    const relayRecord = await storedRecord("m|girls|8 & under|100|Free Relay");
+    assert.deepEqual([relayRecord.holder, relayRecord.setAtMeet], ["J. Doe, S. Poe, K. Koe, L. Loe", "m"]);
+
     // Deleting the meet leaves the records, no longer tied to it.
     await call(deleteMeet, { query: { id: "m" } });
     const kept = await storedRecord("m|girls|8 & under|25|Free");

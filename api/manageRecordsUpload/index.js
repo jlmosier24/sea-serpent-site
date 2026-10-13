@@ -29,10 +29,17 @@ module.exports = async function (context, req) {
         for (const record of parsed.records) {
             const current = stored.get(record.key);
             // A record set here stays when it's faster, or the same record
-            // (so it stays tied to the meet that set it).
+            // (so it stays tied to the meet that set it); the same record
+            // takes the page's holder when it has none yet.
             if (current && current.setAtMeet && current.seconds <= record.seconds) {
-                if (current.seconds < record.seconds) changes.keptFromSite.push({ label: describeKey(record.key), time: current.time, pageTime: record.time });
-                else changes.unchanged++;
+                if (current.seconds < record.seconds) {
+                    changes.keptFromSite.push({ label: describeKey(record.key), time: current.time, pageTime: record.time });
+                } else if (!current.holder && record.holder) {
+                    changes.changed++;
+                    toSave.push({ ...current, holder: record.holder });
+                } else {
+                    changes.unchanged++;
+                }
                 continue;
             }
             if (!current) changes.added++;
