@@ -225,14 +225,18 @@
     }
 
     // Fills box with photo rows and keeps them fitted as its width changes.
-    // options: targetHeight(width) -> px, maxRows, fullRowsOnly, labelFor(photo).
+    // options: targetHeight(width) -> px, maxRows, fullRowsOnly, labelFor(photo);
+    // maxRows and fullRowsOnly can also be functions of the width.
     // Returns how many photos are showing. Tiles carry data-index into list.
     const observed = new WeakMap();
 
     function showRows(box, list, options) {
         const render = () => {
             const width = box.clientWidth;
-            const rows = groupRows(list, width, { ...options, targetHeight: options.targetHeight(width) });
+            const byWidth = value => (typeof value === "function" ? value(width) : value);
+            const rows = groupRows(list, width, {
+                targetHeight: byWidth(options.targetHeight), maxRows: byWidth(options.maxRows), fullRowsOnly: byWidth(options.fullRowsOnly)
+            });
             const key = rows.map(r => r.items.length).join(",");
             const state = observed.get(box);
             if (state.key !== key) {

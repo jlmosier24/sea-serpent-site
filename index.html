@@ -33,13 +33,13 @@
     .part-label { margin: 0 0 10px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 
 
-    /* Photo card: the newest photos in rows (Photos.showRows, /assets/photos.js). */
-    .photo-card { position: sticky; top: 64px; min-width: 0; }
+    /* Photo card: the newest photos in rows (Photos.showRows, /assets/photos.js). It
+       scrolls with the page: with more rows it can be taller than the window. */
+    .photo-card { min-width: 0; }
 
     @media (max-width: 860px) {
         .hero h1 { font-size: 42px; }
         .home-grid { grid-template-columns: 1fr; }
-        .photo-card { position: static; }
     }
     /* Phones: a smaller heading, so the next meet shows without scrolling. */
     @media (max-width: 600px) {
@@ -158,7 +158,7 @@ window.addEventListener('pageshow', (event) => {
 });
 
 /* ---------------- Photo card ---------------- */
-// The newest photos as up to three full rows of whole photos; tapping one
+// The newest photos in rows of whole photos; tapping one
 // opens the viewer, which goes on through every photo.
 let allPhotos = [];
 
@@ -176,7 +176,14 @@ async function loadPhotos() {
         box.innerHTML = '<p class="empty">No photos yet. Be the first to share one!</p>';
         return;
     }
-    Photos.showRows(box, allPhotos, { targetHeight: width => (width < 500 ? 140 : 150), maxRows: 3, fullRowsOnly: true });
+    // Phones: three full rows. Wider: up to six rows beside the Schedule card,
+    // the last one even if it's short, so more of the photos show.
+    const phone = width => width < 500;
+    Photos.showRows(box, allPhotos, {
+        targetHeight: width => (phone(width) ? 140 : 150),
+        maxRows: width => (phone(width) ? 3 : 6),
+        fullRowsOnly: phone
+    });
 }
 
 document.getElementById('galleryContent').addEventListener('click', (event) => {
