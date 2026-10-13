@@ -471,3 +471,9 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .viewer-caption { margin: 10px 2px 0; font-size: 14px; color: var(--muted); }
 .viewer-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
 .viewer-nav .btn { padding: 9px 18px; font-size: 15px; }
+/* Desktop: a bigger viewer than the site's other dialogs, so a photo fills
+   most of the window; the photo leaves room for the title, chips and buttons. */
+@media (min-width: 601px) {
+    dialog.dialog.photo-viewer { width: min(1040px, calc(100vw - 48px)); }
+    .photo-viewer .viewer-photo { max-height: calc(100vh - 250px); max-height: calc(100dvh - 250px); }
+}

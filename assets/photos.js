@@ -18,7 +18,7 @@
         let dialog = document.getElementById("photoViewer");
         if (dialog) return dialog;
         dialog = document.createElement("dialog");
-        dialog.className = "dialog wide";
+        dialog.className = "dialog wide photo-viewer";
         dialog.id = "photoViewer";
         dialog.setAttribute("aria-labelledby", "photoViewerTitle");
         dialog.innerHTML = `
