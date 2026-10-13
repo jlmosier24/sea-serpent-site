@@ -181,7 +181,7 @@ test("records loaded after their meet was imported are matched to the swims that
         ["8 & Under girls · 100 Free Relay", "1:45.88", "2026-07-13"]
     ]);
     assert.deepEqual(res.body.notMatched.map(r => [r.label, r.reason]), [
-        ["8 & Under boys · 25 Free", "Converted from a yards time"],
+        ["8 & Under boys · 25 Free", "No yards swim this season converts to this time"],
         ["8 & Under boys · 100 Free Relay", "No swim this season with this time"]
     ]);
     assert.deepEqual(store.results.all().filter(r => r.teamRecord).map(r => r.partitionKey), ["Doe, Jane"]);
@@ -221,4 +221,36 @@ test("records loaded after their meet was imported are matched to the swims that
     await call(deleteMeet, { query: { id: "m" } });
     const kept = await storedRecord("m|girls|8 & under|25|Free");
     assert.deepEqual([kept.time, kept.setAtMeet], ["24.50", ""]);
+});
+
+// A yards meet: Spotswood's 22.00 yd converts to 24.42 m (x 1.11), under the 24.80 record.
+const yardsSheet = () => sheetText({ course: "yd", individual: ["1 Doe, Jane 8 Spotswood 22.50 22.00 6", "2 Roe, Rachel 8 Test Seahawks 23.00 22.40 4"] });
+
+test("a yards swim sets a meters record at its time x 1.11, saved as converted", async () => {
+    resetStore();
+    await loadRecords();
+    await addMeet("m");
+    const res = await call(commitResults, { body: { meetId: "m", dataBase64: upload(yardsSheet()), fileName: "results.pdf" } });
+    assert.deepEqual(res.body.newRecords.map(r => [r.label, r.time, r.converted, r.fromTime, r.old.time]), [["8 & Under girls · 25 Free", "24.42", true, "22.00", "24.80"]]);
+    assert.deepEqual(store.results.all().filter(r => r.teamRecord).map(r => r.partitionKey), ["Doe, Jane"]);
+    const record = await storedRecord("m|girls|8 & under|25|Free");
+    assert.deepEqual([record.time, record.converted, record.setAtMeet], ["24.42", true, "m"]);
+    // Deleting the meet puts the meters record back.
+    await call(deleteMeet, { query: { id: "m" } });
+    const back = await storedRecord("m|girls|8 & under|25|Free");
+    assert.deepEqual([back.time, back.converted], ["24.80", false]);
+});
+
+test("a converted record loaded after its yards meet was imported is matched to that swim", async () => {
+    resetStore();
+    await addMeet("m");
+    await call(commitResults, { body: { meetId: "m", dataBase64: upload(yardsSheet()), fileName: "results.pdf" } });
+    const page = `<html><body><p>Records displayed in course (pool length): <strong>Short Course Meters (25m)</strong></p>
+        ${group("8 &amp; Under", [row("25 Free", ["2026", "Doe, Jane", "24.42", true], ["2015", "Past, Pete", "22.00", false])])}</body></html>`;
+    await call(uploadRecords, { body: { html: page, save: true } });
+    const res = await call(matchRecords, {});
+    assert.deepEqual(res.body.matched.map(r => [r.label, r.time]), [["8 & Under girls · 25 Free", "24.42"]]);
+    assert.deepEqual(store.results.all().filter(r => r.teamRecord).map(r => r.partitionKey), ["Doe, Jane"]);
+    const summary = JSON.parse((await store.meets.getEntity("meet", "m")).summaryJson);
+    assert.deepEqual(summary.newRecords.map(r => [r.time, r.fromTime, r.old]), [["24.42", "22.00", null]]);
 });

@@ -177,6 +177,29 @@ async function listRecords(table) {
     return records;
 }
 
+/* ---------- Yards swims ---------- */
+// Records are meters. A yards swim counts against the meters record at its
+// time x 1.11, rounded to the hundredth, the way SwimTopia converts one
+// (21.22 yd -> 23.55); such a record is marked converted ("*").
+const YARDS_TO_METERS = 1.11;
+const round2 = n => Math.round(n * 100) / 100;
+
+// "23.55", "1:02.11".
+function fmtTime(seconds) {
+    const whole = Math.floor(seconds / 60);
+    const rest = (seconds - whole * 60).toFixed(2).padStart(5, "0");
+    return whole ? `${whole}:${rest}` : (seconds).toFixed(2);
+}
+
+// A row's record key and its time against the record: a yards row goes
+// under the meters key at its converted time.
+function recordTimeFor(row) {
+    const key = keyForEvent(row.eventName);
+    if (!key || row.officialSeconds == null) return null;
+    if (!key.startsWith("yd|")) return { key, seconds: row.officialSeconds, converted: false };
+    return { key: "m|" + key.slice(3), seconds: round2(row.officialSeconds * YARDS_TO_METERS), converted: true };
+}
+
 /* ---------- New records at a meet ---------- */
 // What each record was before this meet: a record this meet set (on an
 // earlier import of it) counts as the one it replaced. One matched to this
@@ -192,17 +215,18 @@ const sameTime = (a, b) => Math.abs(a - b) < 0.005;
 // The swims and relays at a meet that set a new team record: Spotswood,
 // legal and timed, strictly faster than the record coming in; when two beat
 // the same record, the faster one sets it. Returns
-// [{ key, kind: "swim" | "relay", row, old: { time, seconds, year } }].
+// [{ key, kind: "swim" | "relay", row, seconds, converted, old: { time, seconds, year } }],
+// seconds being the record time (a yards swim's converted).
 function newRecordsAtMeet({ individual, relays }, records, meetId, isOurs) {
     const best = new Map();
     const consider = (row, kind) => {
         if (row.status !== "OK" || row.officialSeconds == null || !isOurs(row.team)) return;
-        const key = keyForEvent(row.eventName);
-        const old = key && recordBefore(records.get(key), meetId);
-        if (!old || !(row.officialSeconds < old.seconds || (old.matched && sameTime(row.officialSeconds, old.seconds)))) return;
-        const current = best.get(key);
-        if (!current || row.officialSeconds < current.row.officialSeconds) {
-            best.set(key, { key, kind, row, old: old.matched ? null : { time: old.time, seconds: old.seconds, year: old.year } });
+        const at = recordTimeFor(row);
+        const old = at && recordBefore(records.get(at.key), meetId);
+        if (!old || !(at.seconds < old.seconds || (old.matched && sameTime(at.seconds, old.seconds)))) return;
+        const current = best.get(at.key);
+        if (!current || at.seconds < current.seconds) {
+            best.set(at.key, { key: at.key, kind, row, seconds: at.seconds, converted: at.converted, old: old.matched ? null : { time: old.time, seconds: old.seconds, year: old.year } });
         }
     };
     individual.forEach(row => consider(row, "swim"));
@@ -213,6 +237,7 @@ function newRecordsAtMeet({ individual, relays }, records, meetId, isOurs) {
 // A new record as the meet's numbers keep it, for its card and popup.
 function recordSummary(found) {
     const { key, kind, row, old } = found;
+    const converted = !!found.converted;
     return {
         key,
         label: describeKey(key),
@@ -221,8 +246,11 @@ function recordSummary(found) {
         name: kind === "swim" ? row.name : null,
         team: kind === "relay" ? `${row.team} (${row.relayLetter})` : null,
         swimmers: kind === "relay" ? (row.swimmers || []).map(s => s.name) : null,
-        time: row.officialTime,
-        seconds: row.officialSeconds,
+        // The record's meters time; a yards swim's own time comes alongside.
+        time: converted ? fmtTime(found.seconds) : row.officialTime,
+        seconds: converted ? found.seconds : row.officialSeconds,
+        converted,
+        fromTime: converted ? row.officialTime : null,
         old
     };
 }
@@ -237,7 +265,7 @@ async function saveMeetRecords(table, records, found, meetId, meetDate) {
     for (const f of found) {
         const before = recordBefore(records.get(f.key), meetId);
         await table.upsertEntity(toRecordEntity({
-            key: f.key, time: f.row.officialTime, seconds: f.row.officialSeconds, year, converted: false,
+            key: f.key, time: f.converted ? fmtTime(f.seconds) : f.row.officialTime, seconds: f.converted ? f.seconds : f.row.officialSeconds, year, converted: !!f.converted,
             holder: holderOf(f.kind, f.row),
             setAtMeet: meetId,
             previous: before.matched ? null : { time: before.time, seconds: before.seconds, year: before.year, converted: !!before.converted, holder: before.holder || "" }
@@ -268,5 +296,5 @@ async function restoreRecord(table, record) {
 module.exports = {
     getRecordsTable, PARTITION_KEY, recordKey, keyForEvent, describeKey, compareKeys, normalizeAgeGroup,
     parseRecordsPage, toRecordEntity, toRecordDto, listRecords, newRecordsAtMeet, recordBefore,
-    recordSummary, saveMeetRecords, restoreRecordsSetAt, sameTime, holderOf
+    recordSummary, saveMeetRecords, restoreRecordsSetAt, sameTime, holderOf, recordTimeFor, fmtTime, YARDS_TO_METERS
 };

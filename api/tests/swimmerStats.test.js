@@ -124,10 +124,19 @@ test("each event carries its team record, marked as the swimmer's own when they 
     row.teamRecord = true;
     try {
         const jane = (await call(swimmerStats, { query: { name: "Doe, Jane" } })).body;
-        assert.deepEqual(jane.events.find(e => e.eventName === "Girls 9-10 25m Freestyle").record, { time: "19.90", seconds: 19.9, year: 2026, mine: true });
+        assert.deepEqual(jane.events.find(e => e.eventName === "Girls 9-10 25m Freestyle").record, { time: "19.90", seconds: 19.9, year: 2026, yards: false, mine: true });
         const kim = (await call(swimmerStats, { query: { name: "O'Moe, Kim" } })).body;
-        assert.deepEqual(kim.events[0].record, { time: "18.00", seconds: 18, year: 2015, mine: false });
+        assert.deepEqual(kim.events[0].record, { time: "18.00", seconds: 18, year: 2015, yards: false, mine: false });
     } finally {
         row.teamRecord = false;
     }
+});
+
+test("a yards event is held to the meters record at its converted time", async () => {
+    const { toRecordEntity } = require("../shared/teamRecords");
+    records.upsertEntity(toRecordEntity({ key: "m|boys|9-10|25|Free", time: "23.55", seconds: 23.55, year: 2026, converted: true, setAtMeet: "m1" }));
+    results.upsertEntity({ partitionKey: "Yard, Yan", rowKey: "m1__9", meetId: "m1", eventNumber: 9, eventName: "Boys 9-10 25yd Freestyle", age: 9, team: "Spotswood",
+        place: 1, status: "OK", seedTime: "NT", officialTime: "21.22", seedSeconds: null, officialSeconds: 21.22, points: 6, teamRecord: true });
+    const yan = (await call(swimmerStats, { query: { name: "Yard, Yan" } })).body;
+    assert.deepEqual(yan.events[0].record, { time: "23.55", seconds: 23.55, year: 2026, yards: true, mine: true });
 });

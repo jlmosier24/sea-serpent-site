@@ -3,7 +3,7 @@ const { getResultsTable, toResultDto, listSwimmerNames } = require("../shared/re
 const { getMeetsTable, toMeetDto, PARTITION_KEY: MEET_PARTITION_KEY } = require("../shared/meetsTable");
 const { isSpotswoodTeam } = require("../shared/meetResultsParser");
 const { swimmerSeason } = require("../shared/stats");
-const { getRecordsTable, listRecords, keyForEvent } = require("../shared/teamRecords");
+const { getRecordsTable, listRecords, recordTimeFor, sameTime } = require("../shared/teamRecords");
 const { getBadgesTable, readSwimmerBadges, readSwimmerList, saveSwimmerNames, countBadges } = require("../shared/badgeStore");
 
 // Reachable at /api/swimmerStats. Public, and Spotswood swimmers only.
@@ -67,13 +67,19 @@ module.exports = async function (context, req) {
         } catch (e) {
             context.log.error("Failed to load the team records:", e); // the page still shows without them
         }
+        // A yards event is held to the meters record at its swims' converted
+        // times (shared/teamRecords.js); yards: true says its own times aren't
+        // comparable with the record as they stand.
         season.events.forEach(event => {
-            const record = records.get(keyForEvent(event.eventName));
+            const asRecord = s => recordTimeFor({ eventName: event.eventName, officialSeconds: s.officialSeconds });
+            const at = recordTimeFor({ eventName: event.eventName, officialSeconds: 0 });
+            const record = at && records.get(at.key);
             event.record = record ? {
                 time: record.time,
                 seconds: record.seconds,
                 year: record.year,
-                mine: event.swims.some(s => s.teamRecord && s.officialSeconds === record.seconds)
+                yards: at.converted,
+                mine: event.swims.some(s => s.teamRecord && s.officialSeconds != null && sameTime(asRecord(s).seconds, record.seconds))
             } : null;
         });
         context.res = { status: 200, body: season };

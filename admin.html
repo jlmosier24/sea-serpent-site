@@ -288,7 +288,7 @@
         </div>
         <div class="card">
             <h2>Records set this season</h2>
-            <p class="field-help" style="margin:0 0 14px">For records set at meets imported before the records were loaded. Each record from this season is matched to the Spotswood swim or relay with exactly its time, which then gets the Team record tag, the Record Breaker badge, and its meet's record pill. Safe to run again.</p>
+            <p class="field-help" style="margin:0 0 14px">For records set at meets imported before the records were loaded. Each record from this season is matched to the Spotswood swim or relay with exactly its time (a record marked * to the yards swim whose time × 1.11 is the record), which then gets the Team record tag, the Record Breaker badge, and its meet's record pill. Safe to run again.</p>
             <button type="button" class="btn primary" id="recordsMatchBtn">Match this season's records</button>
             <div id="recordsMatchResult" role="status"></div>
         </div>
@@ -1202,7 +1202,7 @@ function recordsBox(newRecords, checked) {
     if (!newRecords || !newRecords.length) return '';
     const who = r => r.name ? displayName(r.name) : `${r.team} relay`;
     return `<div class="note-box records-box"><strong class="records-title">${ICON_RECORD}${plural(newRecords.length, 'new team record')}</strong>
-        <ul>${newRecords.map(r => `<li>${escapeHtml(r.label)}: ${escapeHtml(who(r))}, ${escapeHtml(r.time)}${r.old ? ` (was ${escapeHtml(r.old.time)}${r.old.year ? `, ${r.old.year}` : ''})` : ''}</li>`).join('')}</ul>
+        <ul>${newRecords.map(r => `<li>${escapeHtml(r.label)}: ${escapeHtml(who(r))}, ${escapeHtml(r.time)}${r.fromTime ? ` (from ${escapeHtml(r.fromTime)} yd)` : ''}${r.old ? ` (was ${escapeHtml(r.old.time)}${r.old.year ? `, ${r.old.year}` : ''})` : ''}</li>`).join('')}</ul>
         <label class="check"><input type="checkbox" id="importUpdateRecords"${checked ? ' checked' : ''}>Update the team records with ${newRecords.length === 1 ? 'it' : 'them'}</label></div>
         <p class="field-help" style="margin:0 0 14px">The swim is marked as a team record either way; this only changes the stored record later swims are compared with.</p>`;
 }

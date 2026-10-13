@@ -3,7 +3,7 @@ const { getMeetsTable, listMeets, PARTITION_KEY: MEET_PARTITION_KEY } = require(
 const { getBadgesTable, recomputeBadges } = require("../shared/badgeStore");
 const { isSpotswoodTeam } = require("../shared/meetResultsParser");
 const {
-    getRecordsTable, listRecords, toRecordEntity, keyForEvent, describeKey, compareKeys, recordSummary, sameTime, holderOf
+    getRecordsTable, listRecords, toRecordEntity, describeKey, compareKeys, recordSummary, sameTime, holderOf, recordTimeFor
 } = require("../shared/teamRecords");
 
 // Reachable at /api/manageRecordsMatch. Admin only (the /api/manage* rule in
@@ -13,7 +13,8 @@ const {
 // exactly its time (the earliest, if more than one), which is then marked as
 // a team record, with the meet's card and popup and everyone's badges
 // updated. Nothing is known of the record each one replaced. A record
-// converted from yards has no meters swim to match. Safe to run again.
+// converted from yards ("*") is matched to a yards swim whose time x 1.11,
+// rounded, is the record's. Safe to run again.
 module.exports = async function (context) {
     try {
         const meetsTable = getMeetsTable();
@@ -33,7 +34,6 @@ module.exports = async function (context) {
         for (const record of records) {
             const label = describeKey(record.key);
             if (record.setAtMeet) result.alreadyMarked.push({ label, time: record.time });
-            else if (record.converted) result.notMatched.push({ label, time: record.time, reason: "Converted from a yards time" });
             else wanted.set(record.key, record);
         }
 
@@ -42,12 +42,13 @@ module.exports = async function (context) {
         const consider = (entity, dto, kind, table) => {
             const meet = seasonMeets.get(dto.meetId);
             if (!meet || dto.status !== "OK" || dto.officialSeconds == null || !isSpotswoodTeam(dto.team)) return;
-            const key = keyForEvent(dto.eventName);
-            const record = key && wanted.get(key);
-            if (!record || !sameTime(dto.officialSeconds, record.seconds)) return;
-            const current = found.get(key);
+            const at = recordTimeFor(dto);
+            const record = at && wanted.get(at.key);
+            // A converted record came from a yards swim, any other from a meters one.
+            if (!record || at.converted !== !!record.converted || !sameTime(at.seconds, record.seconds)) return;
+            const current = found.get(at.key);
             if (!current || meet.date < current.meet.date || (meet.date === current.meet.date && dto.eventNumber < current.dto.eventNumber)) {
-                found.set(key, { key, record, meet, dto, kind, entity, table });
+                found.set(at.key, { key: at.key, record, meet, dto, kind, entity, table, seconds: at.seconds, converted: at.converted });
             }
         };
         for await (const entity of resultsTable.listEntities()) consider(entity, toResultDto(entity), "swim", resultsTable);
@@ -58,7 +59,7 @@ module.exports = async function (context) {
             await f.table.updateEntity({ partitionKey: f.entity.partitionKey, rowKey: f.entity.rowKey, teamRecord: true }, "Merge");
             await recordsTable.upsertEntity(toRecordEntity({ ...f.record, holder: holderOf(f.kind, { ...f.dto, name: f.entity.partitionKey }), setAtMeet: f.meet.id, previous: null }), "Replace");
             const summary = summaries.get(f.meet.id) || { ...(f.meet.summary || {}) };
-            const added = recordSummary({ key: f.key, kind: f.kind, row: { ...f.dto, name: f.entity.partitionKey }, old: null });
+            const added = recordSummary({ key: f.key, kind: f.kind, row: { ...f.dto, name: f.entity.partitionKey }, seconds: f.seconds, converted: f.converted, old: null });
             summary.newRecords = [...(summary.newRecords || []).filter(r => r.key !== f.key), added];
             summaries.set(f.meet.id, summary);
             result.matched.push({ label: describeKey(f.key), time: f.record.time, meetDate: f.meet.date });
@@ -68,7 +69,7 @@ module.exports = async function (context) {
             await meetsTable.updateEntity({ partitionKey: MEET_PARTITION_KEY, rowKey: meetId, summaryJson: JSON.stringify(summary) }, "Merge");
         }
         for (const [key, record] of wanted) {
-            if (!found.has(key)) result.notMatched.push({ label: describeKey(key), time: record.time, reason: "No swim this season with this time" });
+            if (!found.has(key)) result.notMatched.push({ label: describeKey(key), time: record.time, reason: record.converted ? "No yards swim this season converts to this time" : "No swim this season with this time" });
         }
 
         result.badgesUpdated = true;

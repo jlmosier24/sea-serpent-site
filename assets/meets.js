@@ -350,8 +350,10 @@
                 ? `${escapeHtml((r.swimmers || []).map(displayName).join(", ") || "Spotswood")} <span class="hl-old">(relay)</span>`
                 : escapeHtml(displayName(r.name));
             const old = r.old ? ` · <span class="hl-old">old record ${escapeHtml(r.old.time)}${r.old.year ? ` (${escapeHtml(r.old.year)})` : ""}</span>` : "";
+            // A yards swim's record is its converted time; its own time says so.
+            const yards = r.fromTime ? ` · <span class="hl-old">from ${escapeHtml(r.fromTime)} yd</span>` : "";
             return `
-                <li><div class="hl-who"><p class="hl-name">${who}</p><p class="hl-line"><b>${escapeHtml(group)}</b> · ${escapeHtml(event || "")}${old}</p></div><span class="hl-value">${escapeHtml(r.time)}</span></li>`;
+                <li><div class="hl-who"><p class="hl-name">${who}</p><p class="hl-line"><b>${escapeHtml(group)}</b> · ${escapeHtml(event || "")}${yards}${old}</p></div><span class="hl-value">${escapeHtml(r.time)}</span></li>`;
         });
         return highlightCard(records.length === 1 ? "New team record" : "New team records", `<span class="hl-icon">${RECORD_ICON}</span>`, rows);
     }

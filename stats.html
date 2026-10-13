@@ -477,14 +477,18 @@ function recordLine(event) {
     const best = event.seasonBestSeconds;
     if (!record || best == null) return '';
     if (record.mine) {
-        const swim = event.swims.find(s => s.teamRecord && s.officialSeconds === record.seconds);
+        // A yards swim's record is its time converted to meters (x 1.11).
+        const asRecord = s => (record.yards ? Math.round(s.officialSeconds * 111) / 100 : s.officialSeconds);
+        const swim = event.swims.find(s => s.teamRecord && s.officialSeconds != null && Math.abs(asRecord(s) - record.seconds) < 0.005);
+        const note = swim ? `Set ${fmtDate(swim.meetDate)}${record.yards ? ` · ${swim.officialTime} yd, converted to meters` : ''}` : '';
         return `
             <div class="record-line held">
                 <div class="record-top"><span>${Meets.RECORD_ICON}<b>Team record holder</b></span><b>${escapeHtml(record.time)}</b></div>
-                ${swim ? `<span class="record-note">Set ${escapeHtml(fmtDate(swim.meetDate))}</span>` : ''}
+                ${note ? `<span class="record-note">${escapeHtml(note)}</span>` : ''}
             </div>`;
     }
-    if (best > record.seconds * (1 + RECORD_CLOSE)) return '';
+    // Yards times aren't comparable with the meters record as they stand.
+    if (record.yards || best > record.seconds * (1 + RECORD_CLOSE)) return '';
     const away = Math.max(0, best - record.seconds);
     const percent = Math.min(100, (record.seconds / best) * 100);
     const awayText = away > 0 ? `${away.toFixed(2)}s away` : 'At the record';
