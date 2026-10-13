@@ -353,7 +353,10 @@ async function api(path, opts) {
         err.status = res.status;
         throw err;
     }
-    return text ? JSON.parse(text) : null;
+    if (!text) return null;
+    // A reply that isn't JSON still means it worked; the page used to report
+    // a removed photo as failed because its reply was plain text.
+    try { return JSON.parse(text); } catch (e) { return text; }
 }
 function postJson(path, body) {
     return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });

@@ -30,7 +30,7 @@ module.exports = async function (context, req) {
             if (e.statusCode !== 404) throw e; // already gone is fine
         }
 
-        context.res = { status: 200, body: "Deleted" };
+        context.res = { status: 200, body: { deleted: true } };
     } catch (e) {
         context.log.error("Failed to reject photo:", e);
         context.res = { status: 500, body: "Error: " + (e.message || e.code || JSON.stringify(e)) };
