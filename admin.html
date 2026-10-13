@@ -12,7 +12,10 @@
 <script src="/assets/site.js"></script>
 <style>
     /* Admin-only layout. Cards, buttons, fields, and dialogs come from /assets/site.css. */
-    main.wrap { max-width: 1040px; padding-bottom: 80px; }
+    /* The same container as the public pages, so it lines up with the header; the
+       content keeps its narrower width on the left (as on Stats and Schedule). */
+    main.wrap { padding-bottom: 80px; }
+    main.wrap > * { max-width: 992px; }
     h1 { font-size: 36px; margin: 34px 0 18px; }
     .muted { color: var(--muted); }
     .small { font-size: 14px; }
