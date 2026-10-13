@@ -26,9 +26,7 @@
     .lb-tabs { margin-top: 12px; }
     .lb-event { display: block; margin: 16px 0 0; }
     .lb-event select { appearance: none; -webkit-appearance: none; width: 100%; padding: 11px 40px 11px 14px; border: 1px solid var(--card-border); border-radius: 14px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231A6B2E' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 18px; font: 600 16px Inter, sans-serif; color: var(--ink); cursor: pointer; }
-    .lb-record { margin: 14px 0 6px; padding: 10px 14px; border-radius: 14px; font-size: 14px; }
-    .lb-record b { font-family: var(--font-head); }
-    .lb-list { list-style: none; margin: 4px 0 0; padding: 0; }
+    .lb-list { list-style: none; margin: 10px 0 0; padding: 0; }
     .lb-list li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--card-border); }
     .lb-list li:last-child { border-bottom: 0; }
     .lb-list li.fav { margin: 0 -10px; padding: 11px 14px; border-radius: 14px; background: var(--soft); border: 1px solid var(--soft-border); }
@@ -747,13 +745,10 @@ function renderBoardList(events) {
     // A tie shares a place: 1, 2, 2, 4.
     rows.forEach((r, i) => { r.place = i && r.seconds === rows[i - 1].seconds ? rows[i - 1].place : i + 1; });
 
-    const record = (events.find(e => e.record) || {}).record;
-    const recordHtml = record ? `Team record <b>${escapeHtml(record.time)}</b>${record.year ? ` · ${escapeHtml(record.year)}` : ''}` : '';
 
     const favorites = new Set(Swimmers.favorites());
     const shown = boardsState.expanded ? rows : rows.slice(0, BOARD_SHOWN);
     box.innerHTML = `
-        ${recordHtml ? `<div class="inset lb-record">${recordHtml}</div>` : ''}
         <ol class="lb-list">${shown.map(r => {
             const meet = meetsById[r.meetId];
             // "July 13 at Curtis Park", "July 8 vs. Massad"; a championship's
