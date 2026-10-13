@@ -129,6 +129,7 @@
         .photo-table th:first-child { width: 84px; }
         .photo-table th:nth-child(2) { width: 30%; }
         .photo-table th:last-child { width: 190px; }
+        .photo-table .row-actions { justify-content: flex-end; }
     }
     /* Phones: each photo stacks into its own block -- as table rows they ran wider than the screen. */
     @media (max-width: 600px) {
@@ -141,6 +142,9 @@
         .photo-table td:first-child { grid-row: span 2; }
         .photo-table td:not(:first-child) { grid-column: 2; }
         .stack-table td[colspan] { grid-column: 1 / -1; grid-row: auto; }
+        /* An approved photo's one button sits on the right, beside the photo and its text. */
+        #approvedTable tr { grid-template-columns: 64px 1fr auto; }
+        #approvedTable td:last-child:not([colspan]) { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
     }
     .thumb { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
     .thumb-open { display: block; padding: 0; border: none; border-radius: 8px; background: none; cursor: zoom-in; }
