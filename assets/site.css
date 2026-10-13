@@ -48,7 +48,8 @@
 /* ---------- Base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 /* No blue flash on tap in phone browsers, which showed behind a popup as it opened. */
-html { -webkit-tap-highlight-color: transparent; }
+/* The scrollbar's space is always kept, so a page that grows once its data loads (Home, Schedule) doesn't shift sideways when the scrollbar appears. */
+html { -webkit-tap-highlight-color: transparent; scrollbar-gutter: stable; }
 [hidden] { display: none !important; }
 body {
     margin: 0;
