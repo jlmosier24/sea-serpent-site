@@ -128,7 +128,7 @@ function renderGrid() {
     const list = shownPhotos();
     document.getElementById('photoCount').textContent = plural(list.length, 'photo', 'photos');
     // Rows of whole photos, shorter on phones so a row still fits two or three.
-    Photos.showRows(grid, list, { targetHeight: width => (width < 500 ? 130 : 210), labelFor: photo => (photo.tag ? photo.tag.label : '') });
+    Photos.showRows(grid, list, { targetHeight: width => (width < 500 ? 170 : 210), labelFor: photo => (photo.tag ? photo.tag.label : '') });
     if (!list.length) grid.innerHTML = `<p class="empty">${photos.length ? 'No photos here yet.' : 'No photos yet. Be the first to share one!'}</p>`;
 }
 

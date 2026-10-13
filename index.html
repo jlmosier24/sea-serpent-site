@@ -176,7 +176,7 @@ async function loadPhotos() {
         box.innerHTML = '<p class="empty">No photos yet. Be the first to share one!</p>';
         return;
     }
-    Photos.showRows(box, allPhotos, { targetHeight: width => (width < 500 ? 110 : 150), maxRows: 3, fullRowsOnly: true });
+    Photos.showRows(box, allPhotos, { targetHeight: width => (width < 500 ? 140 : 150), maxRows: 3, fullRowsOnly: true });
 }
 
 document.getElementById('galleryContent').addEventListener('click', (event) => {
