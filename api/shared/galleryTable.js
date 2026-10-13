@@ -13,7 +13,6 @@ function toGalleryDto(entity) {
         url: entity.url,
         blobName: entity.blobName,
         caption: entity.caption || "",
-        submittedBy: entity.submittedBy || "",
         status: entity.status,
         submittedAt: entity.submittedAt,
         // The day the photo was taken ("YYYY-MM-DD"), read from the photo

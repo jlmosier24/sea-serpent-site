@@ -156,7 +156,7 @@
         }
         img.alt = photo.caption || (photo.tag && photo.tag.key !== "other" ? `Team photo from ${label}` : "Team photo");
         // Older photos were uploaded with captions; new ones don't have any.
-        const caption = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(" ");
+        const caption = photo.caption || "";
         dialog.querySelector(".viewer-caption").textContent = caption;
         show(".viewer-caption", !!caption);
         show(".viewer-nav", photos.length > 1);

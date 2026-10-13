@@ -10,10 +10,10 @@ const OUT = path.join(__dirname, "..", "..", "sample-data", "gallery-public.json
 
 const PHOTOS = [
     { color: "#2F8F3E", label: "Team Practice" },
-    { color: "#F0B429", label: "Relay Warmup", caption: "Relay warmups before the Fox Point meet", submittedBy: "Coach Dana" },
+    { color: "#F0B429", label: "Relay Warmup", caption: "Relay warmups before the Fox Point meet" },
     { color: "#1F6B2B", label: "Meet Day" },
     { color: "#2D6B34", label: "Pool Time", caption: "Free swim after practice" },
-    { color: "#D19B1F", label: "Awards Ceremony", caption: "Ribbons for the 9-10 girls", submittedBy: "Mosier family" },
+    { color: "#D19B1F", label: "Awards Ceremony", caption: "Ribbons for the 9-10 girls" },
     { color: "#17261A", label: "Go Sea Serpents!" }
 ];
 
@@ -28,7 +28,6 @@ const photos = PHOTOS.map((p, i) => ({
     url: svgDataUrl(p.color, p.label),
     blobName: `test-photo-${i + 1}.svg`,
     caption: p.caption || "",
-    submittedBy: p.submittedBy || "",
     status: "approved",
     submittedAt: new Date(now - i * 3 * 60 * 60 * 1000).toISOString() // spread a few hours apart, newest first
 }));

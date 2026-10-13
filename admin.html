@@ -816,13 +816,17 @@ async function loadSettings() {
 /* ---------- Photos ---------- */
 // The thumbnails are too small to judge a photo by -- tapping one opens it full size.
 const galleryPhotosById = new Map();
+// Who shared a photo isn't kept; the day it came in is.
+function submittedDate(p) {
+    return escapeHtml(new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }));
+}
 function viewPhoto(id) {
     const photo = galleryPhotosById.get(id);
     if (!photo) return;
     const img = $('photoViewerImg');
     img.src = photo.url;
     img.alt = photo.caption || 'Submitted photo';
-    $('photoViewerCaption').textContent = [photo.caption, photo.submittedBy && `— ${photo.submittedBy}`].filter(Boolean).join(' ');
+    $('photoViewerCaption').textContent = photo.caption || '';
     document.documentElement.style.overflow = 'hidden';
     $('photoViewer').showModal();
 }
@@ -855,7 +859,7 @@ async function loadGallery() {
         pendingBody.innerHTML = pending.length ? pending.map(p => `
             <tr>
                 <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
-                <td>${escapeHtml(p.submittedBy || 'Anonymous')}<br><span class="muted">${escapeHtml(new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }))}</span></td>
+                <td>${submittedDate(p)}</td>
                 <td>${photoPlace(p)}</td>
                 <td><div class="row-actions">
                     <button type="button" class="btn small primary" onclick="approvePhoto('${escapeHtml(p.id)}')">Approve</button>
@@ -867,7 +871,7 @@ async function loadGallery() {
         approvedBody.innerHTML = approved.length ? approved.map(p => `
             <tr>
                 <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
-                <td>${escapeHtml(p.submittedBy || 'Anonymous')}</td>
+                <td>${submittedDate(p)}</td>
                 <td>${photoPlace(p)}</td>
                 <td><div class="row-actions"><button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}')">Remove</button></div></td>
             </tr>
