@@ -394,6 +394,8 @@ function showTab(name, focus) {
         $('tab-' + t).hidden = !selected;
     });
     if (focus) $('tabBtn-' + name).focus();
+    // Kept in the address (#gallery, #records), so a refresh or a bookmark opens this tab.
+    history.replaceState(null, '', name === TAB_NAMES[0] ? location.pathname + location.search : '#' + name);
 }
 TAB_NAMES.forEach((name, i) => {
     const button = $('tabBtn-' + name);
@@ -410,6 +412,12 @@ TAB_NAMES.forEach((name, i) => {
         }
     });
 });
+
+// Open the tab the address names, if any.
+{
+    const fromHash = location.hash.slice(1);
+    if (TAB_NAMES.includes(fromHash)) showTab(fromHash);
+}
 
 /* ---------- Address suggestions ---------- */
 // Suggestions come from Azure Maps (geocodeAddress) when it's set up; until
