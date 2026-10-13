@@ -15,7 +15,8 @@
 <script src="/assets/swimmers.js"></script>
 <style>
     /* Stats page only. Cards, tiles, and the meet results popup come from /assets/site.css. */
-    .stats-stack { display: flex; flex-direction: column; gap: 22px; padding-bottom: 80px; }
+    /* Lined up on the left with the header and the other pages, at its own narrower width (like the Schedule list). */
+    .stats-stack { display: flex; flex-direction: column; gap: 22px; max-width: 932px; padding-bottom: 80px; }
     .stats-list { display: flex; flex-direction: column; gap: 22px; }
     /* The season's team totals, shown until a swimmer is picked. */
     .season-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -175,7 +176,7 @@
 </head>
 <body>
 <site-header current="stats"></site-header>
-<main class="wrap narrow">
+<main class="wrap">
     <section class="page-title">
         <h1>Swimmer Stats</h1>
         <p>Pick a swimmer to see their times and results across the season.</p>

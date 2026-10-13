@@ -71,7 +71,6 @@ a { color: var(--brand); }
 html.is-locked { overflow: hidden; scrollbar-gutter: stable; }
 
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
-.wrap.narrow { max-width: 980px; }
 @media (max-width: 600px) { .wrap { padding: 0 16px; } }
 
 /* ---------- Site header (rendered by <site-header>) ---------- */
