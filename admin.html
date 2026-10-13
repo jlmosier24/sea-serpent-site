@@ -146,6 +146,7 @@
         #approvedTable tr { grid-template-columns: 64px 1fr auto; }
         #approvedTable td:last-child:not([colspan]) { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
     }
+    .remove-photo { display: block; max-width: 100%; max-height: 220px; margin: 0 auto 14px; border-radius: 14px; }
     .thumb { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
     .thumb-open { display: block; padding: 0; border: none; border-radius: 8px; background: none; cursor: zoom-in; }
 
@@ -259,12 +260,13 @@
 
     <!-- PHOTOS -->
     <section class="stack" id="tab-gallery" role="tabpanel" aria-labelledby="tabBtn-gallery" hidden>
+        <p class="msg error" id="galleryMsg" role="alert" hidden></p>
         <div class="card">
-            <h2>Pending review</h2>
+            <h2 id="pendingTitle" tabindex="-1">Pending review</h2>
             <table id="pendingTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Goes to</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
         </div>
         <div class="card">
-            <h2>Approved</h2>
+            <h2 id="approvedTitle" tabindex="-1">Approved</h2>
             <table id="approvedTable" class="photo-table stack-table"><thead><tr><th></th><th>Submitted</th><th>Goes to</th><th></th></tr></thead><tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody></table>
         </div>
     </section>
@@ -302,6 +304,22 @@
         <div class="dialog-actions">
             <button type="button" class="btn" data-close-dialog>Cancel</button>
             <button type="button" class="btn danger solid" id="deleteConfirmBtn">Delete meet</button>
+        </div>
+    </div>
+</dialog>
+<dialog class="dialog" id="photoRemoveDialog" aria-labelledby="photoRemoveTitle">
+    <div class="dialog-grab" aria-hidden="true"></div>
+    <div class="dialog-head">
+        <div><h2 id="photoRemoveTitle">Remove this photo?</h2><p id="photoRemoveWhen"></p></div>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="dialog-body">
+        <img class="remove-photo" id="photoRemoveImg" alt="">
+        <p class="note-box warn" id="photoRemoveWarning"></p>
+        <p class="msg error" id="photoRemoveError" role="alert" hidden></p>
+        <div class="dialog-actions">
+            <button type="button" class="btn" data-close-dialog>Cancel</button>
+            <button type="button" class="btn danger solid" id="photoRemoveBtn">Remove photo</button>
         </div>
     </div>
 </dialog>
@@ -866,8 +884,8 @@ async function loadGallery() {
                 <td>${submittedDate(p)}</td>
                 <td>${photoPlace(p)}</td>
                 <td><div class="row-actions">
-                    <button type="button" class="btn small primary" onclick="approvePhoto('${escapeHtml(p.id)}')">Approve</button>
-                    <button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}')">Reject</button>
+                    <button type="button" class="btn small primary" onclick="approvePhoto('${escapeHtml(p.id)}', this)">Approve</button>
+                    <button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}', this)">Reject</button>
                 </div></td>
             </tr>
         `).join('') : '<tr><td colspan="4" class="muted">Nothing pending.</td></tr>';
@@ -877,7 +895,7 @@ async function loadGallery() {
                 <td><button type="button" class="thumb-open" aria-label="View photo full size" onclick="viewPhoto('${escapeHtml(p.id)}')"><img class="thumb" src="${escapeHtml(p.url)}" alt=""></button></td>
                 <td>${submittedDate(p)}</td>
                 <td>${photoPlace(p)}</td>
-                <td><div class="row-actions"><button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}')">Remove</button></div></td>
+                <td><div class="row-actions"><button type="button" class="btn small danger" onclick="rejectPhoto('${escapeHtml(p.id)}', this)">Remove</button></div></td>
             </tr>
         `).join('') : '<tr><td colspan="4" class="muted">Nothing approved yet.</td></tr>';
     } catch (e) {
@@ -885,15 +903,55 @@ async function loadGallery() {
     }
 }
 
-async function approvePhoto(id) {
-    try { await postJson('/api/manageGalleryApprove', { id }); loadGallery(); }
-    catch (e) { alert('Could not approve photo.'); }
+async function approvePhoto(id, button) {
+    button.disabled = true;
+    $('galleryMsg').hidden = true;
+    try {
+        await postJson('/api/manageGalleryApprove', { id });
+        await loadGallery();
+        $('approvedTitle').focus(); // the row moved to Approved
+    } catch (e) {
+        button.disabled = false;
+        $('galleryMsg').textContent = "Couldn't approve the photo. Please try again.";
+        $('galleryMsg').hidden = false;
+    }
 }
-async function rejectPhoto(id) {
-    if (!confirm('Remove this photo permanently?')) return;
-    try { await postJson('/api/manageGalleryReject', { id }); loadGallery(); }
-    catch (e) { alert('Could not remove photo.'); }
+
+// Rejecting a pending photo and removing an approved one both delete it, so
+// both ask first, in the site's own dialog rather than the browser's.
+let removingPhoto = null;
+function rejectPhoto(id, opener) {
+    const photo = galleryPhotosById.get(id);
+    if (!photo) return;
+    removingPhoto = photo;
+    const pending = photo.status === 'pending';
+    $('photoRemoveTitle').textContent = pending ? 'Reject this photo?' : 'Remove this photo?';
+    $('photoRemoveWhen').textContent = `Submitted ${new Date(photo.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;
+    $('photoRemoveImg').src = photo.url;
+    $('photoRemoveWarning').textContent = (pending ? "It won't be posted, and it's deleted." : "It comes off the site and is deleted.") + " This can't be undone.";
+    $('photoRemoveError').hidden = true;
+    $('photoRemoveBtn').disabled = false;
+    $('photoRemoveBtn').textContent = pending ? 'Reject photo' : 'Remove photo';
+    SiteUI.openDialog($('photoRemoveDialog'), opener);
 }
+$('photoRemoveBtn').addEventListener('click', async () => {
+    const photo = removingPhoto;
+    const label = $('photoRemoveBtn').textContent;
+    $('photoRemoveBtn').disabled = true;
+    $('photoRemoveBtn').textContent = photo.status === 'pending' ? 'Rejecting…' : 'Removing…';
+    try {
+        await postJson('/api/manageGalleryReject', { id: photo.id });
+        $('photoRemoveDialog').close();
+        await loadGallery();
+        // The row (and its button) is gone, so focus lands on its table's heading.
+        $(photo.status === 'pending' ? 'pendingTitle' : 'approvedTitle').focus();
+    } catch (e) {
+        $('photoRemoveError').textContent = "Couldn't remove the photo. Please try again.";
+        $('photoRemoveError').hidden = false;
+        $('photoRemoveBtn').disabled = false;
+        $('photoRemoveBtn').textContent = label;
+    }
+});
 
 /* ---------- Import results ---------- */
 // The dialog behind each meet's Import button: choose the results PDF, read
