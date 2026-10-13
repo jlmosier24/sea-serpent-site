@@ -73,13 +73,15 @@
     }
 
     // onPick(name) runs when a swimmer is chosen from the list or Favorites,
-    // and with "" when the search is cleared. Returns the search's controls.
-    function mountSearch(box, { onPick }) {
+    // and with "" when the search is cleared. With labelledBy (a heading's id),
+    // that heading names the box instead of the small "Find a swimmer" label.
+    // Returns the search's controls.
+    function mountSearch(box, { onPick, labelledBy = "" }) {
         box.innerHTML = `
-            <label class="picker-label" for="swimmerSearch">Find a swimmer</label>
+            ${labelledBy ? "" : '<label class="picker-label" for="swimmerSearch">Find a swimmer</label>'}
             <div class="search">
                 ${SEARCH_ICON}
-                <input class="input" id="swimmerSearch" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="swimmerMatches" placeholder="Loading swimmers…" autocomplete="off" spellcheck="false" disabled>
+                <input class="input" id="swimmerSearch" type="text"${labelledBy ? ` aria-labelledby="${escapeHtml(labelledBy)}"` : ""} role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="swimmerMatches" placeholder="Loading swimmers…" autocomplete="off" spellcheck="false" disabled>
                 <button type="button" class="search-clear" aria-label="Clear the search" hidden>${CLEAR_ICON}</button>
             </div>
             <div class="matches" id="swimmerMatches" role="listbox" aria-label="Swimmers" hidden></div>

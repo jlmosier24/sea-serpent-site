@@ -20,6 +20,12 @@
     .stats-list { display: flex; flex-direction: column; gap: 22px; }
     /* Leaderboards, shown until a swimmer is picked: age group chips, Girls /
        Boys, an event, then each swimmer's best time this season. */
+    .search-title { margin: 0 0 14px; font-size: 22px; font-weight: 700; }
+    /* The chips scroll sideways; a fade at the right edge says there are more,
+       until the row is scrolled to its end (or there's nothing to scroll). */
+    .lb-groups-wrap { position: relative; }
+    .lb-groups-wrap::after { content: ""; position: absolute; top: 0; right: -4px; bottom: 4px; width: 44px; pointer-events: none; background: linear-gradient(to right, rgba(255,255,255,0), #fff 85%); transition: opacity .15s; }
+    .lb-groups-wrap.at-end::after { opacity: 0; }
     .lb-groups { display: flex; gap: 8px; overflow-x: auto; margin: 0 -4px; padding: 2px 4px 4px; scrollbar-width: none; }
     .lb-groups::-webkit-scrollbar { display: none; }
     .lb-groups .chip { flex-shrink: 0; }
@@ -200,11 +206,12 @@
 
     <div class="stats-stack">
         <section class="card">
+            <h2 class="search-title" id="searchHeading">Find a swimmer</h2>
             <div id="swimmerPicker"></div>
         </section>
         <section class="card" id="boardsCard" aria-labelledby="boardsHeading" hidden>
             <div class="card-head"><h2 id="boardsHeading">Leaderboards</h2><span class="small muted" id="boardsSeason"></span></div>
-            <div class="lb-groups" id="boardsGroups" role="group" aria-label="Age group"></div>
+            <div class="lb-groups-wrap" id="boardsGroupsWrap"><div class="lb-groups" id="boardsGroups" role="group" aria-label="Age group"></div></div>
             <div class="points-tabs lb-tabs" id="boardsTabs" role="tablist" aria-label="Swimmers">
                 <button type="button" role="tab" id="boardsTab-girls" data-who="girls" aria-controls="boardsPanel" aria-selected="true">Girls</button>
                 <button type="button" role="tab" id="boardsTab-boys" data-who="boys" aria-controls="boardsPanel" aria-selected="false" tabindex="-1">Boys</button>
@@ -594,6 +601,7 @@ async function loadSwimmer(name) {
     shownSeason = null;
     document.title = name ? `${displayName(name)} | Stats | Spotswood Sea Serpents` : 'Stats | Spotswood Sea Serpents';
     document.getElementById('boardsCard').hidden = !!name || !boards;
+    if (!name && boards) updateGroupsFade();
     if (!name) {
         box.innerHTML = '';
         status.textContent = '';
@@ -638,6 +646,7 @@ document.getElementById('swimmerContent').addEventListener('click', (event) => {
 // and goes into the address, so a swimmer's stats can be bookmarked or
 // shared (the home page's search links here the same way).
 const picker = Swimmers.mountSearch(document.getElementById('swimmerPicker'), {
+    labelledBy: 'searchHeading',
     onPick(name) {
         history.replaceState(null, '', name ? `?swimmer=${encodeURIComponent(name)}` : location.pathname);
         loadSwimmer(name);
@@ -680,11 +689,18 @@ const BOARD_SHOWN = 8;
 const STROKE_ORDER = ['Freestyle', 'Backstroke', 'Breaststroke', 'Butterfly', 'IM'];
 const FAV_STAR = '<svg class="lb-fav" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Favorite"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
 
-// "8 & Under", "9-10" -> youngest first ("8 & Under" before "7-8", as SwimTopia lists them).
+// Youngest first, by the oldest age in the group, with a band before the
+// "& Under" group ending at the same age: 6 & Under, 7-8, 8 & Under, 9-10.
 function groupOrder(group) {
     const ages = (group.match(/\d+/g) || []).map(Number);
-    return [ages.length ? ages[ages.length - 1] : 99, ages.length > 1 ? ages[0] : 0];
+    return [ages.length ? ages[ages.length - 1] : 99, ages.length > 1 ? -ages[0] : 0];
 }
+function updateGroupsFade() {
+    const row = document.getElementById('boardsGroups');
+    document.getElementById('boardsGroupsWrap').classList.toggle('at-end', row.scrollLeft + row.clientWidth >= row.scrollWidth - 2);
+}
+document.getElementById('boardsGroups').addEventListener('scroll', updateGroupsFade, { passive: true });
+window.addEventListener('resize', () => { if (boards) updateGroupsFade(); });
 function eventOrder(event) {
     const [, distance, stroke] = event.match(/^(\d+)m\s+(.+)$/) || [];
     return [STROKE_ORDER.indexOf(stroke), Number(distance)];
@@ -713,6 +729,7 @@ async function loadBoards() {
     document.getElementById('boardsGroups').innerHTML = groups.map(g => `<button type="button" class="chip" data-group="${escapeHtml(g)}" aria-pressed="false">${escapeHtml(groupLabel(g))}</button>`).join('');
     renderBoards();
     document.getElementById('boardsCard').hidden = new URLSearchParams(location.search).has('swimmer');
+    updateGroupsFade();
 }
 
 function boardEvents() {
