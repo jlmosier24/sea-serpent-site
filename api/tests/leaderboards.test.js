@@ -63,7 +63,7 @@ test("/api/leaderboards: worked out once, saved, and served with each event's cu
     const girls = res.body.events.find(e => e.eventName === "Girls 9-10 25m Freestyle");
     assert.deepEqual([girls.gender, girls.group, girls.event], ["girls", "9-10", "25m Freestyle"]);
     assert.deepEqual(girls.record, { time: "15.31", seconds: 15.31, year: 2026 });
-    assert.deepEqual(girls.rows.map(r => [r.name, r.teamRecord]), [["Doe, Jane", true], ["Roe, Mia", false]]);
+    assert.deepEqual(girls.rows.map(r => [r.name, r.age, r.teamRecord]), [["Doe, Jane", 9, true], ["Roe, Mia", 9, false]]);
     assert.equal(JSON.stringify(res.body).includes("Jane Doe"), false, "record holders' names stay on the admin page");
     assert.equal(JSON.stringify(res.body).includes("Rival"), false, "Spotswood only");
     assert.equal(res.body.events.find(e => e.gender === "boys").record, null);
@@ -78,4 +78,15 @@ test("the boards are saved again with the badges after an import, and an event n
     store.results.upsertEntity({ partitionKey: "Doe, Jane", rowKey: "m1__3", meetId: "m1", eventNumber: 3, eventName: "Girls 9-10 25m Freestyle", age: 9, team: "Spotswood", place: 1, status: "OK", officialTime: "15.31", officialSeconds: 15.31, points: 6 });
     await recomputeBadges({ resultsTable: store.results, relayTable: store.relays, meetsTable: store.meets, badgesTable: store.badges });
     assert.deepEqual(store.badges.all().filter(r => r.partitionKey === "leaderboard").map(r => r.eventName), ["Girls 9-10 25m Freestyle"]);
+});
+
+test("boards saved before ages were kept are worked out again", async () => {
+    resetStore();
+    store.meets.upsertEntity({ partitionKey: MEET_PARTITION_KEY, rowKey: "m1", opponent: "Test Seahawks", shortName: "Test", homeAway: "home", date: "2026-07-13" });
+    store.results.upsertEntity({ partitionKey: "Doe, Jane", rowKey: "m1__3", meetId: "m1", eventNumber: 3, eventName: "Girls 9-10 25m Freestyle", age: 10, team: "Spotswood", place: 1, status: "OK", officialTime: "15.31", officialSeconds: 15.31 });
+    store.badges.upsertEntity({ partitionKey: "leaderboard", rowKey: encodeURIComponent("Girls 9-10 25m Freestyle"), eventName: "Girls 9-10 25m Freestyle", season: 2026,
+        rowsJson: JSON.stringify([{ name: "Doe, Jane", seconds: 15.31, time: "15.31", meetId: "m1", meetDate: "2026-07-13", teamRecord: false }]) });
+    const res = await call(leaderboards, {});
+    assert.equal(res.body.events[0].rows[0].age, 10);
+    assert.equal(JSON.parse(store.badges.all().find(r => r.partitionKey === "leaderboard").rowsJson)[0].age, 10);
 });

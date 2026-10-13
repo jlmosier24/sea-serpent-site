@@ -754,7 +754,8 @@ function renderBoardList(events) {
             // "July 13 at Curtis Park", "July 8 vs. Massad"; a championship's
             // title is its name, so it gets an "at": "July 26 at Division Finals".
             const where = meet && meet.title ? (/^(vs\.|at) /.test(meet.title) ? meet.title : `at ${meet.title}`) : '';
-            const sub = [r.meetDate && fmtDate(r.meetDate), where].filter(Boolean).join(' ');
+            const when = [r.meetDate && fmtDate(r.meetDate), where].filter(Boolean).join(' ');
+            const sub = [r.age != null && `Age ${r.age}`, when].filter(Boolean).join(' · ');
             const fav = favorites.has(r.name);
             return `
                 <li${fav ? ' class="fav"' : ''}>

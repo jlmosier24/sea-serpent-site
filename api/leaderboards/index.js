@@ -10,12 +10,13 @@ const { parseEvent, readLeaderboards, saveLeaderboards, leaderboardsFromResults 
 // is ({ gender, group, event }) and its current team record ({ time, year },
 // never who holds it), and a row is marked teamRecord when that swim is the
 // record now:
-// { season, events: [{ eventName, gender, group, event, record, rows: [{ name, seconds, time, meetId, meetDate, teamRecord }] }] }.
+// { season, events: [{ eventName, gender, group, event, record, rows: [{ name, seconds, time, meetId, meetDate, age, teamRecord }] }] }.
 module.exports = async function (context) {
     try {
         const badgesTable = getBadgesTable();
         let boards = await readLeaderboards(badgesTable);
-        if (!boards) {
+        // Boards saved before ages were kept are worked out again, once.
+        if (!boards || boards.events.some(e => e.rows.some(r => !("age" in r)))) {
             boards = await leaderboardsFromResults(getResultsTable(), getMeetsTable());
             try {
                 await saveLeaderboards(badgesTable, boards);

@@ -39,6 +39,8 @@ function buildLeaderboards(swims) {
             time: swim.officialTime,
             meetId: swim.meetId,
             meetDate: swim.meetDate,
+            // Their age on that meet's sheet.
+            age: swim.age != null ? swim.age : null,
             teamRecord: !!swim.teamRecord
         });
     }
