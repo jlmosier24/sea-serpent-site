@@ -184,7 +184,7 @@
         let forecast = null;
         if (daysBetween(easternToday(), meet.date) <= FORECAST_DAYS) {
             try {
-                const res = await fetch(`/api/meetWeather?lat=${encodeURIComponent(meet.lat)}&lon=${encodeURIComponent(meet.lon)}&date=${encodeURIComponent(meet.date)}`);
+                const res = await fetch(`/api/meetWeather?lat=${encodeURIComponent(meet.lat)}&lon=${encodeURIComponent(meet.lon)}&date=${encodeURIComponent(meet.date)}&warmUp=${encodeURIComponent(meet.warmUp || "")}&time=${encodeURIComponent(meet.time || "")}`);
                 if (res.ok) forecast = await res.json();
             } catch (e) {
                 // Shown as "Forecast soon" below.
