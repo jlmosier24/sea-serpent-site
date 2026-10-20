@@ -19,12 +19,13 @@
 <script src="/assets/photos.js"></script>
 <style>
     /* Home page only. Cards, buttons, tiles, dialogs, and the meet cards come from /assets/site.css. */
-    /* The team photo across the top, rounded like the cards, with the welcome
-       and two links over a dark blue-gray fade at its bottom so the white text reads. */
-    .hero { position: relative; height: 420px; margin: 18px 0 32px; border-radius: var(--radius-card); overflow: hidden; background: var(--hero-to); }
+    /* The team photo right under the header, the full width of the window, with
+       the welcome and buttons over a dark blue-gray fade at its bottom so the
+       white text reads. The text lines up with the logo (its own .wrap). */
+    .hero { position: relative; height: 480px; margin: 0 0 32px; overflow: hidden; background: var(--hero-to); }
     .hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
     .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,22,34,.8) 0%, rgba(8,22,34,.32) 45%, rgba(8,22,34,0) 75%); pointer-events: none; }
-    .hero-text { position: absolute; z-index: 1; left: 36px; right: 36px; bottom: 32px; color: #fff; }
+    .hero-text { position: absolute; z-index: 1; left: 0; right: 0; bottom: 36px; color: #fff; }
     .hero h1 { font-size: 52px; font-weight: 700; line-height: 1.05; margin: 0 0 10px; }
     .hero-intro { max-width: 520px; margin: 0 0 18px; font-size: 18px; color: rgba(255,255,255,.92); }
     /* Phones only: a short label under the heading in place of the intro line. */
@@ -54,14 +55,14 @@
 
     @media (max-width: 860px) {
         .hero h1 { font-size: 42px; }
-        .hero { height: 380px; }
+        .hero { height: 400px; }
         .home-grid { grid-template-columns: 1fr; }
     }
     /* Phones: a smaller heading, so the next meet shows without scrolling. */
     @media (max-width: 600px) {
         /* The short label replaces the intro line here, so the heading sits below the swimmer's cap. */
-        .hero { height: 340px; margin: 8px 0 24px; border-radius: 22px; }
-        .hero-text { left: 18px; right: 18px; bottom: 20px; }
+        .hero { height: 360px; margin-bottom: 24px; }
+        .hero-text { bottom: 22px; }
         .hero h1 { font-size: 32px; margin-bottom: 6px; }
         .hero-intro { display: none; }
         .hero-tag { display: block; }
@@ -81,20 +82,20 @@
 </head>
 <body>
 <site-header current="home"></site-header>
-<main class="wrap">
-    <section class="hero no-next">
-        <picture>
-            <source type="image/webp" srcset="/assets/hero-800.webp?v=4 800w, /assets/hero-1600.webp?v=4 1600w" sizes="(max-width: 1180px) 100vw, 1132px">
-            <img src="/assets/hero-1600.jpg?v=4" srcset="/assets/hero-800.jpg?v=4 800w, /assets/hero-1600.jpg?v=4 1600w" sizes="(max-width: 1180px) 100vw, 1132px" width="1600" height="1066" fetchpriority="high" alt="A Sea Serpents swimmer in a team cap waits behind the lanes at a home meet">
-        </picture>
-        <div class="hero-text">
-            <h1>Sea Serpents</h1>
-            <p class="hero-tag">Spotswood summer swim team</p>
-            <p class="hero-intro">Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
-            <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextPart" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a><button type="button" class="btn ghost-on-dark hero-share" id="heroShare"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Share a photo</button></div>
-        </div>
-    </section>
-
+<main>
+<section class="hero no-next">
+    <picture>
+        <source type="image/webp" srcset="/assets/hero-800.webp?v=4 800w, /assets/hero-1600.webp?v=4 1600w, /assets/hero-2000.webp?v=4 2000w" sizes="100vw">
+        <img src="/assets/hero-1600.jpg?v=4" srcset="/assets/hero-800.jpg?v=4 800w, /assets/hero-1600.jpg?v=4 1600w, /assets/hero-2000.jpg?v=4 2000w" sizes="100vw" width="1600" height="1066" fetchpriority="high" alt="A Sea Serpents swimmer in a team cap waits behind the lanes at a home meet">
+    </picture>
+    <div class="hero-text"><div class="wrap">
+        <h1>Sea Serpents</h1>
+        <p class="hero-tag">Spotswood summer swim team</p>
+        <p class="hero-intro">Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
+        <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextPart" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a><button type="button" class="btn ghost-on-dark hero-share" id="heroShare"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Share a photo</button></div>
+    </div></div>
+</section>
+<div class="wrap">
     <div class="home-grid">
         <div class="home-stack">
             <section class="card" aria-labelledby="statsHeading">
@@ -121,6 +122,7 @@
             <div id="galleryContent"><p class="loading">Loading photos…</p></div>
         </section>
     </div>
+</div>
 </main>
 
 <script src="/assets/upload.js"></script>
