@@ -26,7 +26,9 @@
     .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,30,12,.8) 0%, rgba(10,30,12,.32) 45%, rgba(10,30,12,0) 75%); pointer-events: none; }
     .hero-text { position: absolute; z-index: 1; left: 36px; right: 36px; bottom: 32px; color: #fff; }
     .hero h1 { font-size: 52px; font-weight: 700; line-height: 1.05; margin: 0 0 10px; }
-    .hero p { max-width: 520px; margin: 0 0 18px; font-size: 18px; color: rgba(255,255,255,.92); }
+    .hero-intro { max-width: 520px; margin: 0 0 18px; font-size: 18px; color: rgba(255,255,255,.92); }
+    /* Phones only: a short label under the heading in place of the intro line. */
+    .hero-tag { display: none; margin: 0 0 16px; font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.9); }
     .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
 
     .home-grid { display: grid; grid-template-columns: 1fr 1.45fr; gap: 32px; align-items: start; padding-bottom: 80px; }
@@ -50,11 +52,18 @@
     }
     /* Phones: a smaller heading, so the next meet shows without scrolling. */
     @media (max-width: 600px) {
-        /* The intro line is left out here, so the heading sits below the swimmer's cap. */
+        /* The short label replaces the intro line here, so the heading sits below the swimmer's cap. */
         .hero { height: 340px; margin: 8px 0 24px; border-radius: 22px; }
         .hero-text { left: 18px; right: 18px; bottom: 20px; }
-        .hero h1 { font-size: 32px; margin-bottom: 14px; }
-        .hero p { display: none; }
+        .hero h1 { font-size: 32px; margin-bottom: 6px; }
+        .hero-intro { display: none; }
+        .hero-tag { display: block; }
+    }
+    /* Small phones: the label stays on one line and the buttons side by side. */
+    @media (max-width: 370px) {
+        .hero-tag { font-size: 11.5px; letter-spacing: .07em; }
+        .hero-links { flex-wrap: nowrap; gap: 8px; }
+        .hero-links .btn { padding: 10px 16px; font-size: 14.5px; }
     }
 </style>
 </head>
@@ -68,7 +77,8 @@
         </picture>
         <div class="hero-text">
             <h1>Sea Serpents</h1>
-            <p>Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
+            <p class="hero-tag">Spotswood summer swim team</p>
+            <p class="hero-intro">Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
             <div class="hero-links"><a class="btn on-dark" href="/schedule.html">Schedule</a><a class="btn ghost-on-dark" href="/stats.html">Swimmer stats</a></div>
         </div>
     </section>
