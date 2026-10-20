@@ -69,7 +69,10 @@
     }
     /* Phones: a smaller heading, so the next meet shows without scrolling. */
     @media (max-width: 600px) {
-        .hero { height: 360px; margin-bottom: 24px; }
+        /* Trimmed from the top (the pennants) at the photo's full size, so the swimmer
+           stays in place and the bottom edge is unchanged (2026-10-20). */
+        .hero { height: 320px; margin-bottom: 24px; }
+        .hero picture img { position: absolute; left: 0; bottom: 0; height: 360px; }
         .hero-text .wrap { padding-top: 20px; padding-bottom: 20px; }
         .hero-motto { font-size: 40px; }
         /* Phones: just the motto; the next meet's card is just below. */
