@@ -4,8 +4,6 @@
 
 /* ---------- Tokens ---------- */
 :root {
-    --page-top: #D9E8BC;
-    --page-bottom: #FAFBF4;
     --ink: #10240F;
     --muted: #5B6B58;
     /* --muted is 4.4:1 against the top of the page gradient, just under WCAG AA,
@@ -57,8 +55,8 @@ body {
     font-family: var(--font-body);
     color: var(--ink);
     line-height: 1.5;
-    /* The tint fades over the first screenful; past that the page stays its light bottom color. */
-    background: linear-gradient(180deg, var(--page-top), var(--page-bottom) 900px) no-repeat, var(--page-bottom);
+    /* A white page (2026-10-20); cards stand off it with a border and a soft shadow. */
+    background: #fff;
 }
 h1, h2, h3, h4 { font-family: var(--font-head); line-height: 1.2; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -75,7 +73,9 @@ html.is-locked { overflow: hidden; scrollbar-gutter: stable; }
 
 /* ---------- Site header (rendered by <site-header>) ---------- */
 site-header { display: block; }
-.site-header .wrap { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 26px; padding-bottom: 8px; }
+/* A thin line under the header separates it from the white page. */
+.site-header { border-bottom: 1px solid var(--card-border); }
+.site-header .wrap { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 26px; padding-bottom: 18px; }
 .brand { display: flex; align-items: center; gap: 9px; color: var(--ink); text-decoration: none; }
 /* The logo stays exactly as the site has always shown it: 26px tall at its own shape, no box. */
 .brand img { display: block; height: 26px; width: auto; }
@@ -84,7 +84,7 @@ site-header { display: block; }
 .site-nav a { color: var(--ink); text-decoration: none; font-weight: 500; font-size: 16px; }
 .site-nav a:hover { color: var(--brand); }
 .site-nav a[aria-current="page"] { color: var(--brand); font-weight: 600; }
-.nav-toggle { display: none; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--card-border); border-radius: 50%; background: var(--card); color: var(--ink); cursor: pointer; }
+.nav-toggle { display: none; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--soft-border); border-radius: 50%; background: var(--card); color: var(--ink); cursor: pointer; }
 .nav-toggle svg { width: 22px; height: 22px; }
 @media (max-width: 860px) {
     .site-nav { gap: 16px; }
@@ -107,7 +107,7 @@ site-header { display: block; }
 @media (max-width: 760px) { .page-title h1 { font-size: 34px; } .page-title p { font-size: 17px; } }
 
 /* ---------- Cards ---------- */
-.card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius-card); padding: 28px; }
+.card { background: var(--card); border: 1px solid var(--soft-border); border-radius: var(--radius-card); padding: 28px; box-shadow: 0 1px 2px rgba(16,36,15,.05), 0 8px 24px rgba(16,36,15,.07); }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 .card-head h2 { font-size: 22px; font-weight: 700; margin: 0; }
 .card-head a, .card-head .link-btn { font-size: 15px; font-weight: 600; white-space: nowrap; text-decoration: none; }
