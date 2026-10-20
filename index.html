@@ -32,12 +32,15 @@
     .hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
     .hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 50%; background: linear-gradient(to top, rgba(8,22,34,.72), rgba(8,22,34,0)); pointer-events: none; }
     .hero-text { position: absolute; z-index: 1; inset: 0; color: #fff; }
-    .hero-text .wrap { height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; padding-top: 28px; padding-bottom: 28px; }
+    .hero-text .wrap { height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center; padding-top: 28px; padding-bottom: 28px; }
     /* The team motto; the header already carries the team name, and the page's
        heading is for screen readers only. */
-    .hero-motto { margin: 0; font-family: var(--font-head); font-size: 52px; font-weight: 700; line-height: 1.05; }
+    /* Stacked, centered capitals: "HARD WORK" in white, "PAYS OFF!" in gold, the payoff (2026-10-20). */
+    .hero-motto { margin: 0; font-family: var(--font-head); font-size: 60px; font-weight: 700; line-height: .95; text-transform: uppercase; text-shadow: 0 2px 12px rgba(0,0,0,.35); }
+    .hero-motto span { display: block; }
+    .hero-motto .payoff { color: var(--gold); }
     /* The next meet, wider than a phone: jumps to its card below. */
-    .hero-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .hero-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; }
     .hero-links .btn b { font-weight: 700; }
     .hero.no-next .hero-links { display: none; }
     #nextPart { scroll-margin-top: 16px; }
@@ -58,20 +61,19 @@
 
     @media (max-width: 860px) {
         .hero { height: 380px; }
-        .hero-motto { font-size: 42px; }
+        .hero-motto { font-size: 52px; }
         .home-grid { grid-template-columns: 1fr; }
     }
     /* Phones: a smaller heading, so the next meet shows without scrolling. */
     @media (max-width: 600px) {
         .hero { height: 360px; margin-bottom: 24px; }
         .hero-text .wrap { padding-top: 20px; padding-bottom: 20px; }
-        .hero-motto { font-size: 32px; }
+        .hero-motto { font-size: 40px; }
         /* Phones: just the motto; the next meet's card is just below. */
         .hero-links { display: none; }
     }
-    /* Small phones: the motto stays on one line. */
-    @media (max-width: 370px) { .hero-motto { font-size: 29px; } }
-    @media (max-width: 339px) { .hero-motto { font-size: 26px; } }
+    /* The narrowest phones: each line of the motto still fits. */
+    @media (max-width: 339px) { .hero-motto { font-size: 36px; } }
 </style>
 </head>
 <body>
@@ -84,7 +86,7 @@
     </picture>
     <div class="hero-text"><div class="wrap">
         <h1 class="sr-only">Spotswood Sea Serpents</h1>
-        <p class="hero-motto">Hard work pays off!</p>
+        <p class="hero-motto"><span>Hard work</span> <span class="payoff">pays off!</span></p>
         <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextPart"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a></div>
     </div></div>
 </section>
