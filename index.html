@@ -26,14 +26,18 @@
     /* Wider than a phone: back to a rounded photo inside the page width, as wide as the cards (2026-10-20). */
     @media (min-width: 601px) {
         .hero { height: 420px; max-width: 1132px; margin: 18px max(24px, calc((100% - 1132px) / 2)) 32px; border-radius: var(--radius-card); }
-        .hero-text { bottom: 32px; }
-        .hero-text .wrap { padding: 0 36px; }
+        .hero-text .wrap { padding: 30px 36px; }
     }
     .hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
-    .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,22,34,.8) 0%, rgba(8,22,34,.32) 45%, rgba(8,22,34,0) 75%); pointer-events: none; }
-    .hero-text { position: absolute; z-index: 1; left: 0; right: 0; bottom: 36px; color: #fff; }
+    /* The motto at the top over a dark fade, the buttons at the bottom over a lighter one,
+       so the swimmer in the middle stays clear (2026-10-20). */
+    .hero::before, .hero::after { content: ""; position: absolute; left: 0; right: 0; pointer-events: none; }
+    .hero::before { top: 0; height: 45%; background: linear-gradient(to bottom, rgba(8,22,34,.75), rgba(8,22,34,0)); }
+    .hero::after { bottom: 0; height: 40%; background: linear-gradient(to top, rgba(8,22,34,.55), rgba(8,22,34,0)); }
+    .hero-text { position: absolute; z-index: 1; inset: 0; color: #fff; }
+    .hero-text .wrap { height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; padding-top: 28px; padding-bottom: 28px; }
     /* Just the team motto and the buttons; the header already carries the team name. */
-    .hero h1 { font-size: 52px; font-weight: 700; line-height: 1.05; margin: 0 0 18px; }
+    .hero h1 { font-size: 52px; font-weight: 700; line-height: 1.05; margin: 0; }
     /* The next meet (jumps to its card below) and Share a photo, which opens the
        upload dialog right here. Share is the solid white one when it's alone. */
     .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -65,8 +69,8 @@
     /* Phones: a smaller heading, so the next meet shows without scrolling. */
     @media (max-width: 600px) {
         .hero { height: 360px; margin-bottom: 24px; }
-        .hero-text { bottom: 22px; }
-        .hero h1 { font-size: 32px; margin-bottom: 14px; }
+        .hero-text .wrap { padding-top: 20px; padding-bottom: 20px; }
+        .hero h1 { font-size: 32px; }
         /* Phones: just Share a photo, where the photos are taken; the next meet's card is just below. */
         #heroNext, #heroNext[hidden] { display: none; }
         .hero-links .btn.hero-share { background: #fff; border-color: #fff; color: var(--brand); }
