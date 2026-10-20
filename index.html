@@ -19,9 +19,15 @@
 <script src="/assets/photos.js"></script>
 <style>
     /* Home page only. Cards, buttons, tiles, dialogs, and the meet cards come from /assets/site.css. */
-    .hero { text-align: center; padding: 56px 0 44px; }
-    .hero h1 { font-size: 60px; font-weight: 700; line-height: 1.1; margin: 0 0 20px; }
-    .hero p { max-width: 560px; margin: 0 auto; font-size: 20px; color: var(--muted-on-page); }
+    /* The team photo across the top, rounded like the cards, with the welcome
+       and two links over a dark fade at its bottom so the white text reads. */
+    .hero { position: relative; height: 420px; margin: 18px 0 32px; border-radius: var(--radius-card); overflow: hidden; background: var(--hero-to); }
+    .hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
+    .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,30,12,.8) 0%, rgba(10,30,12,.32) 45%, rgba(10,30,12,0) 75%); pointer-events: none; }
+    .hero-text { position: absolute; z-index: 1; left: 36px; right: 36px; bottom: 32px; color: #fff; }
+    .hero h1 { font-size: 52px; font-weight: 700; line-height: 1.05; margin: 0 0 10px; }
+    .hero p { max-width: 520px; margin: 0 0 18px; font-size: 18px; color: rgba(255,255,255,.92); }
+    .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
 
     .home-grid { display: grid; grid-template-columns: 1fr 1.45fr; gap: 32px; align-items: start; padding-bottom: 80px; }
     .home-stack { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
@@ -39,13 +45,16 @@
 
     @media (max-width: 860px) {
         .hero h1 { font-size: 42px; }
+        .hero { height: 380px; }
         .home-grid { grid-template-columns: 1fr; }
     }
     /* Phones: a smaller heading, so the next meet shows without scrolling. */
     @media (max-width: 600px) {
-        .hero { padding: 24px 0 22px; }
-        .hero h1 { font-size: 34px; margin-bottom: 10px; }
-        .hero p { font-size: 16px; }
+        /* The intro line is left out here, so the heading sits below the swimmer's cap. */
+        .hero { height: 340px; margin: 8px 0 24px; border-radius: 22px; }
+        .hero-text { left: 18px; right: 18px; bottom: 20px; }
+        .hero h1 { font-size: 32px; margin-bottom: 14px; }
+        .hero p { display: none; }
     }
 </style>
 </head>
@@ -53,8 +62,15 @@
 <site-header current="home"></site-header>
 <main class="wrap">
     <section class="hero">
-        <h1>Go Sea Serpents!</h1>
-        <p>Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
+        <picture>
+            <source type="image/webp" srcset="/assets/hero-800.webp 800w, /assets/hero-1600.webp 1600w" sizes="(max-width: 1180px) 100vw, 1132px">
+            <img src="/assets/hero-1600.jpg" srcset="/assets/hero-800.jpg 800w, /assets/hero-1600.jpg 1600w" sizes="(max-width: 1180px) 100vw, 1132px" width="1600" height="1066" fetchpriority="high" alt="A Sea Serpents swimmer in a team cap waits behind the lanes at a home meet">
+        </picture>
+        <div class="hero-text">
+            <h1>Go Sea Serpents!</h1>
+            <p>Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
+            <div class="hero-links"><a class="btn on-dark" href="/schedule.html">Schedule</a><a class="btn ghost-on-dark" href="/stats.html">Swimmer stats</a></div>
+        </div>
     </section>
 
     <div class="home-grid">
