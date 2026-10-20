@@ -137,6 +137,14 @@
     /* An outline in the box's color keeps a time readable where the line runs behind it. */
     .chart-value { font-size: 14px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--soft); stroke-width: 4px; stroke-linejoin: round; }
     .chart-date { font-size: 12.5px; fill: var(--muted); }
+    /* The first time a chart comes into view, its line draws left to right and each
+       swim's dot and time appear as the line reaches it, the gold best last with a pop
+       (revealChart below; skipped with Reduce motion on, 2026-10-20). */
+    .chart-waiting .chart-line, .chart-waiting circle, .chart-waiting text { opacity: 0; }
+    @keyframes chart-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes chart-pop { 0% { transform: scale(0); } 70% { transform: scale(1.35); } 100% { transform: scale(1); } }
+    .chart-drawing .chart-dot, .chart-drawing .chart-value, .chart-drawing .chart-date { animation: chart-in .3s ease-out calc(var(--t, 0) * 1.2s) both; }
+    .chart-drawing .chart-best, .chart-drawing .chart-best-halo { transform-box: fill-box; transform-origin: center; animation: chart-pop .45s ease-out calc(var(--t, 0) * 1.2s + .1s) both; }
 
     .swims { width: 100%; border-collapse: collapse; }
     .swims th { padding: 8px 10px; border-bottom: 1px solid var(--card-border); text-align: left; font-size: 14px; font-weight: 600; color: var(--muted); }
@@ -582,12 +590,48 @@ function chartSvg(swims, width) {
 let shownSeason = null;
 
 // Charts are drawn to the box's width, so they're redrawn when the window resizes.
+// A chart that hasn't been seen yet waits, hidden, to draw itself in view.
 function drawCharts() {
     if (!shownSeason) return;
     document.querySelectorAll('.chart-box').forEach(box => {
         const width = Math.max(220, Math.floor(box.clientWidth - 16));
         box.innerHTML = chartSvg(timedSwims(shownSeason.events[box.dataset.event]), width);
+        if (chartWatcher && !box.dataset.revealed) {
+            box.classList.add('chart-waiting');
+            chartWatcher.observe(box);
+        }
     });
+}
+
+const chartWatcher = !matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window
+    ? new IntersectionObserver(entries => entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        chartWatcher.unobserve(entry.target);
+        revealChart(entry.target);
+    }), { threshold: 0.4 })
+    : null;
+
+// Draws the line by shortening its dash, and times each dot and label by how far
+// along the line it sits (--t, from 0 at the first swim to 1 at the last).
+function revealChart(box) {
+    box.dataset.revealed = '1';
+    const line = box.querySelector('.chart-line');
+    box.classList.remove('chart-waiting');
+    if (!line) return;
+    const marks = [...box.querySelectorAll('.chart-dot, .chart-best, .chart-best-halo, .chart-value, .chart-date')];
+    const xOf = el => Number(el.getAttribute('cx') || el.getAttribute('x'));
+    const xs = marks.map(xOf);
+    const left = Math.min(...xs), span = Math.max(1, Math.max(...xs) - left);
+    marks.forEach(el => el.style.setProperty('--t', ((xOf(el) - left) / span).toFixed(3)));
+    const length = line.getTotalLength();
+    line.style.strokeDasharray = length;
+    line.style.strokeDashoffset = length;
+    line.getBoundingClientRect(); // start from the hidden line
+    line.style.transition = 'stroke-dashoffset 1.2s ease-in-out';
+    line.style.strokeDashoffset = '0';
+    box.classList.add('chart-drawing');
+    // Done after the gold best's pop, so a later redraw (a resize) shows the chart as is.
+    setTimeout(() => box.classList.remove('chart-drawing'), 1900);
 }
 let resizeTimer = null;
 window.addEventListener('resize', () => {
