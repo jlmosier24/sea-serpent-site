@@ -29,7 +29,11 @@
     .hero-intro { max-width: 520px; margin: 0 0 18px; font-size: 18px; color: rgba(255,255,255,.92); }
     /* Phones only: a short label under the heading in place of the intro line. */
     .hero-tag { display: none; margin: 0 0 16px; font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.9); }
+    /* The next meet (jumps to its card below) and, on wider screens, Share a photo. */
     .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .hero-links .btn[hidden] { display: none; }
+    .hero-links .btn b { font-weight: 700; }
+    #nextPart { scroll-margin-top: 16px; }
 
     .home-grid { display: grid; grid-template-columns: 1fr 1.45fr; gap: 32px; align-items: start; padding-bottom: 80px; }
     .home-stack { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
@@ -58,19 +62,24 @@
         .hero h1 { font-size: 32px; margin-bottom: 6px; }
         .hero-intro { display: none; }
         .hero-tag { display: block; }
+        /* Phones: just the next meet; off-season, no buttons at all. */
+        .hero-share { display: none; }
+        .hero-links .btn { padding: 10px 16px; font-size: 14.5px; }
+        .hero.no-next .hero-links { display: none; }
+        .hero.no-next .hero-tag { margin-bottom: 0; }
     }
     /* Small phones: the label stays on one line and the buttons side by side. */
     @media (max-width: 370px) {
         .hero-tag { font-size: 11.5px; letter-spacing: .07em; }
         .hero-links { flex-wrap: nowrap; gap: 8px; }
-        .hero-links .btn { padding: 10px 16px; font-size: 14.5px; }
+        .hero-links .btn { padding: 9px 14px; font-size: 13.5px; }
     }
 </style>
 </head>
 <body>
 <site-header current="home"></site-header>
 <main class="wrap">
-    <section class="hero">
+    <section class="hero no-next">
         <picture>
             <source type="image/webp" srcset="/assets/hero-800.webp?v=4 800w, /assets/hero-1600.webp?v=4 1600w" sizes="(max-width: 1180px) 100vw, 1132px">
             <img src="/assets/hero-1600.jpg?v=4" srcset="/assets/hero-800.jpg?v=4 800w, /assets/hero-1600.jpg?v=4 1600w" sizes="(max-width: 1180px) 100vw, 1132px" width="1600" height="1066" fetchpriority="high" alt="A Sea Serpents swimmer in a team cap waits behind the lanes at a home meet">
@@ -79,7 +88,7 @@
             <h1>Sea Serpents</h1>
             <p class="hero-tag">Spotswood summer swim team</p>
             <p class="hero-intro">Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
-            <div class="hero-links"><a class="btn on-dark" href="/schedule.html">Schedule</a><a class="btn ghost-on-dark" href="/stats.html">Swimmer stats</a></div>
+            <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextPart" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a><a class="btn ghost-on-dark hero-share" href="/gallery.html?share=1"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Share a photo</a></div>
         </div>
     </section>
 
@@ -143,6 +152,10 @@ function showMeetsStatus(text) {
 
 function renderNextMeet(m) {
     document.getElementById('nextPart').hidden = !m;
+    // The photo's "Next meet: June 16 vs. Stafford" button.
+    document.getElementById('heroNext').hidden = !m;
+    document.querySelector('.hero').classList.toggle('no-next', !m);
+    if (m) document.getElementById('heroNextText').textContent = `${Meets.fmtDate(m.date)} ${m.title}`;
     if (m) Meets.showUpcoming(document.getElementById('nextMeet'), m, { next: true });
 }
 

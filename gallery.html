@@ -465,6 +465,13 @@ async function submitPhotos() {
 }
 
 loadPhotos();
+
+// The homepage's "Share a photo" button lands here with ?share=1 and opens the dialog.
+if (new URLSearchParams(location.search).has('share')) {
+    history.replaceState(null, '', location.pathname + location.hash);
+    renderUpload();
+    SiteUI.openDialog(uploadDialog, document.getElementById('uploadButton'));
+}
 </script>
 </body>
 </html>
