@@ -7,7 +7,7 @@ function text(value) {
 
 // Reachable at /api/manageSettingsSave. Admin only (the /api/manage* rule in
 // staticwebapp.config.json). Saves the home pool: { homePool: { name, address, lat, lon } }.
-// The address is optional (without it, Directions has nothing to open).
+// The address is optional (without it, Map can only search the pool's name).
 module.exports = async function (context, req) {
     const pool = (req.body || {}).homePool || {};
     const name = text(pool.name);

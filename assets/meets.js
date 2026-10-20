@@ -103,11 +103,14 @@
     /* ---------- Upcoming meet card ---------- */
     // Fills a gold card (<article class="gold-card upcoming">) with an upcoming
     // meet: its date, name, pool, and times. The next meet also gets its
-    // forecast, Directions, and Add to calendar.
+    // forecast, Map, and Add to calendar.
     function showUpcoming(card, meet, { next = false } = {}) {
-        // The pool's name, or its address when it has none; Directions needs the address.
+        // The pool's name, or its address when it has none.
         const where = meet.placeName || meet.address;
-        const destination = meet.address || meet.placeName;
+        // Map pins the pool rather than starting a route (no location prompt; Google
+        // Maps has its own Directions button on the pin). Its name and address
+        // together find the pool's own place card.
+        const mapQuery = [meet.placeName, meet.address].filter(Boolean).join(", ");
         card.innerHTML = `
             <div class="card-top">
                 <span class="pill">${escapeHtml(fmtDate(meet.date))}</span>
@@ -119,7 +122,7 @@
             ${next ? `
                 <p class="weather-note" hidden></p>
                 <div class="btn-row">
-                    ${destination ? `<a class="btn primary" href="https://www.google.com/maps/dir/?api=1&amp;destination=${encodeURIComponent(destination)}" target="_blank" rel="noopener">${icon("pin")}Directions</a>` : ""}
+                    ${mapQuery ? `<a class="btn primary" href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(mapQuery)}" target="_blank" rel="noopener">${icon("pin")}Map</a>` : ""}
                     <button type="button" class="btn" data-add-to-calendar>${icon("calendar")}Add to calendar</button>
                 </div>` : ""}`;
         if (!next) return;

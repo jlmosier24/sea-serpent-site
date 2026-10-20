@@ -776,7 +776,7 @@ function renderPool(extraHtml) {
         $('poolEditBtn').hidden = false;
         body.innerHTML = `<div class="pool-view"><b>${escapeHtml(homePool.name)}</b>${homePool.address
             ? `<span class="sub">${escapeHtml(homePool.address)}</span>`
-            : '<span class="sub"><span class="badge attention">Add an address so Directions works</span></span>'}</div>${extraHtml || ''}`;
+            : '<span class="sub"><span class="badge attention">Add an address so Map works</span></span>'}</div>${extraHtml || ''}`;
         return;
     }
     $('poolEditBtn').hidden = true;
