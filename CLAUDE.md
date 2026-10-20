@@ -16,7 +16,7 @@ Website for the Spotswood Sea Serpents summer swim team: homepage with meet card
 ## Design rules
 - Fonts: Poppins (headings, big numbers), Inter (body).
 - Colors: brand green #1A6B2E, ink #10240F, muted #5B6B58, gold #F2B327 with ink #2A1E00, soft tint #F4F7E4 (border #DCE3C4), gold tint #FFF6D8 (border #EACB6A). Page background white (2026-10-20, option A; it was a #D9E8BC to #FAFBF4 fade).
-- White cards (28px radius) on the white page, set off by a #DCE3C4 border and a soft shadow; a thin line under the header. Insets inside cards use the soft tint with a thin border.
+- White cards (28px radius) on the white page, set off by a #DCE3C4 border and a soft shadow; no line under the header (removed at the user's choice, 2026-10-20). Insets inside cards use the soft tint with a thin border.
 - Gold means celebration only (WIN chip, Most improved, 1st places, PB, podium numbers, Biggest drop). Green means data, actions, and links.
 - No red on pages parents and kids see. Losses use a muted gray-green. Red is for admin Delete only.
 - Never rely on color alone. Always include text or an icon.
