@@ -32,10 +32,8 @@
     .hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
     .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,22,34,.8) 0%, rgba(8,22,34,.32) 45%, rgba(8,22,34,0) 75%); pointer-events: none; }
     .hero-text { position: absolute; z-index: 1; left: 0; right: 0; bottom: 36px; color: #fff; }
-    .hero h1 { font-size: 52px; font-weight: 700; line-height: 1.05; margin: 0 0 10px; }
-    .hero-intro { max-width: 520px; margin: 0 0 18px; font-size: 18px; color: rgba(255,255,255,.92); }
-    /* Phones only: a short label under the heading in place of the intro line. */
-    .hero-tag { display: none; margin: 0 0 16px; font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.9); }
+    /* Just the team motto and the buttons; the header already carries the team name. */
+    .hero h1 { font-size: 52px; font-weight: 700; line-height: 1.05; margin: 0 0 18px; }
     /* The next meet (jumps to its card below) and Share a photo, which opens the
        upload dialog right here. Share is the solid white one when it's alone. */
     .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -66,24 +64,22 @@
     }
     /* Phones: a smaller heading, so the next meet shows without scrolling. */
     @media (max-width: 600px) {
-        /* The short label replaces the intro line here, so the heading sits below the swimmer's cap. */
         .hero { height: 360px; margin-bottom: 24px; }
         .hero-text { bottom: 22px; }
-        .hero h1 { font-size: 32px; margin-bottom: 6px; }
-        .hero-intro { display: none; }
-        .hero-tag { display: block; }
+        .hero h1 { font-size: 32px; margin-bottom: 14px; }
         /* Phones: just Share a photo, where the photos are taken; the next meet's card is just below. */
         #heroNext, #heroNext[hidden] { display: none; }
         .hero-links .btn.hero-share { background: #fff; border-color: #fff; color: var(--brand); }
         .hero-links .btn.hero-share:not(:disabled):hover { background: var(--soft); }
         .hero-links .btn { padding: 10px 16px; font-size: 14.5px; }
     }
-    /* Small phones: the label stays on one line and the buttons side by side. */
+    /* Small phones: the motto stays on one line and the buttons side by side. */
     @media (max-width: 370px) {
-        .hero-tag { font-size: 11.5px; letter-spacing: .07em; }
+        .hero h1 { font-size: 29px; }
         .hero-links { flex-wrap: nowrap; gap: 8px; }
         .hero-links .btn { padding: 9px 14px; font-size: 13.5px; }
     }
+    @media (max-width: 339px) { .hero h1 { font-size: 26px; } }
 </style>
 </head>
 <body>
@@ -95,9 +91,7 @@
         <img src="/assets/hero-1600.jpg?v=4" srcset="/assets/hero-800.jpg?v=4 800w, /assets/hero-1600.jpg?v=4 1600w, /assets/hero-2000.jpg?v=4 2000w" sizes="(max-width: 1180px) 100vw, 1132px" width="1600" height="1066" fetchpriority="high" alt="A Sea Serpents swimmer in a team cap waits behind the lanes at a home meet">
     </picture>
     <div class="hero-text"><div class="wrap">
-        <h1>Sea Serpents</h1>
-        <p class="hero-tag">Spotswood summer swim team</p>
-        <p class="hero-intro">Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
+        <h1>Hard work pays off!</h1>
         <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextPart" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a><button type="button" class="btn ghost-on-dark hero-share" id="heroShare"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Share a photo</button></div>
     </div></div>
 </section>

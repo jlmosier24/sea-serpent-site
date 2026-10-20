@@ -98,6 +98,14 @@ site-header { display: block; }
     .site-nav a { padding: 12px 2px; font-size: 16px; border-bottom: 1px solid var(--card-border); }
     .site-nav a:last-child { border-bottom: 0; }
 }
+/* Small phones: the team name stays on one line beside the logo and menu. */
+@media (max-width: 370px) {
+    .brand-name { font-size: 15px; white-space: nowrap; }
+}
+@media (max-width: 339px) {
+    .brand { gap: 7px; }
+    .brand-name { font-size: 13.5px; }
+}
 
 /* ---------- Page title ---------- */
 .page-title { padding: 44px 0 22px; }
