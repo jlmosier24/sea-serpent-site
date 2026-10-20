@@ -29,15 +29,12 @@
         .hero-text .wrap { padding: 30px 36px; }
     }
     .hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
-    /* The motto at the top over a dark fade, the buttons at the bottom over a lighter one,
-       so the swimmer in the middle stays clear (2026-10-20). */
-    .hero::before, .hero::after { content: ""; position: absolute; left: 0; right: 0; pointer-events: none; }
-    .hero::before { top: 0; height: 45%; background: linear-gradient(to bottom, rgba(8,22,34,.75), rgba(8,22,34,0)); }
-    .hero::after { bottom: 0; height: 40%; background: linear-gradient(to top, rgba(8,22,34,.55), rgba(8,22,34,0)); }
+    /* Just the buttons at the bottom, over a light fade, so the photo stays clear
+       (no heading on it since 2026-10-20; the page's heading is for screen readers only). */
+    .hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: linear-gradient(to top, rgba(8,22,34,.55), rgba(8,22,34,0)); pointer-events: none; }
     .hero-text { position: absolute; z-index: 1; inset: 0; color: #fff; }
-    .hero-text .wrap { height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; padding-top: 28px; padding-bottom: 28px; }
+    .hero-text .wrap { height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; padding-top: 28px; padding-bottom: 28px; }
     /* Just the team motto and the buttons; the header already carries the team name. */
-    .hero h1 { font-size: 52px; font-weight: 700; line-height: 1.05; margin: 0; }
     /* The next meet (jumps to its card below) and Share a photo, which opens the
        upload dialog right here. Share is the solid white one when it's alone. */
     .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -62,7 +59,6 @@
     .photo-card { min-width: 0; }
 
     @media (max-width: 860px) {
-        .hero h1 { font-size: 42px; }
         .hero { height: 380px; }
         .home-grid { grid-template-columns: 1fr; }
     }
@@ -70,20 +66,17 @@
     @media (max-width: 600px) {
         .hero { height: 360px; margin-bottom: 24px; }
         .hero-text .wrap { padding-top: 20px; padding-bottom: 20px; }
-        .hero h1 { font-size: 32px; }
         /* Phones: just Share a photo, where the photos are taken; the next meet's card is just below. */
         #heroNext, #heroNext[hidden] { display: none; }
         .hero-links .btn.hero-share { background: #fff; border-color: #fff; color: var(--brand); }
         .hero-links .btn.hero-share:not(:disabled):hover { background: var(--soft); }
         .hero-links .btn { padding: 10px 16px; font-size: 14.5px; }
     }
-    /* Small phones: the motto stays on one line and the buttons side by side. */
+    /* Small phones: the buttons stay side by side. */
     @media (max-width: 370px) {
-        .hero h1 { font-size: 29px; }
         .hero-links { flex-wrap: nowrap; gap: 8px; }
         .hero-links .btn { padding: 9px 14px; font-size: 13.5px; }
     }
-    @media (max-width: 339px) { .hero h1 { font-size: 26px; } }
 </style>
 </head>
 <body>
@@ -95,7 +88,7 @@
         <img src="/assets/hero-1600.jpg?v=4" srcset="/assets/hero-800.jpg?v=4 800w, /assets/hero-1600.jpg?v=4 1600w, /assets/hero-2000.jpg?v=4 2000w" sizes="(max-width: 1180px) 100vw, 1132px" width="1600" height="1066" fetchpriority="high" alt="A Sea Serpents swimmer in a team cap waits behind the lanes at a home meet">
     </picture>
     <div class="hero-text"><div class="wrap">
-        <h1>Hard work pays off!</h1>
+        <h1 class="sr-only">Spotswood Sea Serpents</h1>
         <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextPart" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a><button type="button" class="btn ghost-on-dark hero-share" id="heroShare"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Share a photo</button></div>
     </div></div>
 </section>
