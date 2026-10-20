@@ -24,7 +24,7 @@ Website for the Spotswood Sea Serpents summer swim team: homepage with meet card
 - Confirmations (delete a meet, remove or reject a photo) use the site's own dialog, never the browser's `confirm()` or `alert()`.
 - Page content lines up with the header's logo: every page uses the same `.wrap` container, and a page with narrower content (Stats, Schedule, Admin) keeps that width on the left rather than centering it.
 - Focus ring: 3px gold. Target WCAG AA contrast.
-- Homepage photo (2026-10-20, option B): a team photo across the top in a rounded card inside the page width, with "Go Sea Serpents!", the intro line, and Schedule / Swimmer stats buttons over a dark fade at its bottom; phones leave out the intro line so the heading clears the swimmer. Served from assets/hero-800 and hero-1600 (WebP with a JPEG fallback, resized and stripped of metadata).
+- Homepage photo (2026-10-20, option B): a team photo across the top in a rounded card inside the page width, with "Sea Serpents" (shortened from "Go Sea Serpents!", the user's choice, 2026-10-20), the intro line, and Schedule / Swimmer stats buttons over a dark fade at its bottom; phones leave out the intro line so the heading clears the swimmer. Served from assets/hero-800 and hero-1600 (WebP with a JPEG fallback, resized and stripped of metadata).
 
 ## Content rules
 - "vs." means home and "at" means away. Titles use the short name ("vs. Massad"); score rows use the full name ("Curtis Park Seahawks 511").
