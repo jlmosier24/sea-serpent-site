@@ -29,11 +29,14 @@
     .hero-intro { max-width: 520px; margin: 0 0 18px; font-size: 18px; color: rgba(255,255,255,.92); }
     /* Phones only: a short label under the heading in place of the intro line. */
     .hero-tag { display: none; margin: 0 0 16px; font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.9); }
-    /* The next meet (jumps to its card below) and, on wider screens, Share a photo. */
+    /* The next meet (jumps to its card below) and Share a photo, which opens the
+       upload dialog right here. Share is the solid white one when it's alone. */
     .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
     .hero-links .btn[hidden] { display: none; }
     .hero-links .btn b { font-weight: 700; }
     #nextPart { scroll-margin-top: 16px; }
+    .hero.no-next .hero-share { background: #fff; border-color: #fff; color: var(--brand); }
+    .hero.no-next .btn.hero-share:not(:disabled):hover { background: var(--soft); }
 
     .home-grid { display: grid; grid-template-columns: 1fr 1.45fr; gap: 32px; align-items: start; padding-bottom: 80px; }
     .home-stack { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
@@ -62,11 +65,11 @@
         .hero h1 { font-size: 32px; margin-bottom: 6px; }
         .hero-intro { display: none; }
         .hero-tag { display: block; }
-        /* Phones: just the next meet; off-season, no buttons at all. */
-        .hero-share { display: none; }
+        /* Phones: just Share a photo, where the photos are taken; the next meet's card is just below. */
+        #heroNext, #heroNext[hidden] { display: none; }
+        .hero-links .btn.hero-share { background: #fff; border-color: #fff; color: var(--brand); }
+        .hero-links .btn.hero-share:not(:disabled):hover { background: var(--soft); }
         .hero-links .btn { padding: 10px 16px; font-size: 14.5px; }
-        .hero.no-next .hero-links { display: none; }
-        .hero.no-next .hero-tag { margin-bottom: 0; }
     }
     /* Small phones: the label stays on one line and the buttons side by side. */
     @media (max-width: 370px) {
@@ -88,7 +91,7 @@
             <h1>Sea Serpents</h1>
             <p class="hero-tag">Spotswood summer swim team</p>
             <p class="hero-intro">Meet schedules, season stats, and photos for the Spotswood Sea Serpents summer swim team.</p>
-            <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextPart" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a><a class="btn ghost-on-dark hero-share" href="/gallery.html?share=1"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Share a photo</a></div>
+            <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextPart" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a><button type="button" class="btn ghost-on-dark hero-share" id="heroShare"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Share a photo</button></div>
         </div>
     </section>
 
@@ -120,7 +123,12 @@
     </div>
 </main>
 
+<script src="/assets/upload.js"></script>
 <script>
+/* ---------------- Sharing ---------------- */
+// The same "Share photos" dialog as the Photos page (/assets/upload.js).
+document.getElementById('heroShare').addEventListener('click', (event) => PhotoUpload.open(event.currentTarget));
+
 /* ---------------- Meets ---------------- */
 // The cards themselves are shared with the Schedule page (/assets/meets.js).
 
