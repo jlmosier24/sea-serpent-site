@@ -304,6 +304,16 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .points-label { font-size: 14px; font-weight: 600; }
 .points-track { display: flex; align-items: center; gap: 6px; min-width: 0; }
 /* Rounded only at the tip; room is kept after it for the value and share. */
+/* Registered so the popup's ring and bars can move smoothly (/assets/meets.js, "Popup animations"). */
+@property --w { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --pct { syntax: "<number>"; inherits: true; initial-value: 0; }
+@media (prefers-reduced-motion: no-preference) {
+    .seed-ring.filling { transition: --pct .9s cubic-bezier(.3, .7, .2, 1) .15s; }
+    .points-bar.gliding { transition: --w .5s cubic-bezier(.3, .7, .2, 1); }
+    .points-row.arriving { animation: points-in .3s ease-out both; }
+    @keyframes points-in { from { opacity: 0; } to { opacity: 1; } }
+}
+.counting { font-variant-numeric: tabular-nums; }
 .points-bar { flex: none; width: calc((100% - 78px) * var(--w)); min-width: 3px; height: 20px; border-radius: 0 4px 4px 0; background: var(--brand); }
 /* Gold is pale on white, so its edge is a darker gold. */
 .points-row.top .points-bar { background: var(--gold); box-shadow: inset 0 0 0 1.5px var(--gold-edge); }

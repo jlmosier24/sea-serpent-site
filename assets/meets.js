@@ -399,6 +399,59 @@
         setUpPointsCard(body, s);
         SiteUI.openDialog(dialog, opener);
         body.scrollTop = 0; // only once it's showing; a hidden box keeps its old scroll position
+        if (!reducedMotion()) {
+            body.querySelectorAll(".stat-value").forEach((el, i) => countUp(el, 700, 120 + i * 60));
+            fillSeedRing(body.querySelector(".seed-ring"));
+        }
+    }
+
+    /* ---------- Popup animations ---------- */
+    // As the popup opens, its numbers count up quickly and the seed ring fills;
+    // the points bars grow in when first seen and glide between tabs
+    // (2026-10-21). None of it with Reduce motion on.
+    const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+    // Counts "60", "53%", "42.5s"-style whole numbers, or "2:56", up from 0. The
+    // box keeps its final width (and tabular figures), so nothing shifts.
+    function countUp(el, ms, delay) {
+        const text = el.textContent.trim();
+        let m, to, fmt;
+        if ((m = text.match(/^(\d+):(\d\d)$/))) {
+            to = Number(m[1]) * 60 + Number(m[2]);
+            fmt = v => `${Math.floor(v / 60)}:${String(Math.floor(v % 60)).padStart(2, "0")}`;
+        } else if ((m = text.match(/^(\d+)(%?)$/))) {
+            to = Number(m[1]);
+            fmt = v => `${Math.round(v)}${m[2]}`;
+        } else return;
+        if (!to) return;
+        el.classList.add("counting");
+        el.style.minWidth = `${el.getBoundingClientRect().width}px`;
+        el.textContent = fmt(0);
+        const start = performance.now() + delay;
+        const tick = (now) => {
+            const t = Math.min(1, Math.max(0, (now - start) / ms));
+            if (t < 1) {
+                el.textContent = fmt(to * easeOut(t));
+                requestAnimationFrame(tick);
+            } else {
+                el.textContent = text;
+                el.classList.remove("counting");
+                el.style.minWidth = "";
+            }
+        };
+        requestAnimationFrame(tick);
+    }
+
+    // The ring sweeps round to its share as its number counts up.
+    function fillSeedRing(ring) {
+        if (!ring) return;
+        const pct = ring.style.getPropertyValue("--pct");
+        ring.style.setProperty("--pct", "0");
+        ring.getBoundingClientRect();
+        ring.classList.add("filling");
+        ring.style.setProperty("--pct", pct);
+        countUp(ring.querySelector("span"), 900, 150);
     }
 
     function scoreBanner(meet) {
@@ -513,7 +566,29 @@
         const panel = card.querySelector('[role="tabpanel"]');
         const list = panel.querySelector(".points-bars");
 
+        // Each bar's length as it's showing now (mid-glide too), by its row's label.
+        const lengths = () => new Map([...list.querySelectorAll(".points-row")].map(row =>
+            [row.querySelector(".points-label").textContent, parseFloat(getComputedStyle(row.querySelector(".points-bar")).getPropertyValue("--w")) || 0]));
+        // Moves each bar from its length in from (0 when not there) to its own;
+        // a row new to the list fades in. The first time, one after another.
+        function glide(from, stagger) {
+            list.querySelectorAll(".points-row").forEach((row, i) => {
+                const bar = row.querySelector(".points-bar");
+                const label = row.querySelector(".points-label").textContent;
+                const to = bar.dataset.w;
+                if (from && !from.has(label)) row.classList.add("arriving");
+                bar.style.setProperty("--w", from && from.has(label) ? from.get(label) : 0);
+                bar.getBoundingClientRect();
+                bar.style.transitionDelay = stagger ? `${i * 0.05}s` : "";
+                bar.classList.add("gliding");
+                bar.style.setProperty("--w", to);
+            });
+        }
+        const motion = !reducedMotion() && "IntersectionObserver" in window;
+        let seen = false;
+
         function select(tab, focus) {
+            const from = motion && seen ? lengths() : null;
             tabs.forEach(t => {
                 const on = t === tab;
                 t.setAttribute("aria-selected", String(on));
@@ -521,6 +596,11 @@
             });
             panel.setAttribute("aria-labelledby", tab.id);
             list.innerHTML = pointsRows(s.pointsBy[tab.dataset.tab] || []);
+            list.querySelectorAll(".points-bar").forEach(bar => {
+                bar.dataset.w = bar.style.getPropertyValue("--w");
+                if (motion && !seen) bar.style.setProperty("--w", "0"); // waiting to grow in
+            });
+            if (from) glide(from, false);
             if (focus) tab.focus();
         }
 
@@ -537,6 +617,14 @@
         });
         select(tabs[0]);
         SiteUI.slidingTabs(tablist);
+        if (motion) {
+            new IntersectionObserver((entries, observer) => {
+                if (!entries.some(e => e.isIntersecting)) return;
+                observer.disconnect();
+                seen = true;
+                glide(null, true);
+            }, { threshold: 0.5 }).observe(list);
+        }
     }
 
     /* ---------- Highlight cards ---------- */
