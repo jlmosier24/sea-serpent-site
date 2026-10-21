@@ -142,6 +142,44 @@ function biggestDrops(scored) {
     return drops;
 }
 
+/* ---------- Meet flow (2026-10-21) ---------- */
+// Spotswood's lead in points after each event, from the sheet's points column
+// (both teams', exhibition scoring nothing): margins[0] is 0, before the first
+// event, then one per event in meet order. Sections are the runs of events of
+// one stroke ("Free", "Medley" for medley relays), as { label, from, to } over
+// the margins' positions, for the chart's labels. Only a meet between two
+// teams has one; a championship's every team doesn't fit a two-sided line.
+function strokeOf(eventName) {
+    const name = eventName || "";
+    if (/Medley\s+Relay/i.test(name)) return "Medley";
+    if (/Relay/i.test(name)) return "Relays";
+    if (/\bIM\b|Individual Medley/i.test(name)) return "IM";
+    const m = /(Freestyle|Backstroke|Breaststroke|Butterfly)\s*$/i.exec(name);
+    return m ? SHORT_STROKES[m[1][0].toUpperCase() + m[1].slice(1).toLowerCase()] : "";
+}
+
+function meetFlow(individual, relays) {
+    const others = new Set(individual.filter(r => r.team && !isSpotswoodTeam(r.team)).map(r => r.team));
+    if (others.size !== 1) return null;
+    const events = new Map();
+    for (const row of [...individual, ...relays]) {
+        if (!events.has(row.eventNumber)) events.set(row.eventNumber, { name: row.eventName, points: 0 });
+        if (row.points) events.get(row.eventNumber).points += isSpotswoodTeam(row.team) ? row.points : -row.points;
+    }
+    const inOrder = [...events].sort((a, b) => a[0] - b[0]).map(([, e]) => e);
+    if (!inOrder.length) return null;
+    const margins = [0];
+    const sections = [];
+    inOrder.forEach((event, i) => {
+        margins.push(round2(margins[i] + event.points));
+        const label = strokeOf(event.name);
+        const last = sections[sections.length - 1];
+        if (last && last.label === label) last.to = i + 1;
+        else sections.push({ label, from: i + 1, to: i + 1 });
+    });
+    return { margins, sections };
+}
+
 // Swims faster than the swimmer's best earlier swim in the event, by the
 // site's rule: a first swim in an event never counts, so comparable is how
 // many swims had an earlier time to beat.
@@ -189,6 +227,7 @@ function meetSummary(individual, relays, earlier = []) {
         dqs: swims.filter(r => r.status === "DQ").length,
         noShows: swims.filter(r => r.status === "NS").length,
         pointsBy: pointsBy(swims, ourRelays),
+        flow: meetFlow(individual, relays),
         highlights: {
             tripleWinners: triples,
             // Shown only when nobody won every event they entered.
@@ -289,5 +328,5 @@ function swimmerSeason(name, swims, earned = {}) {
 }
 
 module.exports = {
-    meetSummary, teamScore, swimmerEvents, swimmerSeason, dropBelowSeed
+    meetSummary, meetFlow, teamScore, swimmerEvents, swimmerSeason, dropBelowSeed
 };

@@ -288,6 +288,27 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 /* Points by age group: one plain bar per row, value and share at its tip.
    The bar area holds seven rows on every tab, so switching tabs doesn't
    change the card's height. */
+/* Meet flow: Spotswood's lead event by event (flowCard, /assets/meets.js). */
+.flow-card { margin: 0 0 12px; padding: 14px 16px 16px; border-radius: 20px; }
+.flow-card h3 { margin: 0 0 6px; font-family: var(--font-head); font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--ink); }
+.flow-chart { min-height: 190px; }
+.flow-chart svg { display: block; overflow: visible; }
+.flow-chart text { font-family: var(--font-body); }
+.flow-team { font-size: 12px; font-weight: 600; }
+.flow-team.us { fill: var(--brand); }
+.flow-team.them { fill: var(--loss); }
+.flow-section { font-size: 11px; fill: var(--muted); }
+.flow-divider { stroke: var(--soft-border); stroke-dasharray: 2 3; }
+.flow-zero { stroke: var(--muted); stroke-opacity: .5; }
+.flow-area.us { fill: var(--ok-tint); }
+.flow-area.them { fill: #E4E8E1; }
+.flow-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; }
+.flow-line.us { stroke: var(--brand); }
+.flow-line.them { stroke: var(--loss-from); }
+.flow-end.us { fill: var(--brand); }
+.flow-end.them { fill: var(--loss-from); }
+.flow-margin { font-size: 13px; font-weight: 700; fill: var(--ink); }
+@media (prefers-reduced-motion: no-preference) { .flow-reveal.drawing { transition: width 1.6s cubic-bezier(.45, .05, .35, 1); } }
 .points-card { margin-top: 12px; padding: 14px 16px 16px; border-radius: 20px; }
 .points-card h3, .hl-card-title { margin: 0; font-family: var(--font-head); font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--ink); }
 .points-tabs { display: flex; gap: 20px; margin-top: 8px; border-bottom: 1px solid var(--soft-border); }

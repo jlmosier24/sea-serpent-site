@@ -393,12 +393,13 @@
         dialog.querySelector("#meetDialogTitle").textContent = meet.title;
         dialog.querySelector("#meetDialogWhen").textContent = `${fmtDate(meet.date)} · Final`;
         const body = dialog.querySelector("#meetDialogBody");
-        body.innerHTML = scoreBanner(meet) + recordsCard(s) + statTiles(s) + seedCard(s) + pointsCard(s) + highlightCards(s) + `
+        body.innerHTML = scoreBanner(meet) + flowCard(meet) + recordsCard(s) + statTiles(s) + seedCard(s) + pointsCard(s) + highlightCards(s) + `
             <button type="button" class="btn primary block view-all">View all swimmer results</button>`;
         body.querySelector(".view-all").addEventListener("click", (event) => openAllResults(meet, event.currentTarget));
         setUpPointsCard(body, s);
         SiteUI.openDialog(dialog, opener);
         body.scrollTop = 0; // only once it's showing; a hidden box keeps its old scroll position
+        setUpFlowCard(body, meet);
         if (!reducedMotion()) {
             body.querySelectorAll(".stat-value").forEach((el, i) => countUp(el, 700, 120 + i * 60));
             fillSeedRing(body.querySelector(".seed-ring"));
@@ -518,6 +519,109 @@
                 <div class="seed-ring" style="--pct: ${pct}"><span>${pct}%</span></div>
                 <div><h3>Swims faster than seed</h3><p>${s.fasterThanSeed} of ${plural(s.timedWithSeed, "timed swim", "timed swims")} beat the swimmer's seed time.</p></div>
             </div>`;
+    }
+
+    /* ---------- Meet flow card (2026-10-21) ---------- */
+    // Spotswood's lead in points after each event (stats.js meetFlow): above the
+    // middle line in green while Spotswood leads, below it in gray-green while
+    // the other team does, each side labeled with its team. Only for a meet
+    // between two teams whose running points end at the banner's margin, so a
+    // typed-in score that differs never shows two answers.
+    function flowOf(meet) {
+        const flow = meet.summary && meet.summary.flow;
+        if (meet.meetType !== "dual" || !flow || flow.margins.length < 3 || meet.teamScore == null || meet.opponentScore == null) return null;
+        const end = flow.margins[flow.margins.length - 1];
+        return Math.abs(end - (meet.teamScore - meet.opponentScore)) < 0.01 ? flow : null;
+    }
+
+    function flowCard(meet) {
+        return flowOf(meet) ? '<section class="inset flow-card" aria-labelledby="flowTitle"><h3 id="flowTitle">Meet flow</h3><div class="flow-chart"></div></section>' : "";
+    }
+
+    const fmtMargin = n => `${n > 0 ? "+" : ""}${fmtPoints(n)}`;
+
+    function flowSvg(flow, us, them, width) {
+        const W = Math.max(240, width);
+        const H = 190, top = 22, bottom = 34, right = 40;
+        const { margins, sections } = flow;
+        const n = margins.length - 1;
+        const max = Math.max(10, Math.ceil(Math.max(...margins.map(Math.abs)) / 10) * 10);
+        const x = i => ((W - right) * i / n).toFixed(1);
+        const y = v => (top + (H - top - bottom) * (max - v) / (2 * max)).toFixed(1);
+        const mid = y(0);
+        const points = margins.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+        const area = `M0,${mid} L${points.split(" ").join(" L")} L${x(n)},${mid} Z`;
+        const end = margins[n];
+        const ours = Math.max(0, ...margins);
+        const theirs = Math.max(0, ...margins.map(v => -v));
+        const label = `${us} ${end > 0 ? "won by" : end < 0 ? "lost by" : "tied"}${end ? ` ${fmtPoints(Math.abs(end))} points` : ""}. Biggest lead: ${us} ${fmtPoints(ours)}, ${them} ${fmtPoints(theirs)}.`;
+        // A stroke's label sits under its run of events, left out where it
+        // would run into the one before (a run of only an event or two).
+        let labels = "";
+        let lastRight = -Infinity;
+        sections.forEach((sec, k) => {
+            const left = Number(x(sec.from - 1));
+            const rightEdge = Number(x(sec.to));
+            if (k) labels += `<line class="flow-divider" x1="${left}" x2="${left}" y1="${top}" y2="${H - bottom}"/>`;
+            if (!sec.label) return;
+            const textWidth = sec.label.length * 6;
+            const first = k === 0;
+            const at = first ? 0 : Math.min(W - textWidth / 2, (left + rightEdge) / 2);
+            const start = first ? 0 : at - textWidth / 2;
+            if (start < lastRight + 4) return;
+            lastRight = first ? textWidth : at + textWidth / 2;
+            labels += `<text class="flow-section" x="${at}" y="${H - 10}" text-anchor="${first ? "start" : "middle"}">${escapeHtml(sec.label)}</text>`;
+        });
+        return `
+            <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${escapeHtml(label)}">
+                <defs>
+                    <clipPath id="flowUp"><rect x="0" y="0" width="${W}" height="${mid}"/></clipPath>
+                    <clipPath id="flowDown"><rect x="0" y="${mid}" width="${W}" height="${H - mid}"/></clipPath>
+                    <clipPath id="flowShown"><rect class="flow-reveal" x="0" y="0" width="${W}" height="${H}"/></clipPath>
+                </defs>
+                ${labels}
+                <text class="flow-team us" x="0" y="12">${escapeHtml(us)}</text>
+                <text class="flow-team them" x="0" y="${H - bottom - 4}">${escapeHtml(them)}</text>
+                <g clip-path="url(#flowShown)">
+                    <path class="flow-area us" d="${area}" clip-path="url(#flowUp)"/>
+                    <path class="flow-area them" d="${area}" clip-path="url(#flowDown)"/>
+                    <line class="flow-zero" x1="0" x2="${W - right}" y1="${mid}" y2="${mid}"/>
+                    <polyline class="flow-line us" points="${points}" clip-path="url(#flowUp)"/>
+                    <polyline class="flow-line them" points="${points}" clip-path="url(#flowDown)"/>
+                    <circle class="flow-end ${end < 0 ? "them" : "us"}" cx="${x(n)}" cy="${y(end)}" r="4.5"/>
+                    <text class="flow-margin" x="${Number(x(n)) + 8}" y="${Number(y(end)) + 4}">${fmtMargin(end)}</text>
+                </g>
+            </svg>`;
+    }
+
+    // Drawn to the card's width once the popup is showing, and again if that
+    // changes. The first time it's seen, it draws itself left to right.
+    function setUpFlowCard(body, meet) {
+        const box = body.querySelector(".flow-chart");
+        const flow = flowOf(meet);
+        if (!box || !flow) return;
+        const us = "Spotswood";
+        const them = meet.shortName || meet.opponent || "Opponent";
+        let shown = reducedMotion() || !("IntersectionObserver" in window);
+        let width = 0;
+        const draw = () => {
+            if (!box.clientWidth || box.clientWidth === width) return;
+            width = box.clientWidth;
+            box.innerHTML = flowSvg(flow, us, them, width);
+            if (!shown) box.querySelector(".flow-reveal").style.width = "0px";
+        };
+        draw();
+        new ResizeObserver(draw).observe(box);
+        if (shown) return;
+        new IntersectionObserver((entries, observer) => {
+            if (!entries.some(e => e.isIntersecting)) return;
+            observer.disconnect();
+            shown = true;
+            const reveal = box.querySelector(".flow-reveal");
+            reveal.getBoundingClientRect();
+            reveal.classList.add("drawing");
+            reveal.style.width = `${Math.max(240, width)}px`;
+        }, { threshold: 0.5 }).observe(box);
     }
 
     /* ---------- Points by age group card ---------- */

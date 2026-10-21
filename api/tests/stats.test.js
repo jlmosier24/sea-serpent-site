@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { parseMeetResultsText } = require("../shared/meetResultsParser");
-const { meetSummary, teamScore, swimmerEvents, swimmerSeason } = require("../shared/stats");
+const { meetSummary, meetFlow, teamScore, swimmerEvents, swimmerSeason } = require("../shared/stats");
 const { SHEET } = require("./sampleSheet");
 
 test("meetSummary counts Spotswood's swims by the handoff's definitions", () => {
@@ -206,4 +206,26 @@ test("swimmerSeason: age and season from the latest meet, meets swum, saved badg
     const bare = swimmerSeason("Doe, Jane", swims);
     assert.deepEqual(bare.badges, []);
     assert.equal(bare.meetsSwum, 5);
+});
+
+test("meet flow: Spotswood's lead after each event, from both teams' points, with stroke sections", () => {
+    const parsed = parseMeetResultsText(SHEET);
+    // Event 1: 6 + 3.5 against 3.5 + 1; event 5, the relay: 8 against nothing (the DQ scores none).
+    assert.deepEqual(meetSummary(parsed.individual, parsed.relays).flow, {
+        margins: [0, 5, 13],
+        sections: [{ label: "Free", from: 1, to: 1 }, { label: "Relays", from: 2, to: 2 }]
+    });
+
+    const row = (eventNumber, eventName, team, points) => ({ eventNumber, eventName, team, points });
+    const flow = meetFlow([
+        row(3, "Girls 9-10 50m Backstroke", "Spotswood", 6), row(3, "Girls 9-10 50m Backstroke", "Test Seahawks", 4),
+        row(2, "Boys 8 & Under 25m Freestyle", "Test Seahawks", 6),
+        row(1, "Girls 8 & Under 25m Freestyle", "Test Seahawks", 6),
+        row(4, "Boys 9-10 50m Backstroke", "Spotswood", 6)
+    ], [row(0, "Mixed 12 & Under 100m Medley Relay", "Spotswood", 8)]);
+    assert.deepEqual(flow.margins, [0, 8, 2, -4, -2, 4], "in event order, behind in the middle");
+    assert.deepEqual(flow.sections.map(s => [s.label, s.from, s.to]), [["Medley", 1, 1], ["Free", 2, 3], ["Back", 4, 5]]);
+
+    // A championship has more than one other team: no two-sided line.
+    assert.equal(meetFlow([row(1, "Girls 9-10 50m Freestyle", "Spotswood", 6), row(1, "Girls 9-10 50m Freestyle", "A Team", 4), row(1, "Girls 9-10 50m Freestyle", "B Team", 3)], []), null);
 });

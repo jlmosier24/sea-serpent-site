@@ -263,6 +263,23 @@ test("an import saves the meet's numbers for the home page, and editing the meet
     assert.equal(edited.summary.firstPlaces, 1, "the numbers survive an edit");
 });
 
+test("a meet imported before the meet flow chart gets one the first time the meets are listed", async () => {
+    resetStore();
+    await addMeet("m");
+    await call(commitResults, { body: { meetId: "m", dataBase64: asUpload(sheetText()), fileName: "results.pdf" } });
+    assert.deepEqual((await call(publicMeets)).body[0].summary.flow.margins, [0, 5, 13], "an import saves it");
+
+    // As it was saved before: the numbers without a flow.
+    const row = await store.meets.getEntity("meet", "m");
+    const { flow, ...older } = JSON.parse(row.summaryJson);
+    await store.meets.updateEntity({ partitionKey: "meet", rowKey: "m", summaryJson: JSON.stringify(older) }, "Merge");
+
+    const [meet] = (await call(publicMeets)).body;
+    assert.deepEqual(meet.summary.flow, flow);
+    assert.deepEqual(JSON.parse((await store.meets.getEntity("meet", "m")).summaryJson).flow, flow, "and it's saved, so it's worked out once");
+    assert.equal(meet.summary.firstPlaces, 1, "the other numbers stay");
+});
+
 // A stand-in for Azure Maps' fuzzy search, recording what was looked up.
 function fakeMaps(results, { fail = false } = {}) {
     const lookups = [];
