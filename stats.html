@@ -96,9 +96,9 @@
     .flip-face { position: absolute; inset: 0; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: #fff; }
     .flip-face.back { transform: rotateY(180deg); }
     .flip-ghost .badge-tile { position: absolute; left: 0; top: 0; transform-origin: 0 0; box-sizing: border-box; box-shadow: none; }
-    .badge-dialog.flip-measure { visibility: hidden; }
-    .badge-dialog.flip-measure, .badge-dialog.flip-measure::backdrop, .badge-dialog.flip-hold, .badge-dialog.flip-hold::backdrop { transition: none; }
-    .badge-dialog.flip-measure::backdrop { background: transparent; }
+    /* While the card turns, the real popup is already open, unseen, so the card can land right on it. */
+    .badge-dialog.flip-hidden, .badge-dialog.flip-hidden::backdrop { opacity: 0; }
+    .badge-dialog.flip-hidden, .badge-dialog.flip-hidden::backdrop, .badge-dialog.flip-hold, .badge-dialog.flip-hold::backdrop { transition: none; }
     /* Closing to flip back: it vanishes where it is (no slide down), so the card turns back from there. */
     .badge-dialog.flip-return[data-closing], .badge-dialog.flip-return[data-closing]::backdrop { opacity: 0; transform: none; transition: none; }
     .badge-new { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 10px; background: var(--gold); color: var(--gold-ink); font-size: 11px; font-weight: 700; }
@@ -462,55 +462,56 @@ function openBadgeFlipping(badge, tile) {
         return;
     }
     badgeFlipping = true;
-    // The page stays scroll-locked from here until the popup is open, so a phone's
-    // toolbar can't slide in or out (and move the sheet) partway through.
-    const root = document.documentElement;
-    root.classList.add('is-locked');
-    // Open it unseen for a moment to see where it lands and what it shows.
-    dialog.classList.add('flip-measure');
+    // The real popup opens at once, unseen; the card flies to wherever it is,
+    // following it frame by frame, so it lands exactly on it (a phone can
+    // shift a bottom sheet as its toolbar moves).
+    dialog.classList.add('flip-hidden', 'flip-hold', 'flip-return');
     openBadge(badge, tile);
-    let to = dialog.getBoundingClientRect();
-    const back = badgeDialogCopy(dialog);
-    // Closing it unlocks the page (site.js, on 'close'), so lock it again after that.
-    dialog.addEventListener('close', () => root.classList.add('is-locked'), { once: true });
-    dialog.close();
-    dialog.classList.remove('flip-measure');
     tile.style.opacity = '0';
-    flyBadge(tile, to, back, false).then(ghost => {
-        dialog.classList.add('flip-hold', 'flip-return');
-        openBadge(badge, tile);
-        ghost.remove();
-        // Should the popup sit a little off from where the card landed (the
-        // window changed size), it eases there rather than jumping.
-        const real = dialog.getBoundingClientRect();
-        const dx = to.left - real.left, dy = to.top - real.top;
-        to = real;
-        const settle = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5
-            ? dialog.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 200, easing: 'ease-out' }).finished
-            : Promise.resolve();
-        settle.then(() => requestAnimationFrame(() => dialog.classList.remove('flip-hold')));
+    let flying = true;
+    let to = dialog.getBoundingClientRect();
+    const flight = flyBadge(tile, to, badgeDialogCopy(dialog), false, () => dialog.getBoundingClientRect());
+    // The way back starts from where the popup is, measured while it's open
+    // (it's already gone by the time 'close' fires): again whenever the
+    // window changes size.
+    const remeasure = () => { if (dialog.open && !flying && !dialog.hasAttribute('data-closing')) to = dialog.getBoundingClientRect(); };
+    window.addEventListener('resize', remeasure);
+    // A swipe down on a phone slides the sheet away instead.
+    const swiped = () => { if (dialog.classList.contains('is-dragging')) dialog.classList.remove('flip-return'); };
+    dialog.addEventListener('pointermove', swiped);
+    flight.done.then(() => {
+        if (!flying) return;
+        flying = false;
+        // Shown in the same frame the card goes, with no fade, so nothing moves.
+        dialog.classList.remove('flip-hidden');
+        flight.remove();
+        to = dialog.getBoundingClientRect();
+        requestAnimationFrame(() => dialog.classList.remove('flip-hold'));
         badgeFlipping = false;
-        // The way back starts from where the popup is, measured while it's open
-        // (it's already gone by the time 'close' fires): again whenever the
-        // window changes size.
-        const remeasure = () => { if (dialog.open && !dialog.hasAttribute('data-closing')) to = dialog.getBoundingClientRect(); };
-        window.addEventListener('resize', remeasure);
-        // A swipe down on a phone slides the sheet away instead.
-        const swiped = () => { if (dialog.classList.contains('is-dragging')) dialog.classList.remove('flip-return'); };
-        dialog.addEventListener('pointermove', swiped);
-        dialog.addEventListener('close', () => {
-            window.removeEventListener('resize', remeasure);
-            dialog.removeEventListener('pointermove', swiped);
-            if (!dialog.classList.contains('flip-return')) { tile.style.opacity = ''; return; }
-            dialog.classList.remove('flip-return');
-            badgeFlipping = true;
-            flyBadge(tile, to, badgeDialogCopy(dialog), true).then(g => {
-                tile.style.opacity = '';
-                g.remove();
-                badgeFlipping = false;
-            });
-        }, { once: true });
     });
+    dialog.addEventListener('close', () => {
+        window.removeEventListener('resize', remeasure);
+        dialog.removeEventListener('pointermove', swiped);
+        dialog.classList.remove('flip-hidden', 'flip-hold');
+        // Closed (Esc, a tap outside) before the card had landed: just put the tile back.
+        if (flying) {
+            flying = false;
+            flight.remove();
+            dialog.classList.remove('flip-return');
+            tile.style.opacity = '';
+            badgeFlipping = false;
+            return;
+        }
+        if (!dialog.classList.contains('flip-return')) { tile.style.opacity = ''; return; }
+        dialog.classList.remove('flip-return');
+        badgeFlipping = true;
+        const back = flyBadge(tile, to, badgeDialogCopy(dialog), true);
+        back.done.then(() => {
+            tile.style.opacity = '';
+            back.remove();
+            badgeFlipping = false;
+        });
+    }, { once: true });
 }
 
 // The popup as it looks, to be the back of the turning card.
@@ -518,7 +519,7 @@ function badgeDialogCopy(dialog) {
     const copy = dialog.cloneNode(true);
     copy.removeAttribute('id');
     copy.removeAttribute('open');
-    copy.classList.remove('flip-measure', 'flip-hold', 'flip-return');
+    copy.classList.remove('flip-hidden', 'flip-hold', 'flip-return');
     copy.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
     copy.setAttribute('aria-hidden', 'true');
     copy.style.cssText = 'display:flex;flex-direction:column;position:absolute;inset:0;width:100%;height:100%;max-height:none;margin:0;border:0;box-shadow:none;opacity:1;transform:none;transition:none;';
@@ -529,7 +530,8 @@ function badgeDialogCopy(dialog) {
 // ghost is the popup's size, shrunk to the tile at the start, and turns half
 // over around its middle. Its front is the tile, drawn at the tile's size and
 // stretched by the inverse, so it matches the tile exactly where it starts.
-function flyBadge(tile, to, backContent, reverse) {
+// While it flies it follows track() (the popup's box now), should the popup move.
+function flyBadge(tile, to, backContent, reverse, track) {
     const from = tile.getBoundingClientRect();
     const sx = from.width / to.width, sy = from.height / to.height;
     const shade = document.createElement('div');
@@ -561,7 +563,19 @@ function flyBadge(tile, to, backContent, reverse) {
     const timing = { duration: FLIP_MS, easing: FLIP_EASE, fill: 'both' };
     const flight = ghost.animate(reverse ? moves.reverse() : moves, timing);
     shade.animate(reverse ? fades.reverse() : fades, timing);
-    return flight.finished.then(() => ({ remove: () => { ghost.remove(); shade.remove(); } }));
+    let following = !!track;
+    const follow = () => {
+        if (!following) return;
+        const r = track();
+        if (r.width && (Math.abs(r.left - to.left) > 0.5 || Math.abs(r.top - to.top) > 0.5)) {
+            to = r;
+            Object.assign(ghost.style, { left: `${r.left}px`, top: `${r.top}px` });
+        }
+        requestAnimationFrame(follow);
+    };
+    requestAnimationFrame(follow);
+    const remove = () => { following = false; ghost.remove(); shade.remove(); };
+    return { done: flight.finished.catch(() => {}), remove };
 }
 
 // "How badges work", from the update 4 badge mockup's rules table: the badge,
