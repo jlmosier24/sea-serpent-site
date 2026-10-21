@@ -89,6 +89,17 @@
         .badge-tile.celebrate { overflow: hidden; animation: badge-pop .5s cubic-bezier(.2, .8, .3, 1.2) var(--delay, 0s) both; }
         .badge-tile.celebrate::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 45%; pointer-events: none; background: linear-gradient(90deg, rgba(242,179,39,0), rgba(242,179,39,.55), rgba(255,255,255,.7), rgba(242,179,39,.55), rgba(242,179,39,0)); transform: translateX(-120%); animation: badge-shine .9s ease-in-out calc(var(--delay, 0s) + .35s) both; }
     }
+    /* Opening a badge: the tile turns over as it grows into the popup, and turns
+       back into the tile on close (openBadgeFlipping below; 2026-10-21). */
+    .flip-shade { position: fixed; inset: 0; z-index: 2147483646; background: rgba(12,28,14,.55); pointer-events: none; }
+    .flip-ghost { position: fixed; z-index: 2147483647; transform-origin: 0 0; transform-style: preserve-3d; pointer-events: none; will-change: transform; }
+    .flip-face { position: absolute; inset: 0; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: #fff; }
+    .flip-face.back { transform: rotateY(180deg); }
+    .flip-ghost .badge-tile { position: absolute; left: 0; top: 0; transform-origin: 0 0; box-sizing: border-box; box-shadow: none; }
+    .badge-dialog.flip-measure { visibility: hidden; }
+    .badge-dialog.flip-measure, .badge-dialog.flip-measure::backdrop, .badge-dialog.flip-hold, .badge-dialog.flip-hold::backdrop { transition: none; }
+    .badge-dialog.flip-measure::backdrop { background: transparent; }
+    .badge-dialog.flip-return[data-closing], .badge-dialog.flip-return[data-closing]::backdrop { opacity: 0; transition: none; }
     .badge-new { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 10px; background: var(--gold); color: var(--gold-ink); font-size: 11px; font-weight: 700; }
     .badge-disc { position: relative; display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; margin-bottom: 8px; border: 2px solid var(--gold); border-radius: 50%; background: var(--gold-tint); color: var(--gold-text); }
     .badge-disc svg { width: 30px; height: 30px; }
@@ -433,6 +444,105 @@ function openBadge(badge, opener) {
     dialog.querySelector('.dialog-body').scrollTop = 0;
 }
 
+// Opens a badge's popup with the tile turning over as it grows into it, and
+// turns it back into the tile when the popup closes (unless it was swiped
+// down on a phone, which closes as usual). Only transforms and opacity move,
+// so it stays smooth. Reduce motion, or a browser without animate(), just
+// opens the popup.
+const FLIP_MS = 520;
+const FLIP_EASE = 'cubic-bezier(.4, 0, .2, 1)';
+let badgeFlipping = false;
+
+function openBadgeFlipping(badge, tile) {
+    const dialog = document.getElementById('badgeDialog');
+    if (badgeFlipping || dialog.open) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !tile.animate) {
+        openBadge(badge, tile);
+        return;
+    }
+    badgeFlipping = true;
+    // Open it unseen for a moment to see where it lands and what it shows.
+    dialog.classList.add('flip-measure');
+    openBadge(badge, tile);
+    const to = dialog.getBoundingClientRect();
+    const back = badgeDialogCopy(dialog);
+    dialog.close();
+    dialog.classList.remove('flip-measure');
+    tile.style.opacity = '0';
+    flyBadge(tile, to, back, false).then(ghost => {
+        dialog.classList.add('flip-hold', 'flip-return');
+        openBadge(badge, tile);
+        ghost.remove();
+        requestAnimationFrame(() => dialog.classList.remove('flip-hold'));
+        badgeFlipping = false;
+        // A swipe down on a phone slides the sheet away instead.
+        const swiped = () => { if (dialog.classList.contains('is-dragging')) dialog.classList.remove('flip-return'); };
+        dialog.addEventListener('pointermove', swiped);
+        dialog.addEventListener('close', () => {
+            dialog.removeEventListener('pointermove', swiped);
+            if (!dialog.classList.contains('flip-return')) { tile.style.opacity = ''; return; }
+            dialog.classList.remove('flip-return');
+            badgeFlipping = true;
+            flyBadge(tile, to, badgeDialogCopy(dialog), true).then(g => {
+                tile.style.opacity = '';
+                g.remove();
+                badgeFlipping = false;
+            });
+        }, { once: true });
+    });
+}
+
+// The popup as it looks, to be the back of the turning card.
+function badgeDialogCopy(dialog) {
+    const copy = dialog.cloneNode(true);
+    copy.removeAttribute('id');
+    copy.removeAttribute('open');
+    copy.classList.remove('flip-measure', 'flip-hold', 'flip-return');
+    copy.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    copy.setAttribute('aria-hidden', 'true');
+    copy.style.cssText = 'display:flex;flex-direction:column;position:absolute;inset:0;width:100%;height:100%;max-height:none;margin:0;border:0;box-shadow:none;opacity:1;transform:none;transition:none;';
+    return copy;
+}
+
+// One composited animation from the tile's box to the popup's (or back): the
+// ghost is the popup's size, shrunk to the tile at the start, and turns half
+// over around its middle. Its front is the tile, drawn at the tile's size and
+// stretched by the inverse, so it matches the tile exactly where it starts.
+function flyBadge(tile, to, backContent, reverse) {
+    const from = tile.getBoundingClientRect();
+    const sx = from.width / to.width, sy = from.height / to.height;
+    const shade = document.createElement('div');
+    shade.className = 'flip-shade';
+    const ghost = document.createElement('div');
+    ghost.className = 'flip-ghost';
+    ghost.setAttribute('aria-hidden', 'true');
+    Object.assign(ghost.style, { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px` });
+    const front = document.createElement('div');
+    front.className = 'flip-face';
+    front.style.borderRadius = `${20 / Math.min(sx, sy)}px`;
+    const face = tile.cloneNode(true);
+    face.classList.remove('celebrate');
+    face.style.cssText = `width:${from.width}px;height:${from.height}px;transform:scale(${1 / sx},${1 / sy});opacity:1;`;
+    front.appendChild(face);
+    const back = document.createElement('div');
+    back.className = 'flip-face back';
+    back.style.borderRadius = getComputedStyle(document.getElementById('badgeDialog')).borderRadius;
+    back.appendChild(backContent);
+    ghost.append(front, back);
+    document.body.append(shade, ghost);
+    const halfW = to.width / 2, halfH = to.height / 2;
+    const depth = `perspective(${Math.round(Math.max(to.width, to.height) * 2.2)}px)`;
+    const turn = deg => `translate(${halfW}px, ${halfH}px) ${depth} rotateY(${deg}deg) translate(${-halfW}px, ${-halfH}px)`;
+    const small = `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${sx}, ${sy}) ${turn(0)}`;
+    const big = `translate(0px, 0px) scale(1, 1) ${turn(180)}`;
+    const moves = [{ transform: small }, { transform: big }];
+    const fades = [{ opacity: 0 }, { opacity: 1 }];
+    const timing = { duration: FLIP_MS, easing: FLIP_EASE, fill: 'both' };
+    const flight = ghost.animate(reverse ? moves.reverse() : moves, timing);
+    shade.animate(reverse ? fades.reverse() : fades, timing);
+    return flight.finished.then(() => ({ remove: () => { ghost.remove(); shade.remove(); } }));
+}
+
 // "How badges work", from the update 4 badge mockup's rules table: the badge,
 // when it's earned, and what its pill shows.
 const BADGE_RULES = [
@@ -700,7 +810,7 @@ document.getElementById('swimmerContent').addEventListener('click', (event) => {
     const link = event.target.closest('.opponent-link');
     if (link) Meets.openResults(meetsById[link.dataset.meet], link);
     const tile = event.target.closest('.badge-tile');
-    if (tile && shownSeason) openBadge(shownSeason.badges[tile.dataset.badge], tile);
+    if (tile && shownSeason) openBadgeFlipping(shownSeason.badges[tile.dataset.badge], tile);
     const more = event.target.closest('.show-all');
     if (more) showAllBadges(more);
     const star = event.target.closest('.fav-btn');
