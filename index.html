@@ -42,15 +42,6 @@
     .hero-motto { margin: 0; font-family: var(--font-head); font-size: 60px; font-weight: 700; line-height: .95; text-transform: uppercase; text-shadow: 0 2px 12px rgba(0,0,0,.35); }
     .hero-motto span { display: block; }
     .hero-motto .payoff { color: var(--gold); }
-    /* On load, "HARD WORK" rises in, then "PAYS OFF!" a beat later, while the photo
-       zooms in very slowly; once, and not at all with Reduce motion on (2026-10-20). */
-    @media (prefers-reduced-motion: no-preference) {
-        @keyframes motto-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-        @keyframes hero-zoom { from { transform: scale(1); } to { transform: scale(1.06); } }
-        .hero-motto span { animation: motto-rise .7s cubic-bezier(.2, .7, .2, 1) .25s both; }
-        .hero-motto .payoff { animation-delay: .6s; }
-        .hero picture img { transform-origin: 50% 70%; animation: hero-zoom 12s ease-out both; }
-    }
     /* The next meet, wider than a phone: jumps to its card below. */
     .hero-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; }
     .hero-links .btn b { font-weight: 700; }
