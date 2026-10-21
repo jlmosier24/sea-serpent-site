@@ -1106,11 +1106,13 @@ function placeTabInk() {
     ink.style.transform = `translateX(${tab.offsetLeft}px)`;
     if (!ink.classList.contains('ready')) requestAnimationFrame(() => ink.classList.add('ready'));
 }
-window.addEventListener('resize', () => {
+// Placed again, without sliding, when the tabs change size: when the card is
+// first shown (the boards are drawn just before), or the window resizes.
+new ResizeObserver(() => {
     const ink = document.querySelector('#boardsTabs .tab-ink');
     if (ink) ink.classList.remove('ready');
     placeTabInk();
-});
+}).observe(document.getElementById('boardsTabs'));
 document.fonts && document.fonts.ready.then(placeTabInk);
 
 document.getElementById('boardsGroups').addEventListener('click', (event) => {
