@@ -72,6 +72,14 @@
     .badge-grid:not(.expanded) > .badge-tile:nth-child(n+11) { display: none; }
     .badge-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 16px 8px 12px; border: 1px solid #fff; border-radius: 20px; background: #fff; color: var(--ink); font: inherit; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
     .badge-tile:hover { background: var(--gold-tint); }
+    /* A badge first seen as new on this device pops in with a gold shine, once
+       (celebrateBadges below; not with Reduce motion on, 2026-10-21). */
+    @media (prefers-reduced-motion: no-preference) {
+        @keyframes badge-pop { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+        @keyframes badge-shine { from { transform: translateX(-120%) skewX(-20deg); } to { transform: translateX(220%) skewX(-20deg); } }
+        .badge-tile.celebrate { overflow: hidden; animation: badge-pop .5s cubic-bezier(.2, .8, .3, 1.2) var(--delay, 0s) both; }
+        .badge-tile.celebrate::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 45%; pointer-events: none; background: linear-gradient(90deg, rgba(242,179,39,0), rgba(242,179,39,.55), rgba(255,255,255,.7), rgba(242,179,39,.55), rgba(242,179,39,0)); transform: translateX(-120%); animation: badge-shine .9s ease-in-out calc(var(--delay, 0s) + .35s) both; }
+    }
     .badge-new { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 10px; background: var(--gold); color: var(--gold-ink); font-size: 11px; font-weight: 700; }
     .badge-disc { position: relative; display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; margin-bottom: 8px; border: 2px solid var(--gold); border-radius: 50%; background: var(--gold-tint); color: var(--gold-text); }
     .badge-disc svg { width: 30px; height: 30px; }
@@ -674,6 +682,7 @@ async function loadSwimmer(name) {
     }
     shownSeason = season;
     box.innerHTML = swimmerHeader(season) + season.events.map(eventCard).join('');
+    celebrateBadges(season);
     drawCharts();
     status.textContent = `Showing stats for ${displayName(season.name)}.`;
 }
@@ -702,6 +711,30 @@ const picker = Swimmers.mountSearch(document.getElementById('swimmerPicker'), {
 });
 
 // The star on a swimmer's header adds or removes them from Favorites.
+// New badges pop in the first time this device shows them for a swimmer. Which
+// ones it has shown are remembered in this browser only (and only the latest).
+const CELEBRATED_KEY = 'seaSerpents.celebratedBadges';
+function celebrateBadges(season) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const fresh = (season.badges || []).filter(b => b.isNew);
+    if (!fresh.length) return;
+    let seen = {};
+    try { seen = JSON.parse(localStorage.getItem(CELEBRATED_KEY) || '{}') || {}; } catch (e) { /* storage off: celebrate anyway */ }
+    const keyOf = b => `${b.id}@${b.meetId}`;
+    const already = new Set(seen[season.name] || []);
+    let delay = 0.3;
+    document.querySelectorAll('.badge-tile').forEach(tile => {
+        const badge = season.badges[tile.dataset.badge];
+        if (!badge || !badge.isNew || already.has(keyOf(badge))) return;
+        tile.style.setProperty('--delay', `${delay.toFixed(2)}s`);
+        tile.classList.add('celebrate');
+        tile.addEventListener('animationend', event => { if (event.animationName === 'badge-shine') tile.classList.remove('celebrate'); });
+        delay += 0.12;
+    });
+    seen[season.name] = fresh.map(keyOf);
+    try { localStorage.setItem(CELEBRATED_KEY, JSON.stringify(seen)); } catch (e) { /* nothing to remember with */ }
+}
+
 function toggleFavorite(button) {
     const name = button.dataset.name;
     const result = Swimmers.toggleFavorite(name);
@@ -711,7 +744,14 @@ function toggleFavorite(button) {
         return;
     }
     button.outerHTML = Swimmers.favoriteButton(name);
-    document.querySelector('.fav-btn').focus();
+    const saved = document.querySelector('.fav-btn');
+    saved.focus();
+    if (result.on) {
+        // The star bounces with a gold ring centered on it (CSS in site.css).
+        const star = saved.querySelector('svg');
+        saved.style.setProperty('--star-x', `${star.offsetLeft + star.offsetWidth / 2 - 11}px`);
+        saved.classList.add('popped');
+    }
     document.getElementById('swimmerStatus').textContent = `${displayName(name)} ${result.on ? 'added to' : 'removed from'} favorites.`;
     picker.renderFavorites();
 }

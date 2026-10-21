@@ -448,6 +448,13 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .fav-note { margin: 8px 0 0; font-size: 14px; opacity: .9; text-align: right; }
 /* Phones: just the star, in a round button in the header's corner. Its
    label stays for screen readers, and the star is filled once saved. */
+/* Saving a favorite: the star bounces, with a gold ring around it (2026-10-21). */
+@media (prefers-reduced-motion: no-preference) {
+    @keyframes star-pop { 0% { transform: scale(1); } 35% { transform: scale(1.55) rotate(-12deg); } 65% { transform: scale(.9) rotate(6deg); } 100% { transform: scale(1); } }
+    @keyframes star-ring { from { transform: scale(.4); opacity: .8; } to { transform: scale(2.2); opacity: 0; } }
+    .fav-btn.popped svg { animation: star-pop .55s ease-out; }
+    .fav-btn.popped::before { content: ""; position: absolute; left: var(--star-x, 14px); top: calc(50% - 11px); width: 22px; height: 22px; box-sizing: border-box; border: 2px solid var(--gold); border-radius: 50%; animation: star-ring .55s ease-out both; pointer-events: none; }
+}
 @media (max-width: 600px) {
     .fav-btn { justify-content: center; width: 44px; height: 44px; padding: 0; }
     .fav-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -503,6 +510,15 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .upload-done { padding-top: 6px; text-align: center; }
 .done-icon { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: var(--ok-tint); color: var(--brand); }
 .done-icon svg { width: 28px; height: 28px; }
+/* The thank-you: the circle pops in, the check draws itself, then the words rise in (2026-10-21). */
+@media (prefers-reduced-motion: no-preference) {
+    @keyframes done-pop { 0% { transform: scale(.3); opacity: 0; } 65% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
+    @keyframes done-draw { to { stroke-dashoffset: 0; } }
+    @keyframes done-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .upload-done .done-icon { animation: done-pop .45s cubic-bezier(.2, .8, .3, 1.2) both; }
+    .upload-done .done-icon path { stroke-dasharray: 22; stroke-dashoffset: 22; animation: done-draw .4s ease-out .35s forwards; }
+    .upload-done .done-title, .upload-done .done-note { animation: done-up .35s ease-out .55s both; }
+}
 .done-title { margin: 0; font-size: 18px; font-weight: 700; }
 .done-note { margin: 6px 0 0; color: var(--muted); }
 .dialog-actions.centered { justify-content: center; }
