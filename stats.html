@@ -99,7 +99,8 @@
     .badge-dialog.flip-measure { visibility: hidden; }
     .badge-dialog.flip-measure, .badge-dialog.flip-measure::backdrop, .badge-dialog.flip-hold, .badge-dialog.flip-hold::backdrop { transition: none; }
     .badge-dialog.flip-measure::backdrop { background: transparent; }
-    .badge-dialog.flip-return[data-closing], .badge-dialog.flip-return[data-closing]::backdrop { opacity: 0; transition: none; }
+    /* Closing to flip back: it vanishes where it is (no slide down), so the card turns back from there. */
+    .badge-dialog.flip-return[data-closing], .badge-dialog.flip-return[data-closing]::backdrop { opacity: 0; transform: none; transition: none; }
     .badge-new { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 10px; background: var(--gold); color: var(--gold-ink); font-size: 11px; font-weight: 700; }
     .badge-disc { position: relative; display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; margin-bottom: 8px; border: 2px solid var(--gold); border-radius: 50%; background: var(--gold-tint); color: var(--gold-text); }
     .badge-disc svg { width: 30px; height: 30px; }
@@ -489,14 +490,16 @@ function openBadgeFlipping(badge, tile) {
             : Promise.resolve();
         settle.then(() => requestAnimationFrame(() => dialog.classList.remove('flip-hold')));
         badgeFlipping = false;
-        // The way back starts from wherever the popup is when it starts closing.
-        const watch = new MutationObserver(() => { if (dialog.hasAttribute('data-closing')) to = dialog.getBoundingClientRect(); });
-        watch.observe(dialog, { attributes: true, attributeFilter: ['data-closing'] });
+        // The way back starts from where the popup is, measured while it's open
+        // (it's already gone by the time 'close' fires): again whenever the
+        // window changes size.
+        const remeasure = () => { if (dialog.open && !dialog.hasAttribute('data-closing')) to = dialog.getBoundingClientRect(); };
+        window.addEventListener('resize', remeasure);
         // A swipe down on a phone slides the sheet away instead.
         const swiped = () => { if (dialog.classList.contains('is-dragging')) dialog.classList.remove('flip-return'); };
         dialog.addEventListener('pointermove', swiped);
         dialog.addEventListener('close', () => {
-            watch.disconnect();
+            window.removeEventListener('resize', remeasure);
             dialog.removeEventListener('pointermove', swiped);
             if (!dialog.classList.contains('flip-return')) { tile.style.opacity = ''; return; }
             dialog.classList.remove('flip-return');
