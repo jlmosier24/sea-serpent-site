@@ -33,8 +33,6 @@
     .lb-event { display: block; margin: 16px 0 0; }
     .lb-event select { appearance: none; -webkit-appearance: none; width: 100%; padding: 11px 40px 11px 14px; border: 1px solid var(--card-border); border-radius: 14px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231A6B2E' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 18px; font: 600 16px Inter, sans-serif; color: var(--ink); cursor: pointer; }
     .lb-list { list-style: none; margin: 10px 0 0; padding: 0; }
-    /* Keeps the list's top gap inside the box, so "Show all" easing it open (overflow hidden) doesn't nudge the page. */
-    #boardsList { display: flow-root; }
     .lb-list li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--card-border); }
     .lb-list li:last-child { border-bottom: 0; }
     .lb-list li.fav { margin: 0 -10px; padding: 11px 14px; border-radius: 14px; background: var(--soft); border: 1px solid var(--soft-border); }
@@ -54,7 +52,6 @@
     .lb-fav { width: 15px; height: 15px; color: var(--gold); }
     .lb-sub { margin: 1px 0 0; font-size: 13px; color: var(--muted); }
     .lb-time { font-weight: 700; font-variant-numeric: tabular-nums; }
-    .lb-more { display: flex; margin: 14px auto 0; }
     /* The green line under Girls or Boys slides to the picked tab (placeTabInk below). */
     @media (prefers-reduced-motion: no-preference) {
         #boardsTabs.has-ink { position: relative; }
@@ -958,8 +955,7 @@ function showFavoriteNote(button, text) {
 // Spotswood swimmer's best time this season (/api/leaderboards), girls or
 // boys. Names open that swimmer's stats here.
 let boards = null;
-const boardsState = { group: null, who: 'girls', event: null, expanded: false };
-const BOARD_SHOWN = 8;
+const boardsState = { group: null, who: 'girls', event: null };
 const STROKE_ORDER = ['Freestyle', 'Backstroke', 'Breaststroke', 'Butterfly', 'IM'];
 const FAV_STAR = '<svg class="lb-fav" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Favorite"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
 
@@ -1039,10 +1035,9 @@ function renderBoardList(events) {
 
 
     const favorites = new Set(Swimmers.favorites());
-    const shown = boardsState.expanded ? rows : rows.slice(0, BOARD_SHOWN);
     const before = boardPositions(box);
     box.innerHTML = `
-        <ol class="lb-list">${shown.map(r => {
+        <ol class="lb-list">${rows.map(r => {
             const meet = meetsById[r.meetId];
             // "July 13 at Curtis Park", "July 8 vs. Massad"; a championship's
             // title is its name, so it gets an "at": "July 26 at Division Finals".
@@ -1060,7 +1055,6 @@ function renderBoardList(events) {
                     <span class="lb-time">${escapeHtml(r.time)}</span>
                 </li>`;
         }).join('')}</ol>
-        ${rows.length > shown.length ? `<button type="button" class="btn small lb-more">Show all ${rows.length} swimmers</button>` : ''}
         <p class="lb-note">Each swimmer's best time this season.</p>`;
     glideBoard(box, before);
 }
@@ -1122,12 +1116,12 @@ document.fonts && document.fonts.ready.then(placeTabInk);
 document.getElementById('boardsGroups').addEventListener('click', (event) => {
     const chip = event.target.closest('.chip');
     if (!chip) return;
-    Object.assign(boardsState, { group: chip.dataset.group, expanded: false });
+    boardsState.group = chip.dataset.group;
     renderBoards();
 });
 const boardTabs = [...document.querySelectorAll('#boardsTabs [role="tab"]')];
 function pickWho(tab, focus) {
-    Object.assign(boardsState, { who: tab.dataset.who, expanded: false });
+    boardsState.who = tab.dataset.who;
     renderBoards();
     if (focus) tab.focus();
 }
@@ -1144,23 +1138,10 @@ document.getElementById('boardsTabs').addEventListener('keydown', (event) => {
     pickWho(boardTabs[(next + boardTabs.length) % boardTabs.length], true);
 });
 document.getElementById('boardsEvent').addEventListener('change', (event) => {
-    Object.assign(boardsState, { event: event.target.value, expanded: false });
+    boardsState.event = event.target.value;
     renderBoards();
 });
 document.getElementById('boardsList').addEventListener('click', (event) => {
-    const more = event.target.closest('.lb-more');
-    if (more) {
-        // The list eases open to its full length as the added swimmers fade in, one after another.
-        const box = event.currentTarget;
-        const from = box.offsetHeight;
-        boardsState.expanded = true;
-        renderBoards();
-        if (!matchMedia('(prefers-reduced-motion: reduce)').matches && box.animate) {
-            box.querySelectorAll('li.lb-arrived').forEach((row, i) => { row.style.animationDelay = `${Math.min(i, 8) * 0.04}s`; });
-            box.animate([{ height: `${from}px`, overflow: 'hidden' }, { height: `${box.offsetHeight}px`, overflow: 'hidden' }], { duration: 380, easing: 'cubic-bezier(.3, .7, .2, 1)' });
-        }
-        return;
-    }
     // A name opens that swimmer's stats, as if picked in the search.
     const name = event.target.closest('.lb-name');
     if (!name) return;
