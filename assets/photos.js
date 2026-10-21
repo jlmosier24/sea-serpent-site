@@ -151,6 +151,15 @@
 
         const img = dialog.querySelector(".viewer-photo");
         if (img.getAttribute("src") !== photo.url) {
+            // The photo's own shape holds its space while it loads, so the
+            // frame doesn't shrink and jump back when it arrives.
+            if (photo.width && photo.height) {
+                img.width = photo.width;
+                img.height = photo.height;
+            } else {
+                img.removeAttribute("width");
+                img.removeAttribute("height");
+            }
             img.classList.add("is-loading");
             img.src = photo.url;
             // One already in the browser's cache can be ready at once.
