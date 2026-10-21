@@ -461,11 +461,17 @@ function openBadgeFlipping(badge, tile) {
         return;
     }
     badgeFlipping = true;
+    // The page stays scroll-locked from here until the popup is open, so a phone's
+    // toolbar can't slide in or out (and move the sheet) partway through.
+    const root = document.documentElement;
+    root.classList.add('is-locked');
     // Open it unseen for a moment to see where it lands and what it shows.
     dialog.classList.add('flip-measure');
     openBadge(badge, tile);
-    const to = dialog.getBoundingClientRect();
+    let to = dialog.getBoundingClientRect();
     const back = badgeDialogCopy(dialog);
+    // Closing it unlocks the page (site.js, on 'close'), so lock it again after that.
+    dialog.addEventListener('close', () => root.classList.add('is-locked'), { once: true });
     dialog.close();
     dialog.classList.remove('flip-measure');
     tile.style.opacity = '0';
@@ -473,12 +479,24 @@ function openBadgeFlipping(badge, tile) {
         dialog.classList.add('flip-hold', 'flip-return');
         openBadge(badge, tile);
         ghost.remove();
-        requestAnimationFrame(() => dialog.classList.remove('flip-hold'));
+        // Should the popup sit a little off from where the card landed (the
+        // window changed size), it eases there rather than jumping.
+        const real = dialog.getBoundingClientRect();
+        const dx = to.left - real.left, dy = to.top - real.top;
+        to = real;
+        const settle = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5
+            ? dialog.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 200, easing: 'ease-out' }).finished
+            : Promise.resolve();
+        settle.then(() => requestAnimationFrame(() => dialog.classList.remove('flip-hold')));
         badgeFlipping = false;
+        // The way back starts from wherever the popup is when it starts closing.
+        const watch = new MutationObserver(() => { if (dialog.hasAttribute('data-closing')) to = dialog.getBoundingClientRect(); });
+        watch.observe(dialog, { attributes: true, attributeFilter: ['data-closing'] });
         // A swipe down on a phone slides the sheet away instead.
         const swiped = () => { if (dialog.classList.contains('is-dragging')) dialog.classList.remove('flip-return'); };
         dialog.addEventListener('pointermove', swiped);
         dialog.addEventListener('close', () => {
+            watch.disconnect();
             dialog.removeEventListener('pointermove', swiped);
             if (!dialog.classList.contains('flip-return')) { tile.style.opacity = ''; return; }
             dialog.classList.remove('flip-return');
