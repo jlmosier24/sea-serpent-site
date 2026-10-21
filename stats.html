@@ -38,6 +38,15 @@
     .lb-list li.fav { margin: 0 -10px; padding: 11px 14px; border-radius: 14px; background: var(--soft); border: 1px solid var(--soft-border); }
     .lb-place { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; font-weight: 700; font-size: 14px; color: var(--muted); }
     .lb-place.podium { background: var(--gold); color: var(--gold-ink); }
+    /* Switching the age group, Girls or Boys, or the event: each swimmer still listed
+       glides from their old place to their new one, the place number popping as it
+       settles, and swimmers new to the list fade in (glideBoard below; not with
+       Reduce motion on, 2026-10-21). */
+    @keyframes lb-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes lb-place-pop { 0% { transform: scale(.4); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    .lb-list li.lb-arrived { animation: lb-in .35s ease-out both; }
+    .lb-list li.lb-moved { position: relative; z-index: 1; }
+    .lb-list li.lb-moved .lb-place { animation: lb-place-pop .4s ease-out .35s both; }
     .lb-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
     .lb-name:hover .lb-who { color: var(--brand); text-decoration: underline; }
     .lb-fav { width: 15px; height: 15px; color: var(--gold); }
@@ -853,6 +862,7 @@ function renderBoardList(events) {
 
     const favorites = new Set(Swimmers.favorites());
     const shown = boardsState.expanded ? rows : rows.slice(0, BOARD_SHOWN);
+    const before = boardPositions(box);
     box.innerHTML = `
         <ol class="lb-list">${shown.map(r => {
             const meet = meetsById[r.meetId];
@@ -874,6 +884,35 @@ function renderBoardList(events) {
         }).join('')}</ol>
         ${rows.length > shown.length ? `<button type="button" class="btn small lb-more">Show all ${rows.length} swimmers</button>` : ''}
         <p class="lb-note">Each swimmer's best time this season.</p>`;
+    glideBoard(box, before);
+}
+
+// Where each swimmer's row is now, so the next list can glide from there.
+function boardPositions(box) {
+    return new Map([...box.querySelectorAll('.lb-name')].map(b => [b.dataset.name, b.closest('li').getBoundingClientRect().top]));
+}
+
+// Slides each row from its old place to its new one; rows new to the list fade
+// in. Nothing moves on the first list, or with Reduce motion on.
+function glideBoard(box, before) {
+    if (!before.size || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const moving = [];
+    box.querySelectorAll('.lb-name').forEach(button => {
+        const row = button.closest('li');
+        const was = before.get(button.dataset.name);
+        if (was == null) { row.classList.add('lb-arrived'); return; }
+        const shift = was - row.getBoundingClientRect().top;
+        if (Math.abs(shift) < 1) return;
+        row.style.transform = `translateY(${shift}px)`;
+        row.classList.add('lb-moved');
+        moving.push(row);
+    });
+    if (!moving.length) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => moving.forEach(row => {
+        row.style.transition = 'transform .55s cubic-bezier(.3, .7, .2, 1)';
+        row.style.transform = '';
+        row.addEventListener('transitionend', () => { row.style.transition = ''; row.classList.remove('lb-moved'); }, { once: true });
+    })));
 }
 
 document.getElementById('boardsGroups').addEventListener('click', (event) => {
