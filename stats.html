@@ -53,6 +53,13 @@
     .lb-sub { margin: 1px 0 0; font-size: 13px; color: var(--muted); }
     .lb-time { font-weight: 700; font-variant-numeric: tabular-nums; }
     .lb-more { display: flex; margin: 14px auto 0; }
+    /* The green line under Girls or Boys slides to the picked tab (placeTabInk below). */
+    @media (prefers-reduced-motion: no-preference) {
+        #boardsTabs.has-ink { position: relative; }
+        #boardsTabs.has-ink [role="tab"][aria-selected="true"] { border-bottom-color: transparent; }
+        .tab-ink { position: absolute; bottom: 0; left: 0; height: 2px; background: var(--brand); pointer-events: none; }
+        .tab-ink.ready { transition: transform .3s cubic-bezier(.3, .7, .2, 1), width .3s cubic-bezier(.3, .7, .2, 1); }
+    }
     .lb-note { margin: 12px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
     .loading, .empty { margin: 0; padding: 24px 0; color: var(--muted-on-page); text-align: center; }
 
@@ -206,7 +213,10 @@
     .held .record-top { color: var(--gold-text); }
     .record-away { font-weight: 700; color: var(--brand); white-space: nowrap; }
     .record-bar { position: relative; height: 8px; border-radius: 4px; background: #fff; border: 1px solid var(--soft-border); overflow: hidden; }
-    .record-bar span { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--brand); }
+    .record-bar span { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--brand); transform-origin: left center; }
+    /* The bar fills from the left the first time it comes into view (fillRecordBars below). */
+    .record-bar span.bar-waiting { transform: scaleX(0); }
+    .record-bar span.bar-filling { transition: transform .9s cubic-bezier(.3, .7, .2, 1); }
     .record-note { font-size: 13px; color: var(--muted); }
     .place { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; border-radius: 50%; font-weight: 600; }
     .place.podium { background: var(--gold); color: var(--gold-ink); font-weight: 700; }
@@ -795,6 +805,25 @@ function revealChart(box) {
     // Done after the gold best's pop, so a later redraw (a resize) shows the chart as is.
     setTimeout(() => box.classList.remove('chart-drawing'), 1900);
 }
+
+// Each "how close" bar fills from the left the first time it comes into view.
+const barWatcher = chartWatcher && new IntersectionObserver(entries => entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    barWatcher.unobserve(entry.target);
+    const bar = entry.target;
+    setTimeout(() => {
+        bar.classList.add('bar-filling');
+        bar.classList.remove('bar-waiting');
+    }, 250);
+}), { threshold: 1 });
+function fillRecordBars() {
+    if (!barWatcher) return;
+    document.querySelectorAll('.record-bar span').forEach(bar => {
+        bar.classList.add('bar-waiting');
+        barWatcher.observe(bar);
+    });
+}
+
 let resizeTimer = null;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
@@ -838,6 +867,7 @@ async function loadSwimmer(name) {
     box.innerHTML = swimmerHeader(season) + season.events.map(eventCard).join('');
     celebrateBadges(season);
     drawCharts();
+    fillRecordBars();
     status.textContent = `Showing stats for ${displayName(season.name)}.`;
 }
 
@@ -986,6 +1016,7 @@ function renderBoards() {
         tab.tabIndex = on ? 0 : -1;
         if (on) document.getElementById('boardsPanel').setAttribute('aria-labelledby', tab.id);
     });
+    placeTabInk();
     const events = boardEvents();
     const names = [...new Set(events.map(e => e.event))].sort(byOrder(eventOrder));
     if (!names.includes(boardsState.event)) boardsState.event = names[0] || null;
@@ -1060,6 +1091,32 @@ function glideBoard(box, before) {
     })));
 }
 
+// One green line under the tabs that slides to the picked one. It doesn't
+// slide the first time, and isn't made at all with Reduce motion on (the
+// picked tab's own underline shows instead).
+function placeTabInk() {
+    const list = document.getElementById('boardsTabs');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !list.offsetWidth) return;
+    let ink = list.querySelector('.tab-ink');
+    if (!ink) {
+        ink = document.createElement('span');
+        ink.className = 'tab-ink';
+        ink.setAttribute('aria-hidden', 'true');
+        list.appendChild(ink);
+        list.classList.add('has-ink');
+    }
+    const tab = list.querySelector('[aria-selected="true"]');
+    ink.style.width = `${tab.offsetWidth}px`;
+    ink.style.transform = `translateX(${tab.offsetLeft}px)`;
+    if (!ink.classList.contains('ready')) requestAnimationFrame(() => ink.classList.add('ready'));
+}
+window.addEventListener('resize', () => {
+    const ink = document.querySelector('#boardsTabs .tab-ink');
+    if (ink) ink.classList.remove('ready');
+    placeTabInk();
+});
+document.fonts && document.fonts.ready.then(placeTabInk);
+
 document.getElementById('boardsGroups').addEventListener('click', (event) => {
     const chip = event.target.closest('.chip');
     if (!chip) return;
@@ -1091,8 +1148,15 @@ document.getElementById('boardsEvent').addEventListener('change', (event) => {
 document.getElementById('boardsList').addEventListener('click', (event) => {
     const more = event.target.closest('.lb-more');
     if (more) {
+        // The list eases open to its full length as the added swimmers fade in, one after another.
+        const box = event.currentTarget;
+        const from = box.offsetHeight;
         boardsState.expanded = true;
         renderBoards();
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches && box.animate) {
+            box.querySelectorAll('li.lb-arrived').forEach((row, i) => { row.style.animationDelay = `${Math.min(i, 8) * 0.04}s`; });
+            box.animate([{ height: `${from}px`, overflow: 'hidden' }, { height: `${box.offsetHeight}px`, overflow: 'hidden' }], { duration: 380, easing: 'cubic-bezier(.3, .7, .2, 1)' });
+        }
         return;
     }
     // A name opens that swimmer's stats, as if picked in the search.

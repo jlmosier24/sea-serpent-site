@@ -467,7 +467,8 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .photo-rows { display: flex; flex-direction: column; gap: 8px; }
 .photo-row { display: flex; gap: 8px; }
 .photo-row .photo-tile { flex: 1 1 0; min-width: 0; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: var(--soft); cursor: pointer; }
-.photo-row .photo-tile img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.photo-row .photo-tile img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease, opacity .25s ease-out; }
+.photo-row .photo-tile img.is-loading { opacity: 0; }
 .photo-row .photo-tile:hover img { transform: scale(1.04); }
 .photo-row-spare { flex: 0 1 0; }
 @media (prefers-reduced-motion: reduce) { .photo-row .photo-tile img { transition: none; } }

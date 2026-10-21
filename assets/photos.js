@@ -46,12 +46,13 @@
         img.addEventListener("load", loaded);
         img.addEventListener("error", loaded);
         setUpSwipe(img);
-        dialog.querySelector(".viewer-prev").addEventListener("click", () => step(-1));
-        dialog.querySelector(".viewer-next").addEventListener("click", () => step(1));
+        // Previous and Next (and the arrow keys) slide the photos the way a swipe does.
+        dialog.querySelector(".viewer-prev").addEventListener("click", () => slideTo(img, -1));
+        dialog.querySelector(".viewer-next").addEventListener("click", () => slideTo(img, 1));
         dialog.addEventListener("keydown", (event) => {
             if (photos.length < 2) return;
-            if (event.key === "ArrowLeft") { event.preventDefault(); step(-1); }
-            if (event.key === "ArrowRight") { event.preventDefault(); step(1); }
+            if (event.key === "ArrowLeft") { event.preventDefault(); slideTo(img, -1); }
+            if (event.key === "ArrowRight") { event.preventDefault(); slideTo(img, 1); }
         });
         return dialog;
     }
@@ -113,6 +114,7 @@
             step(delta);
             return;
         }
+        if (sliding) return;
         sliding = true;
         img.style.transform = `translateX(${delta > 0 ? "-" : ""}100%)`;
         img.style.opacity = "0";
@@ -220,6 +222,18 @@
             </div>`).join("");
     }
 
+    // Each photo still loading fades in once it arrives; ones already in the
+    // browser's cache just show (the fade itself is in /assets/site.css).
+    function fadeInPhotos(box) {
+        box.querySelectorAll(".photo-tile img").forEach(img => {
+            if (img.complete) return;
+            img.classList.add("is-loading");
+            const shown = () => img.classList.remove("is-loading");
+            img.addEventListener("load", shown, { once: true });
+            img.addEventListener("error", shown, { once: true });
+        });
+    }
+
     function escapeAttr(text) {
         return String(text).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
@@ -242,6 +256,7 @@
             if (state.key !== key) {
                 state.key = key;
                 box.innerHTML = `<div class="photo-rows">${rowsHtml(rows, list, options.labelFor)}</div>`;
+                fadeInPhotos(box);
             }
             return rows.reduce((total, r) => total + r.items.length, 0);
         };
