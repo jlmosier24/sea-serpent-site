@@ -61,6 +61,9 @@
     /* Photo card: the newest photos in rows (Photos.showRows, /assets/photos.js). It
        scrolls with the page: with more rows it can be taller than the window. */
     .photo-card { min-width: 0; }
+    /* "Share a photo" under the photos: the width of the card on phones, its own width wider (2026-10-21). */
+    .share-photo { margin-top: 18px; }
+    @media (max-width: 599px) { .share-photo { display: flex; width: 100%; } }
 
     @media (max-width: 860px) {
         .hero { height: 380px; }
@@ -121,11 +124,13 @@
         <section class="card photo-card" aria-labelledby="photoHeading">
             <div class="card-head"><h2 id="photoHeading">Photos</h2><a href="/gallery.html">All photos →</a></div>
             <div id="galleryContent"><p class="loading">Loading photos…</p></div>
+            <button type="button" class="btn share-photo" id="shareButton"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Share a photo</button>
         </section>
     </div>
 </div>
 </main>
 
+<script src="/assets/upload.js"></script>
 <script>
 /* ---------------- Meets ---------------- */
 // The cards themselves are shared with the Schedule page (/assets/meets.js).
@@ -234,6 +239,9 @@ document.getElementById('galleryContent').addEventListener('click', (event) => {
     const tile = event.target.closest('.photo-tile');
     if (tile) Photos.open(allPhotos, Number(tile.dataset.index), tile);
 });
+
+// The same "Share photos" dialog as the Photos page (/assets/upload.js).
+document.getElementById('shareButton').addEventListener('click', (event) => PhotoUpload.open(event.currentTarget));
 
 loadMeets();
 loadSwimmers();
