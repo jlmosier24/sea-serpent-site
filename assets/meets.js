@@ -536,6 +536,7 @@
             select(tabs[(next + tabs.length) % tabs.length], true);
         });
         select(tabs[0]);
+        SiteUI.slidingTabs(tablist);
     }
 
     /* ---------- Highlight cards ---------- */

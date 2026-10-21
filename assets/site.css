@@ -293,6 +293,11 @@ dialog.dialog[data-closing]::backdrop { opacity: 0; transition-duration: .15s; }
 .points-tabs { display: flex; gap: 20px; margin-top: 8px; border-bottom: 1px solid var(--soft-border); }
 .points-tabs [role="tab"] { margin-bottom: -1px; padding: 8px 0; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; }
 .points-tabs [role="tab"][aria-selected="true"] { border-bottom-color: var(--brand); color: var(--ink); }
+/* The green line that slides to the picked tab (SiteUI.slidingTabs, /assets/site.js). */
+.points-tabs.has-ink { position: relative; }
+.points-tabs.has-ink [role="tab"][aria-selected="true"] { border-bottom-color: transparent; }
+.tab-ink { position: absolute; bottom: -1px; left: 0; height: 2px; background: var(--brand); pointer-events: none; }
+.tab-ink.ready { transition: transform .3s cubic-bezier(.3, .7, .2, 1), width .3s cubic-bezier(.3, .7, .2, 1); }
 .points-panel { margin-top: 12px; }
 .points-bars { display: flex; flex-direction: column; gap: 6px; min-height: 246px; margin: 0; padding: 0; list-style: none; }
 .points-row { display: grid; grid-template-columns: 104px 1fr; align-items: center; gap: 10px; min-height: 30px; }

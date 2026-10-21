@@ -52,13 +52,6 @@
     .lb-fav { width: 15px; height: 15px; color: var(--gold); }
     .lb-sub { margin: 1px 0 0; font-size: 13px; color: var(--muted); }
     .lb-time { font-weight: 700; font-variant-numeric: tabular-nums; }
-    /* The green line under Girls or Boys slides to the picked tab (placeTabInk below). */
-    @media (prefers-reduced-motion: no-preference) {
-        #boardsTabs.has-ink { position: relative; }
-        #boardsTabs.has-ink [role="tab"][aria-selected="true"] { border-bottom-color: transparent; }
-        .tab-ink { position: absolute; bottom: 0; left: 0; height: 2px; background: var(--brand); pointer-events: none; }
-        .tab-ink.ready { transition: transform .3s cubic-bezier(.3, .7, .2, 1), width .3s cubic-bezier(.3, .7, .2, 1); }
-    }
     .lb-note { margin: 12px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
     .loading, .empty { margin: 0; padding: 24px 0; color: var(--muted-on-page); text-align: center; }
 
@@ -1014,7 +1007,6 @@ function renderBoards() {
         tab.tabIndex = on ? 0 : -1;
         if (on) document.getElementById('boardsPanel').setAttribute('aria-labelledby', tab.id);
     });
-    placeTabInk();
     const events = boardEvents();
     const names = [...new Set(events.map(e => e.event))].sort(byOrder(eventOrder));
     if (!names.includes(boardsState.event)) boardsState.event = names[0] || null;
@@ -1087,33 +1079,7 @@ function glideBoard(box, before) {
     })));
 }
 
-// One green line under the tabs that slides to the picked one. It doesn't
-// slide the first time, and isn't made at all with Reduce motion on (the
-// picked tab's own underline shows instead).
-function placeTabInk() {
-    const list = document.getElementById('boardsTabs');
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !list.offsetWidth) return;
-    let ink = list.querySelector('.tab-ink');
-    if (!ink) {
-        ink = document.createElement('span');
-        ink.className = 'tab-ink';
-        ink.setAttribute('aria-hidden', 'true');
-        list.appendChild(ink);
-        list.classList.add('has-ink');
-    }
-    const tab = list.querySelector('[aria-selected="true"]');
-    ink.style.width = `${tab.offsetWidth}px`;
-    ink.style.transform = `translateX(${tab.offsetLeft}px)`;
-    if (!ink.classList.contains('ready')) requestAnimationFrame(() => ink.classList.add('ready'));
-}
-// Placed again, without sliding, when the tabs change size: when the card is
-// first shown (the boards are drawn just before), or the window resizes.
-new ResizeObserver(() => {
-    const ink = document.querySelector('#boardsTabs .tab-ink');
-    if (ink) ink.classList.remove('ready');
-    placeTabInk();
-}).observe(document.getElementById('boardsTabs'));
-document.fonts && document.fonts.ready.then(placeTabInk);
+SiteUI.slidingTabs(document.getElementById('boardsTabs'));
 
 document.getElementById('boardsGroups').addEventListener('click', (event) => {
     const chip = event.target.closest('.chip');

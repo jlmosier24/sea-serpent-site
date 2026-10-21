@@ -256,5 +256,31 @@
         });
     }
 
-    window.SiteUI = { icon, openDialog, closeDialog, setupDropZone };
+    // Tabs with one green line under them that slides to the picked tab (the
+    // leaderboards' Girls and Boys, the meet popup's points by age group). It
+    // follows aria-selected on its own, doesn't slide the first time or when
+    // the tabs change size (shown, or the window resized), and isn't made at
+    // all with Reduce motion on (the picked tab's own underline shows instead).
+    function slidingTabs(list) {
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches || !window.ResizeObserver) return;
+        const ink = document.createElement("span");
+        ink.className = "tab-ink";
+        ink.setAttribute("aria-hidden", "true");
+        const place = (slide) => {
+            const tab = list.querySelector('[aria-selected="true"]');
+            if (!tab || !list.offsetWidth) return;
+            if (!ink.isConnected) {
+                list.appendChild(ink);
+                list.classList.add("has-ink");
+            }
+            ink.classList.toggle("ready", slide);
+            ink.style.width = `${tab.offsetWidth}px`;
+            ink.style.transform = `translateX(${tab.offsetLeft}px)`;
+        };
+        new MutationObserver(() => place(true)).observe(list, { subtree: true, attributes: true, attributeFilter: ["aria-selected"] });
+        new ResizeObserver(() => place(false)).observe(list);
+        if (document.fonts) document.fonts.ready.then(() => place(false));
+    }
+
+    window.SiteUI = { icon, openDialog, closeDialog, setupDropZone, slidingTabs };
 })();
