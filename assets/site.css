@@ -55,8 +55,9 @@ body {
     font-family: var(--font-body);
     color: var(--ink);
     line-height: 1.5;
-    /* A white page (2026-10-20); cards stand off it with a border and a soft shadow. */
-    background: #fff;
+    /* A faint green page (2026-10-22, option B; white from 2026-10-20) that the
+       white cards stand off, with their border and soft shadow. */
+    background: #F3F6EA;
 }
 h1, h2, h3, h4 { font-family: var(--font-head); line-height: 1.2; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -72,7 +73,7 @@ html.is-locked { overflow: hidden; scrollbar-gutter: stable; }
 @media (max-width: 600px) { .wrap { padding: 0 16px; } }
 
 /* ---------- Site header (rendered by <site-header>) ---------- */
-site-header { display: block; }
+site-header { display: block; background: #fff; }
 /* The logo and menu sit midway between the top and bottom of the header. */
 .site-header .wrap { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 17px; padding-bottom: 17px; }
 .brand { display: flex; align-items: center; gap: 9px; color: var(--ink); text-decoration: none; }
