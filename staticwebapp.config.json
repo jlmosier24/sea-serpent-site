@@ -15,7 +15,10 @@
     { "route": "/api/importMeetResultsPreview", "allowedRoles": ["administrator"] },
     { "route": "/api/importMeetResultsCommit", "allowedRoles": ["administrator"] },
     { "route": "/api/manage*", "allowedRoles": ["administrator"] },
-    { "route": "/api/import*", "allowedRoles": ["administrator"] }
+    { "route": "/api/import*", "allowedRoles": ["administrator"] },
+    { "route": "/assets/fonts/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
+    { "route": "/assets/*.{png,jpg,webp}", "headers": { "Cache-Control": "public, max-age=2592000" } },
+    { "route": "/favicon.ico", "headers": { "Cache-Control": "public, max-age=2592000" } }
   ],
   "responseOverrides": {
     "401": {
@@ -24,7 +27,7 @@
     }
   },
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.blob.core.windows.net; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.blob.core.windows.net; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",

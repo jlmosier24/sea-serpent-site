@@ -31,7 +31,7 @@
             this.innerHTML = `
                 <header class="site-header">
                     <div class="wrap">
-                        <a class="brand" href="/"><img src="/assets/logo.png" alt=""><span class="brand-name">${admin ? "Sea Serpents Admin" : "Spotswood Sea Serpents"}</span></a>
+                        <a class="brand" href="/"><img src="/assets/logo.png" alt="" width="39" height="26"><span class="brand-name">${admin ? "Sea Serpents Admin" : "Spotswood Sea Serpents"}</span></a>
                         ${nav}
                     </div>
                 </header>`;
