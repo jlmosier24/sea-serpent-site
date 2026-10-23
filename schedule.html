@@ -16,6 +16,7 @@
     /* Schedule page only. The meet cards and popups come from /assets/site.css. */
     .schedule { display: flex; flex-direction: column; gap: 30px; max-width: 760px; padding-bottom: 80px; }
     .meet-group { display: flex; flex-direction: column; gap: 16px; }
+    #pastHeading { scroll-margin-top: 16px; }
     .group-label { margin: 0 0 -2px; font-size: 15px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-on-page); }
     .none-yet, .loading, .empty { margin: 0; font-size: 16px; color: var(--muted-on-page); }
 </style>
@@ -61,6 +62,8 @@ let meetsById = {};
                 ${past.map(Meets.resultCard).join('')}
             </section>` : ''}`;
     box.querySelectorAll('article.upcoming').forEach((card, i) => Meets.showUpcoming(card, upcoming[i], { next: i === 0 }));
+    // The homepage's "All results" link lands on the past meets.
+    if (location.hash === '#past' && document.getElementById('pastHeading')) document.getElementById('pastHeading').scrollIntoView();
 })();
 
 // "See team stats" on each past meet's card.

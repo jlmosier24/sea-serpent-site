@@ -46,16 +46,13 @@
     .hero-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; }
     .hero-links .btn b { font-weight: 700; }
     .hero.no-next .hero-links { display: none; }
-    #nextPart { scroll-margin-top: 16px; }
+    #nextCard { scroll-margin-top: 16px; }
 
     .home-grid { display: grid; grid-template-columns: 1fr 1.45fr; gap: 32px; align-items: start; padding-bottom: 80px; }
     .home-stack { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
     .card-head h2 { white-space: nowrap; }
     .loading, .empty { margin: 0; padding: 24px 0; color: var(--muted); text-align: center; }
 
-    /* Schedule card: the next meet and the last one, each under a small label. */
-    .meet-part + .meet-part { margin-top: 24px; }
-    .part-label { margin: 0 0 10px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 
 
     /* Photo card: the newest photos in rows (Photos.showRows, /assets/photos.js). It
@@ -96,7 +93,7 @@
     <div class="hero-text"><div class="wrap">
         <h1 class="sr-only">Spotswood Sea Serpents</h1>
         <p class="hero-motto"><span>Hard work</span> <span class="payoff">pays off!</span></p>
-        <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextPart"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a></div>
+        <div class="hero-links"><a class="btn on-dark" id="heroNext" href="#nextCard"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Next meet: <b id="heroNextText"></b></span></a></div>
     </div></div>
 </section>
 <div class="wrap">
@@ -107,17 +104,17 @@
                 <div id="swimmerPicker"></div>
             </section>
 
-            <section class="card" id="scheduleCard" aria-labelledby="scheduleHeading">
-                <div class="card-head"><h2 id="scheduleHeading">Schedule</h2><a href="/schedule.html">Full schedule →</a></div>
-                <div class="meet-part" id="nextPart" hidden>
-                    <h3 class="part-label">Next meet</h3>
-                    <article class="gold-card upcoming" id="nextMeet"></article>
-                </div>
-                <div class="meet-part" id="lastPart" hidden>
-                    <h3 class="part-label">Last meet</h3>
-                    <div id="lastMeet"></div>
-                </div>
+            <!-- The next meet and the latest results, each its own card (2026-10-23).
+                 With no meet coming up, only the results card shows; with neither,
+                 the next-meet card says so. -->
+            <section class="card" id="nextCard" aria-labelledby="nextHeading">
+                <div class="card-head"><h2 id="nextHeading">Next meet</h2><a href="/schedule.html">Full schedule →</a></div>
+                <article class="gold-card upcoming" id="nextMeet" hidden></article>
                 <p class="loading" id="meetsStatus">Loading meets…</p>
+            </section>
+            <section class="card" id="resultsCard" aria-labelledby="resultsHeading" hidden>
+                <div class="card-head"><h2 id="resultsHeading">Latest results</h2><a href="/schedule.html#past">All results →</a></div>
+                <div id="lastMeet"></div>
             </section>
         </div>
 
@@ -151,18 +148,20 @@ async function loadMeets() {
     const last = past.find(Meets.hasResults);
     renderNextMeet(next);
     renderLastMeet(last);
-    if (next || last) document.getElementById('meetsStatus').hidden = true;
-    else showMeetsStatus('No meets on the schedule yet.');
+    document.getElementById('meetsStatus').hidden = true;
+    document.getElementById('nextCard').hidden = !next && !!last;
+    if (!next && !last) showMeetsStatus('No meets on the schedule yet.');
 }
 
 function showMeetsStatus(text) {
     const status = document.getElementById('meetsStatus');
     status.className = 'empty';
     status.textContent = text;
+    status.hidden = false;
 }
 
 function renderNextMeet(m) {
-    document.getElementById('nextPart').hidden = !m;
+    document.getElementById('nextMeet').hidden = !m;
     // The photo's "Next meet: June 16 vs. Stafford" button.
     document.querySelector('.hero').classList.toggle('no-next', !m);
     if (m) document.getElementById('heroNextText').textContent = `${Meets.fmtDate(m.date)} ${m.title}`;
@@ -171,7 +170,7 @@ function renderNextMeet(m) {
 
 // The latest finished meet; "See team stats" opens its popup.
 function renderLastMeet(m) {
-    document.getElementById('lastPart').hidden = !m;
+    document.getElementById('resultsCard').hidden = !m;
     if (!m) return;
     const box = document.getElementById('lastMeet');
     box.innerHTML = Meets.resultCard(m);
