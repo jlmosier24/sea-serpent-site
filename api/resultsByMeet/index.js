@@ -1,4 +1,6 @@
 const { getResultsTable, getRelayResultsTable, toResultDto, toRelayResultDto } = require("../shared/resultsTable");
+const { getMeetsTable, listMeets } = require("../shared/meetsTable");
+const { teamShortNames } = require("../shared/teamNames");
 
 // Reachable at /api/resultsByMeet?meetId=... Public -- every result at one
 // meet, both teams', individual and relay: the full list that "View all
@@ -25,6 +27,10 @@ module.exports = async function (context, req) {
             relays.push(toRelayResultDto(entity));
         }
         relays.sort((a, b) => a.eventNumber - b.eventNumber || a.relayLetter.localeCompare(b.relayLetter));
+
+        // Each row also carries its team's short name ("Woodland"), for the list.
+        const shortTeam = teamShortNames(await listMeets(getMeetsTable()));
+        for (const row of [...individual, ...relays]) row.teamShort = shortTeam(row.team);
 
         context.res = { status: 200, body: { individual, relays } };
     } catch (e) {

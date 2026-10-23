@@ -829,8 +829,8 @@
             ? '<th scope="col">Place</th><th scope="col" class="relay-team">Team</th><th scope="col">Swimmers</th><th scope="col" class="r">Time</th>'
             : '<th scope="col">Place</th><th scope="col">Swimmer</th><th scope="col">Team</th><th scope="col" class="r">Time</th>';
         const rows = event.rows.map(row => event.relay
-            ? `<tr><td>${escapeHtml(row.place ?? "")}</td><td>${escapeHtml(row.team)} (${escapeHtml(row.relayLetter)})</td><td>${relaySwimmers(row.swimmers || [])}</td><td class="r">${resultTime(row)}</td></tr>`
-            : `<tr><td>${escapeHtml(row.place ?? "")}</td><td>${escapeHtml(row.name)}${flightNote(row)}</td><td>${escapeHtml(row.team)}</td><td class="r">${resultTime(row)}</td></tr>`).join("");
+            ? `<tr><td>${escapeHtml(row.place ?? "")}</td><td>${escapeHtml(row.teamShort || row.team)} (${escapeHtml(row.relayLetter)})</td><td>${relaySwimmers(row.swimmers || [])}</td><td class="r">${resultTime(row)}</td></tr>`
+            : `<tr><td>${escapeHtml(row.place ?? "")}</td><td>${escapeHtml(row.name)}${flightNote(row)}</td><td>${escapeHtml(row.teamShort || row.team)}</td><td class="r">${resultTime(row)}</td></tr>`).join("");
         return `
             <section class="event-results">
                 <h3 id="${id}"><span class="event-number">#${escapeHtml(event.eventNumber)}</span> ${escapeHtml(event.eventName)}</h3>

@@ -30,6 +30,7 @@ Website for the Spotswood Sea Serpents summer swim team: homepage with meet card
 
 ## Content rules
 - "vs." means home and "at" means away. Titles use the short name ("vs. Massad"); score rows use the full name ("Curtis Park Seahawks 511").
+- The full results list (each meet's "View all swimmer results") shows teams by their short names, as titles do: "Spotswood", "Woodland", "Curtis", "Fox Point" (2026-10-23). They come from the admin's meet records, matching the sheet's team by its full name or, when the sheet spells it differently ("CPST Seahawks"), by its mascot if only one opponent has it; a team with no meet record drops a plural last word ("Fawn Lake Fliers" -> "Fawn Lake") and otherwise stays as printed (api/shared/teamNames.js).
 - Dates: the full month and day everywhere, like "July 22" and "July 13 · Final". Times: "6:00pm".
 - Stat labels in the meet popup (update 4): "Top-3 finishes" ("26 were 1st"), "Personal bests" ("by 74 swimmers"), "Point scorers" ("of 109 swimmers"), "Time dropped" ("2:56", "off best times"). The score banner always reads "Final team score" (update 5).
 

@@ -35,6 +35,7 @@ const getSettings = require("../manageSettingsGet/index.js");
 const previewResults = require("../importMeetResultsPreview/index.js");
 const commitResults = require("../importMeetResultsCommit/index.js");
 const publicMeets = require("../meets/index.js");
+const resultsByMeet = require("../resultsByMeet/index.js");
 const { sheetText, INDIVIDUAL } = require("./sampleSheet");
 
 const asUpload = text => Buffer.from(text, "utf8").toString("base64");
@@ -278,6 +279,17 @@ test("a meet imported before the meet flow chart gets one the first time the mee
     assert.deepEqual(meet.summary.flow, flow);
     assert.deepEqual(JSON.parse((await store.meets.getEntity("meet", "m")).summaryJson).flow, flow, "and it's saved, so it's worked out once");
     assert.equal(meet.summary.firstPlaces, 1, "the other numbers stay");
+});
+
+test("the full results list gives each team its short name from the meet records", async () => {
+    resetStore();
+    await addMeet("m");
+    await call(commitResults, { body: { meetId: "m", dataBase64: asUpload(sheetText()), fileName: "results.pdf" } });
+    await store.meets.updateEntity({ partitionKey: "meet", rowKey: "m", opponent: "Test Seahawks", shortName: "Test" }, "Merge");
+    const { body } = await call(resultsByMeet, { query: { meetId: "m" } });
+    const teams = rows => [...new Set(rows.map(r => `${r.team} -> ${r.teamShort}`))].sort();
+    assert.deepEqual(teams(body.individual), ["Spotswood -> Spotswood", "Test Seahawks -> Test"]);
+    assert.deepEqual(teams(body.relays), ["Spotswood -> Spotswood", "Test Seahawks -> Test"]);
 });
 
 // A stand-in for Azure Maps' fuzzy search, recording what was looked up.
