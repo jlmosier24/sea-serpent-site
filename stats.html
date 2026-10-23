@@ -319,11 +319,16 @@
 const { escapeHtml, fmtDate, fmtSeconds, displayName, initials, plural } = Meets;
 
 // For each opponent's short name, and the results popup its name opens.
+// Ready with this phone's last copy, if it has one, and kept current after
+// (SiteUI.loadFresh; the same for the leaderboards, the swimmer list, and each
+// swimmer's season below).
 let meetsById = {};
-const meetsReady = fetch('/api/meets')
-    .then(res => (res.ok ? res.json() : []))
-    .catch(() => [])
-    .then(meets => { meetsById = Object.fromEntries(meets.map(m => [m.id, m])); return meets; });
+const meetsReady = new Promise(resolve => {
+    SiteUI.loadFresh('/api/meets', meets => {
+        meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
+        resolve(meets);
+    }).catch(() => resolve([]));
+});
 
 /* ---------------- Header card ---------------- */
 function swimmerHeader(season) {
@@ -880,22 +885,24 @@ async function loadSwimmer(name) {
         return;
     }
     box.innerHTML = '<p class="loading">Loading results…</p>';
-    let season = null;
-    let problem = '';
+    const show = async (season) => {
+        await meetsReady; // for each swim's meet
+        if (load !== loadCount) return; // a newer pick has taken over
+        showSeason(season);
+    };
     try {
-        const [res] = await Promise.all([fetch(`/api/swimmerStats?name=${encodeURIComponent(name)}`), meetsReady]);
-        if (res.status === 404) problem = 'No results on record for this swimmer yet.';
-        else if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        else season = await res.json();
+        await SiteUI.loadFresh(`/api/swimmerStats?name=${encodeURIComponent(name)}`, show);
     } catch (e) {
-        problem = 'Couldn\'t load results right now.';
-    }
-    if (load !== loadCount) return; // a newer pick has taken over
-    if (!season) {
+        if (load !== loadCount) return;
+        const problem = e.status === 404 ? 'No results on record for this swimmer yet.' : 'Couldn\'t load results right now.';
         box.innerHTML = `<p class="empty">${escapeHtml(problem)}</p>`;
         status.textContent = problem;
-        return;
     }
+}
+
+function showSeason(season) {
+    const box = document.getElementById('swimmerContent');
+    const status = document.getElementById('swimmerStatus');
     shownSeason = season;
     box.innerHTML = swimmerHeader(season) + season.events.map(eventCard).join('');
     celebrateBadges(season);
@@ -1016,19 +1023,20 @@ const byOrder = order => (a, b) => {
 const groupLabel = group => group.replace(/-/g, '–');
 
 async function loadBoards() {
-    let data;
     try {
-        const res = await fetch('/api/leaderboards');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        data = await res.json();
+        await SiteUI.loadFresh('/api/leaderboards', showBoards);
     } catch (e) {
-        return; // the rest of the page works without them
+        // the rest of the page works without them
     }
+}
+
+// Again when current boards replace a copy: the age group picked stays when it's still there.
+async function showBoards(data) {
     if (!data.events || !data.events.length) return;
     await meetsReady; // for each swim's meet
     boards = data;
     const groups = [...new Set(boards.events.map(e => e.group))].sort(byOrder(groupOrder));
-    boardsState.group = groups[0];
+    if (!groups.includes(boardsState.group)) boardsState.group = groups[0];
     document.getElementById('boardsSeason').textContent = boards.season ? `${boards.season} season` : '';
     document.getElementById('boardsGroups').innerHTML = groups.map(g => `<button type="button" class="chip" data-group="${escapeHtml(g)}" aria-pressed="false">${escapeHtml(groupLabel(g))}</button>`).join('');
     renderBoards();
@@ -1160,23 +1168,22 @@ document.getElementById('boardsList').addEventListener('click', (event) => {
     window.scrollTo({ top: 0 });
 });
 
-(async function () {
-    try {
-        const res = await fetch('/api/swimmerStats');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const list = await res.json();
-        picker.setList(list);
-        const preset = new URLSearchParams(location.search).get('swimmer');
-        if (preset && list.swimmers.includes(preset)) {
-            picker.showName(preset);
-            loadSwimmer(preset);
-        } else if (preset) {
-            document.getElementById('swimmerContent').innerHTML = '<p class="empty">We couldn\'t find that swimmer. Search for them above.</p>';
-        }
-    } catch (e) {
-        picker.failed();
+// A swimmer in the address opens once: from the copy when it has them, else
+// once the current list says whether they're there.
+let presetHandled = false;
+SiteUI.loadFresh('/api/swimmerStats', (list, fromCopy) => {
+    picker.setList(list);
+    const preset = new URLSearchParams(location.search).get('swimmer');
+    if (presetHandled || !preset) return;
+    if (list.swimmers.includes(preset)) {
+        presetHandled = true;
+        picker.showName(preset);
+        loadSwimmer(preset);
+    } else if (!fromCopy) {
+        presetHandled = true;
+        document.getElementById('swimmerContent').innerHTML = '<p class="empty">We couldn\'t find that swimmer. Search for them above.</p>';
     }
-})();
+}).catch(() => picker.failed());
 loadBoards();
 </script>
 </body>

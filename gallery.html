@@ -136,21 +136,27 @@ grid.addEventListener('click', (event) => {
     if (tile) Photos.open(shownPhotos(), Number(tile.dataset.index), tile);
 });
 
+// This phone's last copy shows at once (only from the last 20 hours, as
+// photo links expire), then the current photos when they differ.
 async function loadPhotos() {
     try {
-        const res = await fetch('/api/galleryPublic');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        photos = await res.json();
-        // A link for one meet (like the home page's "View photos") opens on that meet's photos.
-        const wanted = new URLSearchParams(location.search).get('meet');
-        const found = !!wanted && filterOptions().some(o => o.key === wanted);
-        if (found) filter = wanted;
-        document.getElementById('filterNote').hidden = !wanted || found;
-        renderFilters();
-        renderGrid();
+        await SiteUI.loadFresh('/api/galleryPublic', showPhotos, { maxAgeHours: 20 });
     } catch (e) {
         grid.innerHTML = '<p class="empty">Couldn\'t load the photos right now.</p>';
     }
+}
+
+function showPhotos(list) {
+    photos = list;
+    // A link for one meet (like the home page's "View photos") opens on that meet's photos.
+    const wanted = new URLSearchParams(location.search).get('meet');
+    const found = !!wanted && filterOptions().some(o => o.key === wanted);
+    if (found) filter = wanted;
+    // A meet picked from an older copy may have no photos in the current list.
+    if (!filterOptions().some(o => o.key === filter)) filter = 'all';
+    document.getElementById('filterNote').hidden = !wanted || found;
+    renderFilters();
+    renderGrid();
 }
 
 /* ---------------- Sharing ---------------- */

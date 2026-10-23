@@ -282,5 +282,88 @@
         if (document.fonts) document.fonts.ready.then(() => place(false));
     }
 
-    window.SiteUI = { icon, openDialog, closeDialog, setupDropZone, slidingTabs };
+    /* ---------- Last-seen data first (2026-10-23) ---------- */
+    // The site's data service can take a few seconds to wake after a quiet
+    // spell, so each phone keeps a copy of what it last loaded. loadFresh shows
+    // that copy at once (show(data, true)), then fetches the current answer and
+    // shows it too (show(data, false)) only when it differs. Fresh data waits
+    // for any open popup to close, so nothing changes under the reader. Copies
+    // live in this browser only; when it can't store them, pages just wait as
+    // before. maxAgeHours skips an older copy (photo links expire). Rejects
+    // (with err.status) only when there was no copy to show and the fetch failed.
+    const CACHE_PREFIX = "seaSerpents.cache:";
+    const CACHE_ORDER = "seaSerpents.cacheOrder";
+    const CACHE_MAX = 30; // copies kept, the least recently used dropped first
+
+    function readCopy(url, maxAgeHours) {
+        try {
+            const saved = JSON.parse(localStorage.getItem(CACHE_PREFIX + url) || "null");
+            if (!saved || (maxAgeHours && Date.now() - saved.at > maxAgeHours * 3600e3)) return null;
+            return saved.text;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function forgetCopy(url) {
+        try { localStorage.removeItem(CACHE_PREFIX + url); } catch (e) { /* nothing kept */ }
+    }
+
+    function saveCopy(url, text) {
+        try {
+            const order = JSON.parse(localStorage.getItem(CACHE_ORDER) || "[]").filter(u => u !== url);
+            order.push(url);
+            while (order.length > CACHE_MAX) localStorage.removeItem(CACHE_PREFIX + order.shift());
+            localStorage.setItem(CACHE_PREFIX + url, JSON.stringify({ at: Date.now(), text }));
+            localStorage.setItem(CACHE_ORDER, JSON.stringify(order));
+        } catch (e) {
+            // Full, or not allowed: the page works without copies.
+        }
+    }
+
+    function whenNoPopup(fn) {
+        if (!document.querySelector("dialog[open]")) return fn();
+        document.addEventListener("close", function closed() {
+            setTimeout(() => {
+                if (document.querySelector("dialog[open]")) return;
+                document.removeEventListener("close", closed, true);
+                fn();
+            }, 0);
+        }, true);
+    }
+
+    async function loadFresh(url, show, { maxAgeHours } = {}) {
+        let copy = readCopy(url, maxAgeHours);
+        if (copy != null) {
+            try {
+                show(JSON.parse(copy), true);
+            } catch (e) {
+                copy = null;
+            }
+        }
+        let text;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
+            text = await res.text();
+        } catch (e) {
+            if (e.status === 404) forgetCopy(url);
+            if (copy == null) throw e;
+            return; // the copy stays up
+        }
+        saveCopy(url, text);
+        if (text !== copy) whenNoPopup(() => keepFocus(() => show(JSON.parse(text), false)));
+    }
+
+    // Redrawing can replace the button a closed popup just gave focus back to;
+    // focus moves to its copy in the new drawing, so it isn't lost.
+    function keepFocus(fn) {
+        const was = document.activeElement;
+        fn();
+        if (!was || was === document.body || was.isConnected) return;
+        const same = [...document.querySelectorAll(was.tagName)].find(el => el.outerHTML === was.outerHTML);
+        if (same) same.focus({ preventScroll: true });
+    }
+
+    window.SiteUI = { icon, openDialog, closeDialog, setupDropZone, slidingTabs, loadFresh };
 })();

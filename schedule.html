@@ -56,17 +56,15 @@
 // with the home page (/assets/meets.js).
 let meetsById = {};
 
-(async function () {
+let jumpedToPast = false;
+
+// This phone's last copy shows at once, then the current meets when they differ (SiteUI.loadFresh).
+SiteUI.loadFresh('/api/meets', showSchedule).catch(() => {
+    document.getElementById('schedule').innerHTML = '<p class="empty">Couldn\'t load the schedule right now.</p>';
+});
+
+function showSchedule(meets) {
     const box = document.getElementById('schedule');
-    let meets;
-    try {
-        const res = await fetch('/api/meets');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        meets = await res.json();
-    } catch (e) {
-        box.innerHTML = '<p class="empty">Couldn\'t load the schedule right now.</p>';
-        return;
-    }
     meetsById = Object.fromEntries(meets.map(m => [m.id, m]));
     const { upcoming, past } = Meets.splitMeets(meets);
     box.innerHTML = `
@@ -80,9 +78,12 @@ let meetsById = {};
                 ${past.map(Meets.resultCard).join('')}
             </section>` : ''}`;
     box.querySelectorAll('article.upcoming').forEach((card, i) => Meets.showUpcoming(card, upcoming[i], { next: i === 0 }));
-    // The homepage's "All results" link lands on the past meets.
-    if (location.hash === '#past' && document.getElementById('pastHeading')) document.getElementById('pastHeading').scrollIntoView();
-})();
+    // The homepage's "All results" link lands on the past meets (once, not again when fresh meets arrive).
+    if (location.hash === '#past' && !jumpedToPast && document.getElementById('pastHeading')) {
+        jumpedToPast = true;
+        document.getElementById('pastHeading').scrollIntoView();
+    }
+}
 
 // "See team stats" on each past meet's card.
 document.getElementById('schedule').addEventListener('click', (event) => {

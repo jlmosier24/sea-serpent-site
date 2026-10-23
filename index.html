@@ -154,16 +154,16 @@
 /* ---------------- Meets ---------------- */
 // The cards themselves are shared with the Schedule page (/assets/meets.js).
 
+// Shows this phone's last copy at once, then the current meets when they differ (SiteUI.loadFresh).
 async function loadMeets() {
-    let meets;
     try {
-        const res = await fetch('/api/meets');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        meets = await res.json();
+        await SiteUI.loadFresh('/api/meets', showMeets);
     } catch (e) {
         showMeetsStatus('Couldn\'t load the meets right now.');
-        return;
     }
+}
+
+function showMeets(meets) {
     const { upcoming, past } = Meets.splitMeets(meets);
     const next = upcoming[0];
     // Only a meet with results here; the Schedule page lists the rest too.
@@ -212,9 +212,7 @@ const picker = Swimmers.mountSearch(document.getElementById('swimmerPicker'), {
 
 async function loadSwimmers() {
     try {
-        const res = await fetch('/api/swimmerStats');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        picker.setList(await res.json());
+        await SiteUI.loadFresh('/api/swimmerStats', list => picker.setList(list));
     } catch (e) {
         picker.failed();
     }
@@ -233,16 +231,19 @@ window.addEventListener('pageshow', (event) => {
 // opens the viewer, which goes on through every photo.
 let allPhotos = [];
 
+// A copy's photo links expire, so only a copy from the last 20 hours is shown.
 async function loadPhotos() {
     const box = document.getElementById('galleryContent');
     try {
-        const res = await fetch('/api/galleryPublic');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        allPhotos = await res.json();
+        await SiteUI.loadFresh('/api/galleryPublic', showPhotos, { maxAgeHours: 20 });
     } catch (e) {
         box.innerHTML = '<p class="empty">Couldn\'t load the photos right now.</p>';
-        return;
     }
+}
+
+function showPhotos(photos) {
+    const box = document.getElementById('galleryContent');
+    allPhotos = photos;
     if (!allPhotos.length) {
         box.innerHTML = '<p class="empty">No photos yet. Be the first to share one!</p>';
         return;
