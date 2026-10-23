@@ -60,6 +60,11 @@
     .photo-card { min-width: 0; }
     /* "Share a photo" under the photos: the width of the card on phones, its own width wider (2026-10-21). */
     .share-photo { margin-top: 18px; }
+    /* Swimmer Stats: a compact card, the search box saying what it's for, its
+       label kept for screen readers only (2026-10-23). */
+    .stats-card.card { padding-top: 18px; padding-bottom: 18px; }
+    .stats-card .card-head { margin-bottom: 12px; }
+    .stats-card label.picker-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     @media (max-width: 599px) { .share-photo { display: flex; width: 100%; } }
 
     @media (max-width: 860px) {
@@ -77,6 +82,8 @@
         .hero-motto { font-size: 40px; }
         /* Phones: just the motto; the next meet's card is just below. */
         .hero-links { display: none; }
+        /* Closer cards on phones (2026-10-23; 28px before). */
+        .home-grid, .home-stack { gap: 18px; }
     }
     /* The narrowest phones: each line of the motto still fits. */
     @media (max-width: 339px) { .hero-motto { font-size: 36px; } }
@@ -99,7 +106,7 @@
 <div class="wrap">
     <div class="home-grid">
         <div class="home-stack">
-            <section class="card" aria-labelledby="statsHeading">
+            <section class="card stats-card" aria-labelledby="statsHeading">
                 <div class="card-head"><h2 id="statsHeading">Swimmer Stats</h2><a href="/stats.html">Full stats →</a></div>
                 <div id="swimmerPicker"></div>
             </section>
@@ -182,6 +189,7 @@ function renderLastMeet(m) {
 // The same search and Favorites as the Stats page (/assets/swimmers.js);
 // picking a swimmer opens their Stats page.
 const picker = Swimmers.mountSearch(document.getElementById('swimmerPicker'), {
+    placeholder: 'Find a swimmer…',
     onPick(name) {
         if (name) location.href = `/stats.html?swimmer=${encodeURIComponent(name)}`;
     }

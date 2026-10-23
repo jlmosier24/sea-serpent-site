@@ -75,8 +75,9 @@
     // onPick(name) runs when a swimmer is chosen from the list or Favorites,
     // and with "" when the search is cleared. With labelledBy (a heading's id),
     // that heading names the box instead of the small "Find a swimmer" label.
+    // placeholder is what the box says once the swimmers have loaded.
     // Returns the search's controls.
-    function mountSearch(box, { onPick, labelledBy = "" }) {
+    function mountSearch(box, { onPick, labelledBy = "", placeholder = "Type a name…" }) {
         box.innerHTML = `
             ${labelledBy ? "" : '<label class="picker-label" for="swimmerSearch">Find a swimmer</label>'}
             <div class="search">
@@ -268,7 +269,7 @@
                 swimmers = list.swimmers || [];
                 ages = list.ages || {};
                 search.disabled = !swimmers.length;
-                search.placeholder = swimmers.length ? "Type a name…" : "No swimmers on record yet";
+                search.placeholder = swimmers.length ? placeholder : "No swimmers on record yet";
                 renderFavorites();
             },
             failed() {
