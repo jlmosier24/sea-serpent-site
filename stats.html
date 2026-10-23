@@ -90,6 +90,10 @@
     }
     /* Opening a badge: the tile turns over as it grows into the popup, and turns
        back into the tile on close (openBadgeFlipping below; 2026-10-21). */
+    /* The shade and the turning card fly in the browser's top layer, as the popup
+       does (a popover): a phone browser can cut off ordinary page content at the
+       bottom of the screen while the page is locked behind a popup. */
+    .flip-layer { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; pointer-events: none; }
     .flip-shade { position: fixed; inset: 0; z-index: 2147483646; background: rgba(12,28,14,.55); pointer-events: none; }
     .flip-ghost { position: fixed; z-index: 2147483647; transform-origin: 0 0; transform-style: preserve-3d; pointer-events: none; will-change: transform; }
     .flip-face { position: absolute; inset: 0; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: #fff; }
@@ -554,7 +558,14 @@ function flyBadge(tile, to, backContent, reverse, track) {
     back.style.borderRadius = getComputedStyle(document.getElementById('badgeDialog')).borderRadius;
     back.appendChild(backContent);
     ghost.append(front, back);
-    document.body.append(shade, ghost);
+    const layer = document.createElement('div');
+    layer.className = 'flip-layer';
+    layer.append(shade, ghost);
+    document.body.appendChild(layer);
+    if (layer.showPopover) {
+        layer.popover = 'manual';
+        layer.showPopover();
+    }
     const halfW = to.width / 2, halfH = to.height / 2;
     const depth = `perspective(${Math.round(Math.max(to.width, to.height) * 2.2)}px)`;
     const turn = deg => `translate(${halfW}px, ${halfH}px) ${depth} rotateY(${deg}deg) translate(${-halfW}px, ${-halfH}px)`;
@@ -576,7 +587,11 @@ function flyBadge(tile, to, backContent, reverse, track) {
         requestAnimationFrame(follow);
     };
     requestAnimationFrame(follow);
-    const remove = () => { following = false; ghost.remove(); shade.remove(); };
+    const remove = () => {
+        following = false;
+        if (layer.showPopover && layer.matches(':popover-open')) layer.hidePopover();
+        layer.remove();
+    };
     return { done: flight.finished.catch(() => {}), remove };
 }
 
