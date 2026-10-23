@@ -539,19 +539,15 @@ function badgeDialogCopy(dialog) {
 // While it flies it follows track() (the popup's box now), should the popup move.
 function flyBadge(tile, to, backContent, reverse, track) {
     const from = tile.getBoundingClientRect();
-    const sx = from.width / to.width, sy = from.height / to.height;
     const shade = document.createElement('div');
     shade.className = 'flip-shade';
     const ghost = document.createElement('div');
     ghost.className = 'flip-ghost';
     ghost.setAttribute('aria-hidden', 'true');
-    Object.assign(ghost.style, { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px` });
     const front = document.createElement('div');
     front.className = 'flip-face';
-    front.style.borderRadius = `${20 / Math.min(sx, sy)}px`;
     const face = tile.cloneNode(true);
     face.classList.remove('celebrate');
-    face.style.cssText = `width:${from.width}px;height:${from.height}px;transform:scale(${1 / sx},${1 / sy});opacity:1;`;
     front.appendChild(face);
     const back = document.createElement('div');
     back.className = 'flip-face back';
@@ -566,23 +562,35 @@ function flyBadge(tile, to, backContent, reverse, track) {
         layer.popover = 'manual';
         layer.showPopover();
     }
-    const halfW = to.width / 2, halfH = to.height / 2;
-    const depth = `perspective(${Math.round(Math.max(to.width, to.height) * 2.2)}px)`;
-    const turn = deg => `translate(${halfW}px, ${halfH}px) ${depth} rotateY(${deg}deg) translate(${-halfW}px, ${-halfH}px)`;
-    const small = `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${sx}, ${sy}) ${turn(0)}`;
-    const big = `translate(0px, 0px) scale(1, 1) ${turn(180)}`;
-    const moves = [{ transform: small }, { transform: big }];
+    // The ghost's box, its front's stretch, and the flight's start and end, all
+    // from the popup's box. Worked out again whenever that box moves or changes
+    // size mid-flight: on a phone the popup can grow as the browser's bars
+    // settle, and the card has to land on all of it.
+    const moves = box => {
+        const sx = from.width / box.width, sy = from.height / box.height;
+        Object.assign(ghost.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
+        front.style.borderRadius = `${20 / Math.min(sx, sy)}px`;
+        face.style.cssText = `width:${from.width}px;height:${from.height}px;transform:scale(${1 / sx},${1 / sy});opacity:1;`;
+        const halfW = box.width / 2, halfH = box.height / 2;
+        const depth = `perspective(${Math.round(Math.max(box.width, box.height) * 2.2)}px)`;
+        const turn = deg => `translate(${halfW}px, ${halfH}px) ${depth} rotateY(${deg}deg) translate(${-halfW}px, ${-halfH}px)`;
+        const small = `translate(${from.left - box.left}px, ${from.top - box.top}px) scale(${sx}, ${sy}) ${turn(0)}`;
+        const big = `translate(0px, 0px) scale(1, 1) ${turn(180)}`;
+        const frames = [{ transform: small }, { transform: big }];
+        return reverse ? frames.reverse() : frames;
+    };
     const fades = [{ opacity: 0 }, { opacity: 1 }];
     const timing = { duration: FLIP_MS, easing: FLIP_EASE, fill: 'both' };
-    const flight = ghost.animate(reverse ? moves.reverse() : moves, timing);
+    const flight = ghost.animate(moves(to), timing);
     shade.animate(reverse ? fades.reverse() : fades, timing);
     let following = !!track;
     const follow = () => {
         if (!following) return;
         const r = track();
-        if (r.width && (Math.abs(r.left - to.left) > 0.5 || Math.abs(r.top - to.top) > 0.5)) {
+        const changed = ['left', 'top', 'width', 'height'].some(k => Math.abs(r[k] - to[k]) > 0.5);
+        if (r.width && r.height && changed) {
             to = r;
-            Object.assign(ghost.style, { left: `${r.left}px`, top: `${r.top}px` });
+            flight.effect.setKeyframes(moves(r));
         }
         requestAnimationFrame(follow);
     };
