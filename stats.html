@@ -574,7 +574,8 @@ function flyBadge(tile, to, backContent, reverse, track) {
     front.appendChild(face);
     const back = document.createElement('div');
     back.className = 'flip-face back';
-    back.style.borderRadius = getComputedStyle(document.getElementById('badgeDialog')).borderRadius;
+    const popupCorners = getComputedStyle(document.getElementById('badgeDialog')).borderRadius;
+    const tileCorner = parseFloat(getComputedStyle(tile).borderTopLeftRadius) || 20;
     back.appendChild(backContent);
     ghost.append(front, back);
     const layer = document.createElement('div');
@@ -588,11 +589,17 @@ function flyBadge(tile, to, backContent, reverse, track) {
     // The ghost's box, its front's stretch, and the flight's start and end, all
     // from the popup's box. Worked out again whenever that box moves or changes
     // size mid-flight: on a phone the popup can grow as the browser's bars
-    // settle, and the card has to land on all of it.
+    // settle, and the card has to land on all of it. The faces' corners turn
+    // too: drawn at the popup's size and shrunk with it, they start as the
+    // tile's round corners (a wider radius across than down, undoing the
+    // uneven shrink) and end as the popup's, so neither end jumps.
+    const corners = [];
     const moves = box => {
         const sx = from.width / box.width, sy = from.height / box.height;
         Object.assign(ghost.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
-        front.style.borderRadius = `${20 / Math.min(sx, sy)}px`;
+        const tileCorners = `${tileCorner / sx}px / ${tileCorner / sy}px`;
+        const cornerFrames = [{ borderRadius: tileCorners }, { borderRadius: popupCorners }];
+        corners.splice(0, corners.length, reverse ? [...cornerFrames].reverse() : cornerFrames);
         face.style.cssText = `width:${from.width}px;height:${from.height}px;transform:scale(${1 / sx},${1 / sy});opacity:1;`;
         const halfW = box.width / 2, halfH = box.height / 2;
         const depth = `perspective(${Math.round(Math.max(box.width, box.height) * 2.2)}px)`;
@@ -605,6 +612,7 @@ function flyBadge(tile, to, backContent, reverse, track) {
     const fades = [{ opacity: 0 }, { opacity: 1 }];
     const timing = { duration: FLIP_MS, easing: FLIP_EASE, fill: 'both' };
     const flight = ghost.animate(moves(to), timing);
+    const turns = [front, back].map(f => f.animate(corners[0], timing));
     shade.animate(reverse ? fades.reverse() : fades, timing);
     let following = !!track;
     const follow = () => {
@@ -614,6 +622,7 @@ function flyBadge(tile, to, backContent, reverse, track) {
         if (r.width && r.height && changed) {
             to = r;
             flight.effect.setKeyframes(moves(r));
+            turns.forEach(a => a.effect.setKeyframes(corners[0]));
         }
         requestAnimationFrame(follow);
     };
