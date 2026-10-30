@@ -699,7 +699,7 @@ function eventCard(event, index) {
             </div>
             ${recordLine(event)}
             ${timedSwims(event).length > 1 ? `<div class="inset chart-box" data-event="${index}" aria-hidden="true"></div>` : ''}
-            ${event.swims.some(s => s.yardsTime) ? `<p class="yards-note">${YARDS_KEY}Yards swims, converted to meters (× 1.11)</p>` : ''}
+            ${event.swims.some(s => s.yardsTime) ? `<p class="yards-note">${YARDS_KEY}Converted from yards</p>` : ''}
             <table class="swims">
                 <thead><tr><th scope="col">Meet</th><th scope="col">Opponent</th><th scope="col">Time</th><th scope="col" class="r">Place</th></tr></thead>
                 <tbody>${event.swims.map(swimRow).join('')}</tbody>
