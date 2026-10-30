@@ -229,3 +229,28 @@ test("meet flow: Spotswood's lead after each event, from both teams' points, wit
     // A championship has more than one other team: no two-sided line.
     assert.equal(meetFlow([row(1, "Girls 9-10 50m Freestyle", "Spotswood", 6), row(1, "Girls 9-10 50m Freestyle", "A Team", 4), row(1, "Girls 9-10 50m Freestyle", "B Team", 3)], []), null);
 });
+
+test("swimmerSeason shows yards swims in the meters event at their converted time, counting toward nothing", () => {
+    const swim = (meetId, meetDate, course, seconds, stroke = "Freestyle") => ({ meetId, meetDate, eventName: `Boys 6 & Under 25${course} ${stroke}`, eventNumber: 1, status: "OK", place: 2, officialSeconds: seconds, officialTime: seconds.toFixed(2) });
+    const season = swimmerSeason("Doe, Sam", [
+        swim("a", "2026-06-10", "yd", 37.53),
+        swim("b", "2026-06-17", "m", 40.80),
+        swim("c", "2026-06-24", "m", 38.83),
+        swim("d", "2026-07-26", "yd", 30.90),
+        swim("d", "2026-07-26", "yd", 44, "Backstroke")
+    ]);
+    const free = season.events.find(e => e.eventName === "Boys 6 & Under 25m Freestyle");
+    assert.deepEqual(free.swims.map(s => [s.meetDate, s.officialTime, s.officialSeconds, s.yardsTime || null]), [
+        ["2026-06-10", "41.66", 41.66, "37.53"],
+        ["2026-06-17", "40.80", 40.8, null],
+        ["2026-06-24", "38.83", 38.83, null],
+        ["2026-07-26", "34.30", 34.3, "30.90"]
+    ]);
+    // The meters swims' changes and PBs, and the season best, are their own.
+    assert.deepEqual(free.swims.map(s => [s.change, s.personalBest]), [[null, false], [null, false], [-1.97, true], [null, false]]);
+    assert.equal(free.seasonBestSeconds, 38.83);
+    assert.equal(season.events.some(e => e.eventName === "Boys 6 & Under 25yd Freestyle"), false, "the yards event joined the meters one");
+    // A yards event with no meters event to join stays as it is.
+    const back = season.events.find(e => e.eventName === "Boys 6 & Under 25yd Backstroke");
+    assert.deepEqual(back.swims.map(s => [s.officialTime, s.yardsTime]), [["44.00", undefined]]);
+});

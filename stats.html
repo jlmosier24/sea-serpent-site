@@ -185,6 +185,13 @@
     .chart-best { fill: var(--gold); stroke: #fff; stroke-width: 2.5; }
     .chart-best-halo { fill: var(--gold); opacity: .28; }
     /* An outline in the box's color keeps a time readable where the line runs behind it. */
+    .chart-value.small { font-size: 12.5px; }
+    .chart-date.small { font-size: 11.5px; }
+    /* A yards swim, at its converted time: a hollow, dashed point. */
+    .chart-dot.yards { stroke-dasharray: 3 2.5; }
+    .yards-note { display: flex; align-items: center; gap: 8px; margin: -8px 2px 14px; font-size: 13px; color: var(--muted); }
+    .yards-note svg { flex-shrink: 0; }
+    .yards-time { display: block; margin-top: 1px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
     .chart-value { font-size: 14px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--soft); stroke-width: 4px; stroke-linejoin: round; }
     .chart-date { font-size: 12.5px; fill: var(--muted); }
     /* The first time a chart comes into view, its line draws left to right and each
@@ -680,6 +687,9 @@ function timedSwims(event) {
     return event.swims.filter(s => s.status === 'OK' && s.officialSeconds != null);
 }
 
+// The chart's mark for a yards swim, for the note under it.
+const YARDS_KEY = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" fill="#fff" stroke="#1A6B2E" stroke-width="2" stroke-dasharray="3 2.5"/></svg>';
+
 function eventCard(event, index) {
     return `
         <section class="card event-card" aria-labelledby="event-${index}">
@@ -689,6 +699,7 @@ function eventCard(event, index) {
             </div>
             ${recordLine(event)}
             ${timedSwims(event).length > 1 ? `<div class="inset chart-box" data-event="${index}" aria-hidden="true"></div>` : ''}
+            ${event.swims.some(s => s.yardsTime) ? `<p class="yards-note">${YARDS_KEY}Yards swims, converted to meters (× 1.11)</p>` : ''}
             <table class="swims">
                 <thead><tr><th scope="col">Meet</th><th scope="col">Opponent</th><th scope="col">Time</th><th scope="col" class="r">Place</th></tr></thead>
                 <tbody>${event.swims.map(swimRow).join('')}</tbody>
@@ -707,7 +718,10 @@ function recordLine(event) {
         // A yards swim's record is its time converted to meters (x 1.11).
         const asRecord = s => (record.yards ? Math.round(s.officialSeconds * 111) / 100 : s.officialSeconds);
         const swim = event.swims.find(s => s.teamRecord && s.officialSeconds != null && Math.abs(asRecord(s) - record.seconds) < 0.005);
-        const note = swim ? `Set ${fmtDate(swim.meetDate)}${record.yards ? ` · ${swim.officialTime} yd, converted to meters` : ''}` : '';
+        // A yards swim's time as swum: its own (a yards-only event), or kept
+        // alongside its converted time once it's joined the meters event.
+        const yards = swim && (swim.yardsTime || (record.yards ? swim.officialTime : ''));
+        const note = swim ? `Set ${fmtDate(swim.meetDate)}${yards ? ` · ${yards} yd, converted to meters` : ''}` : '';
         return `
             <div class="record-line held">
                 <div class="record-top"><span>${Meets.RECORD_ICON}<b>Team record holder</b></span><b>${escapeHtml(record.time)}</b></div>
@@ -747,7 +761,9 @@ function timeCell(swim) {
     if (swim.status !== 'OK') return `<span class="swim-status">${escapeHtml(STATUS_TEXT[swim.status] || swim.status)}</span>`;
     const pb = swim.personalBest ? '<span class="pb-tag"><span aria-hidden="true">PB</span><span class="sr-only">Personal best</span></span>' : '';
     const record = swim.teamRecord ? `<span class="record-tag">${Meets.RECORD_ICON}Team record</span>` : '';
-    return `<div class="time-cell"><span class="time">${escapeHtml(swim.officialTime)}</span>${changeHtml(swim.change)}${pb}${record}</div>`;
+    // A yards swim shows its converted time, with the time as swum under it.
+    const yards = swim.yardsTime ? `<span class="yards-time">${escapeHtml(swim.yardsTime)} yd<span class="sr-only">, swum in yards</span></span>` : '';
+    return `<div class="time-cell"><span class="time">${escapeHtml(swim.officialTime)}${yards}</span>${changeHtml(swim.change)}${pb}${record}</div>`;
 }
 
 function changeHtml(change) {
@@ -767,25 +783,60 @@ function placeCell(swim) {
 // fastest swim is the gold dot. When the dots are close together, only the
 // first, last, and fastest get labels; the table below has every time.
 function chartSvg(swims, width) {
-    const H = 190, L = 40, R = 40, T = 40, B = 44;
     const n = swims.length;
+    // Every time shows when the points are 60px apart. Closer than that (a
+    // phone with 5 or more swims), each time sits above or below its point,
+    // whichever side is open, and the dates take two rows (2026-10-30);
+    // closer still, only the first, best, and latest times and the dates that
+    // fit show.
+    let L = 40, R = 40;
+    let spacing = (width - L - R) / Math.max(1, n - 1);
+    const roomy = spacing >= 60;
+    const staggered = !roomy && (width - 52) / Math.max(1, n - 1) >= 33;
+    if (staggered) {
+        L = R = 26;
+        spacing = (width - L - R) / (n - 1);
+    }
+    const H = staggered ? 210 : 190, T = staggered ? 46 : 40, B = staggered ? 58 : 44;
     const values = swims.map(s => s.officialSeconds);
     const min = Math.min(...values);
     const max = Math.max(...values);
     const range = (max - min) || 1;
-    const lo = min - range * 0.12;
-    const hi = max + range * 0.12;
-    const spacing = (width - L - R) / (n - 1);
+    const lo = min - range * (staggered ? 0.15 : 0.12);
+    const hi = max + range * (staggered ? 0.15 : 0.12);
     const x = i => L + i * spacing;
     const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
-    const fastest = values.indexOf(min);
-    const labeled = i => spacing >= 60 || i === 0 || i === n - 1 || i === fastest;
+    // The gold point is the season best, which a converted yards swim never is.
+    const own = values.filter((v, i) => !swims[i].yardsTime);
+    const best = own.length ? Math.min(...own) : min;
+    const fastest = swims.findIndex(s => !s.yardsTime && s.officialSeconds === best);
+    const labeled = i => roomy || staggered || i === 0 || i === n - 1 || i === fastest;
+    // A label goes above a point higher on the chart than its neighbors (a
+    // slower swim) and below one lower down; the gold best's always below.
+    const side = values.map((v, i) => {
+        if (i === fastest) return 'below';
+        const near = [values[i - 1], values[i + 1]].filter(w => w != null);
+        return v < near.reduce((a, b) => a + b, 0) / near.length ? 'below' : 'above';
+    });
+    // Two neighbors on the same side at about the same height would touch:
+    // the one that isn't the gold best moves to the other side.
+    for (let i = 1; i < n && staggered; i++) {
+        if (side[i] === side[i - 1] && spacing < 40 && Math.abs(y(values[i]) - y(values[i - 1])) < 16) {
+            const move = i === fastest ? i - 1 : i;
+            side[move] = side[move] === 'below' ? 'above' : 'below';
+        }
+    }
+    const below = i => staggered && side[i] === 'below';
     // Dates share one line along the bottom, so each needs room ("August 12"
     // is about 55px wide): the fastest swim's first, then the last and first.
+    // Staggered, they take two rows, so every one fits.
     const DATE_ROOM = 62;
     const dated = new Set();
-    for (const i of spacing >= DATE_ROOM ? swims.keys() : [fastest, n - 1, 0]) {
-        if ([...dated].every(j => Math.abs(i - j) * spacing >= DATE_ROOM)) dated.add(i);
+    if (staggered) swims.forEach((s, i) => dated.add(i));
+    else {
+        for (const i of spacing >= DATE_ROOM ? swims.keys() : [fastest, n - 1, 0]) {
+            if ([...dated].every(j => Math.abs(i - j) * spacing >= DATE_ROOM)) dated.add(i);
+        }
     }
 
     let svg = `<svg width="${width}" height="${H}" viewBox="0 0 ${width} ${H}">`;
@@ -794,14 +845,17 @@ function chartSvg(swims, width) {
         svg += `<line class="chart-grid" x1="${L}" x2="${width - R}" y1="${gy}" y2="${gy}"/>`;
     }
     svg += `<polyline class="chart-line" points="${swims.map((s, i) => `${x(i).toFixed(1)},${y(s.officialSeconds).toFixed(1)}`).join(' ')}"/>`;
+    const small = staggered ? ' small' : '';
     swims.forEach((s, i) => {
         const cx = x(i).toFixed(1);
         const cy = y(s.officialSeconds);
+        const yd = s.yardsTime ? ' yards' : '';
+        const r = staggered ? 5 : 6;
         svg += i === fastest
-            ? `<circle class="chart-best-halo" cx="${cx}" cy="${cy.toFixed(1)}" r="12"/><circle class="chart-best" cx="${cx}" cy="${cy.toFixed(1)}" r="8"/>`
-            : `<circle class="chart-dot" cx="${cx}" cy="${cy.toFixed(1)}" r="6"/>`;
-        if (labeled(i)) svg += `<text class="chart-value" x="${cx}" y="${(cy - 16).toFixed(1)}" text-anchor="middle">${escapeHtml(s.officialTime)}</text>`;
-        if (dated.has(i)) svg += `<text class="chart-date" x="${cx}" y="${H - 14}" text-anchor="middle">${escapeHtml(fmtDate(s.meetDate))}</text>`;
+            ? `<circle class="chart-best-halo" cx="${cx}" cy="${cy.toFixed(1)}" r="${staggered ? 11 : 12}"/><circle class="chart-best" cx="${cx}" cy="${cy.toFixed(1)}" r="${staggered ? 7 : 8}"/>`
+            : `<circle class="chart-dot${yd}" cx="${cx}" cy="${cy.toFixed(1)}" r="${r}"/>`;
+        if (labeled(i)) svg += `<text class="chart-value${small}" x="${cx}" y="${(below(i) ? cy + 24 : cy - (staggered ? 13 : 16)).toFixed(1)}" text-anchor="middle">${escapeHtml(s.officialTime)}</text>`;
+        if (dated.has(i)) svg += `<text class="chart-date${small}" x="${cx}" y="${staggered ? (i % 2 ? H - 8 : H - 26) : H - 14}" text-anchor="middle">${escapeHtml(fmtDate(s.meetDate))}</text>`;
     });
     return svg + '</svg>';
 }

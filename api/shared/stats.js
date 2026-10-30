@@ -293,6 +293,46 @@ function swimmerEvents(swims) {
     return events;
 }
 
+/* ---------- Yards swims in the meters events (2026-10-30) ---------- */
+// A yards event's swims join the same event in meters ("25yd" -> "25m") at
+// their converted time (x 1.11, rounded to the hundredth, as SwimTopia
+// converts team records), carrying the time as swum in yardsTime. Shown only:
+// a converted swim gets no change arrow or PB and never sets the season best,
+// and badges and leaderboards don't see it. A yards event with no meters
+// event to join stays as it is.
+const YARDS_TO_METERS = 1.11;
+const metersName = eventName => String(eventName || "").replace(/(\d+)\s*yd\b/i, "$1m");
+
+function fmtTime(seconds) {
+    const whole = Math.floor(seconds / 60);
+    const rest = (seconds - whole * 60).toFixed(2).padStart(5, "0");
+    return whole ? `${whole}:${rest}` : seconds.toFixed(2);
+}
+
+function withYardsInMeters(events) {
+    const byName = new Map(events.map(e => [e.eventName, e]));
+    const merged = new Set();
+    for (const event of events) {
+        const meters = metersName(event.eventName);
+        if (meters === event.eventName || !byName.has(meters)) continue;
+        const target = byName.get(meters);
+        for (const swim of event.swims) {
+            const converted = swim.officialSeconds == null ? null : round2(swim.officialSeconds * YARDS_TO_METERS);
+            target.swims.push({
+                ...swim,
+                officialSeconds: converted,
+                officialTime: converted == null ? swim.officialTime : fmtTime(converted),
+                yardsTime: swim.officialTime,
+                change: null,
+                personalBest: false
+            });
+        }
+        target.swims.sort(byMeetThenEvent);
+        merged.add(event);
+    }
+    return events.filter(e => !merged.has(e));
+}
+
 // Everything the swimmer page shows, from one swimmer's swims (each with its
 // meet's date) and their saved badges (shared/badgeStore.js): their age and
 // season, how many meets they've swum (for the first-meet welcome), badges,
@@ -309,7 +349,7 @@ function swimmerSeason(name, swims, earned = {}) {
         // Relays count as meets swum too, so a meet with only a relay leg still counts.
         meetsSwum: Math.max(meetsWithSwims, badgeTotals.meetsSwum || 0),
         badges: earned.badges || [],
-        events: swimmerEvents(swims).map(e => ({
+        events: withYardsInMeters(swimmerEvents(swims)).map(e => ({
             eventName: e.eventName,
             seasonBestSeconds: e.seasonBestSeconds,
             swims: e.swims.map(s => ({
@@ -321,7 +361,8 @@ function swimmerSeason(name, swims, earned = {}) {
                 officialSeconds: s.officialSeconds,
                 change: s.change,
                 personalBest: s.personalBest,
-                teamRecord: !!s.teamRecord
+                teamRecord: !!s.teamRecord,
+                ...(s.yardsTime ? { yardsTime: s.yardsTime } : {})
             }))
         }))
     };
